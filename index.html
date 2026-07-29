@@ -1,0 +1,1472 @@
+<!DOCTYPE html>
+<html lang="es">
+<!-- author: Kevin · https://github.com/LightSwan -->
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <meta name="theme-color" content="#000000">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Reproductor Natación">
+  <title>Reproductor de entrenamientos</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    /* © Kevin — github.com/LightSwan
+       Paleta y componentes base compartidos con el Generador de sesiones
+       y la Biblioteca de la Natación, para mantener coherencia visual. */
+    :root{
+      --bg:#020617;
+      --panel:#0f172a;
+      --card:#111827;
+      --card2:#1e293b;
+      --border:#334155;
+      --text:#f8fafc;
+      --muted:#94a3b8;
+      --primary:#34d399;
+      --primary2:#10b981;
+      --danger:#ef4444;
+      --success:#22c55e;
+      --warning:#f59e0b;
+    }
+
+    *{ margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+    html, body{ height:100%; }
+
+    body{
+      background:
+        radial-gradient(circle at 15% 0%, rgba(52,211,153,.09) 0%, transparent 45%),
+        radial-gradient(circle at 100% 20%, rgba(20,184,166,.07) 0%, transparent 40%),
+        linear-gradient(180deg,#010409 0%, #08111c 55%, #0b1420 100%);
+      background-attachment:fixed;
+      font-family:'Sora',sans-serif;
+      color:var(--text);
+      min-height:100vh;
+      min-height:100dvh;
+    }
+
+    .container{ max-width:720px; margin:auto; padding:24px; }
+
+    /* ---------- Cabecera ---------- */
+    .header{ margin-bottom:26px; }
+    .header-top{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+    .header h1{
+      font-size:31px; font-weight:800; letter-spacing:-.02em; color:var(--text);
+    }
+    .badge-beta{
+      background:linear-gradient(135deg,#f59e0b,#d97706); color:#000; font-size:11px; font-weight:800;
+      padding:3px 10px; border-radius:999px; letter-spacing:.08em; text-transform:uppercase;
+      box-shadow:0 2px 10px rgba(245,158,11,.35);
+    }
+    .header p{ color:var(--muted); margin-top:7px; font-size:14px; line-height:1.5; max-width:520px; }
+
+    /* ---------- Componentes genéricos ---------- */
+    .panel{
+      position:relative; background:rgba(15,23,42,.72); border:1px solid rgba(148,163,184,.14);
+      border-radius:28px; padding:26px; backdrop-filter:blur(16px);
+      box-shadow:0 20px 50px -20px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.04);
+      overflow:hidden;
+    }
+    .panel::before{
+      content:""; position:absolute; top:0; left:0; right:0; height:1px;
+      background:linear-gradient(90deg, transparent, rgba(52,211,153,.6), transparent);
+    }
+
+    .action-btn{
+      background:rgba(30,41,59,.6); border:1px solid var(--border); color:var(--text);
+      padding:13px 16px; border-radius:14px; cursor:pointer; font-size:14px;
+      transition:transform .15s ease, border-color .2s ease, box-shadow .2s ease, opacity .2s ease;
+      font-family:'Sora',sans-serif; display:inline-flex; align-items:center; gap:8px;
+    }
+    .action-btn:hover{ border-color:var(--primary); transform:translateY(-1px); }
+    .action-btn:active{ transform:translateY(0) scale(.98); }
+    .action-btn:disabled{ opacity:.4; cursor:not-allowed; transform:none; }
+
+    .btn-primary{
+      background:linear-gradient(135deg,#10b981,#0d9488); color:#fff; border:none; font-weight:700;
+      box-shadow:0 6px 20px -6px rgba(14,165,233,.5);
+    }
+    .btn-success{
+      background:linear-gradient(135deg,#22c55e,#16a34a); color:#fff; border:none; font-weight:700;
+      box-shadow:0 6px 20px -6px rgba(34,197,94,.5);
+    }
+    .btn-danger{
+      background:linear-gradient(135deg,#ef4444,#b91c1c); color:#fff; border:none; font-weight:700;
+      box-shadow:0 6px 20px -6px rgba(239,68,68,.5);
+    }
+    .btn-ghost-light{ background:transparent; border:1px solid rgba(255,255,255,.25); color:#fff; }
+
+    /* ---- Navegación dentro del ejercicio: un color propio para cada acción ---- */
+    .btn-nav-prev{ background:linear-gradient(135deg, rgba(96,165,250,.18), rgba(59,130,246,.08)); border:1px solid rgba(96,165,250,.4); color:#93c5fd; }
+    .btn-nav-back{ background:linear-gradient(135deg, rgba(245,158,11,.20), rgba(217,119,6,.10)); border:1px solid rgba(245,158,11,.45); color:#fbbf24; }
+    .btn-nav-next{ background:linear-gradient(135deg, rgba(52,211,153,.20), rgba(16,185,129,.10)); border:1px solid rgba(52,211,153,.45); color:#6ee7b7; }
+    .btn-nav-prev:hover, .btn-nav-back:hover, .btn-nav-next:hover{ filter:brightness(1.18); }
+
+    .btn-block{ width:100%; justify-content:center; padding:19px 22px; font-size:17px; border-radius:18px; letter-spacing:.01em; }
+
+    textarea.rp-input{
+      width:100%; min-height:220px; background:var(--card2); border:1px solid var(--border);
+      border-radius:14px; padding:14px; color:var(--text); font-family:monospace; font-size:13px; resize:vertical;
+    }
+
+    /* ============================================================
+       PANTALLAS — solo una visible a la vez, controladas por JS
+       vía la clase .rp-active en <body data-screen="...">
+    ============================================================ */
+    .screen{ display:none; }
+    body[data-screen="import"]   #screenImport,
+    body[data-screen="overview"] #screenOverview,
+    body[data-screen="exercise"] #screenExercise,
+    body[data-screen="result"]   #screenResult,
+    body[data-screen="summary"]  #screenSummary{ display:block; animation:screenFadeIn .4s ease; }
+    @keyframes screenFadeIn{
+      from{ opacity:0; transform:translateY(8px); }
+      to{ opacity:1; transform:translateY(0); }
+    }
+    /* Importante: las pantallas de cuenta atrás y cronómetro NO llevan animación de
+       transform en este contenedor — dentro hay un elemento position:fixed
+       (.rp-fullblack) y un transform en un ancestro rompe su posicionamiento
+       respecto al viewport, provocando que el contenido se desajuste y se solape. */
+    body[data-screen="countdown"] #screenCountdown,
+    body[data-screen="timer"]    #screenTimer{ display:block; }
+
+    /* ---------- Import ---------- */
+    #importError{ color:#f87171; font-size:13px; margin-top:10px; display:none; }
+
+    /* ---------- Overview ---------- */
+    .rp-total-card{
+      display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;
+      margin-bottom:20px; padding-bottom:20px; border-bottom:1px solid rgba(148,163,184,.12);
+    }
+    .rp-total-card .nombre{ font-weight:700; font-size:16.5px; }
+    .rp-total-card .fecha{ color:var(--muted); font-size:12px; margin-top:3px; }
+    .rp-total-card .metros{
+      font-size:23px; font-weight:800; text-align:right;
+      background:linear-gradient(135deg,#6ee7b7,#34d399); -webkit-background-clip:text; background-clip:text; color:transparent;
+    }
+
+    .rp-block-title{
+      color:var(--primary); font-size:12.5px; text-transform:uppercase; letter-spacing:.08em;
+      font-weight:700; margin:24px 0 11px; opacity:.9;
+    }
+    .rp-block-title:first-of-type{ margin-top:6px; }
+
+    .rp-ex-row{
+      display:flex; align-items:center; gap:12px; background:rgba(30,41,59,.5); border:1px solid rgba(148,163,184,.12);
+      border-radius:16px; padding:14px 16px; margin-bottom:10px; cursor:pointer;
+      transition:transform .15s ease, border-color .2s ease, background .2s ease, box-shadow .2s ease;
+    }
+    .rp-ex-row:hover{
+      border-color:rgba(52,211,153,.5); transform:translateY(-2px); background:rgba(30,41,59,.85);
+      box-shadow:0 10px 24px -14px rgba(52,211,153,.4);
+    }
+    .rp-ex-row .num{
+      width:32px; height:32px; border-radius:50%; background:rgba(15,23,42,.8); border:1px solid var(--border);
+      display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:var(--muted);
+      flex-shrink:0; transition:.2s;
+    }
+    .rp-ex-row.done .num{ background:linear-gradient(135deg,#4ade80,#16a34a); border-color:transparent; color:#04150a; box-shadow:0 0 12px rgba(34,197,94,.5); }
+    .rp-ex-row .info{ flex:1; min-width:0; }
+    .rp-ex-row .info .nombre{ font-weight:600; font-size:14.5px; }
+    .rp-ex-row .info .meta{ font-size:12px; color:var(--muted); margin-top:2px; }
+    .rp-ex-row .chevron{ color:var(--muted); font-size:18px; flex-shrink:0; }
+
+    /* ---------- Exercise detail ---------- */
+    .rp-progress{ color:var(--muted); font-size:13px; margin-bottom:6px; letter-spacing:.02em; }
+    .rp-block-label{ color:var(--primary); font-size:12px; text-transform:uppercase; letter-spacing:.07em; font-weight:700; margin-bottom:10px; }
+    .rp-ex-name{ font-size:27px; font-weight:800; line-height:1.25; margin-bottom:10px; letter-spacing:-.01em; }
+
+    .rp-meta-grid{
+      display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:26px;
+    }
+    .rp-meta-item{
+      background:rgba(30,41,59,.55); border:1px solid rgba(148,163,184,.12); border-radius:15px; padding:13px 15px;
+      transition:.2s;
+    }
+    .rp-meta-item .label{ font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; margin-bottom:5px; }
+    .rp-meta-item .value{ font-size:17.5px; font-weight:700; }
+
+    .rp-nav-row{ display:flex; gap:10px; margin-top:18px; }
+
+    /* rp-split y rp-split-info siguen siendo "invisibles" para el layout en
+       vertical (sus hijos fluyen normales); rp-split-actions, en cambio, SÍ
+       es una columna real que crece para ocupar todo el alto sobrante del
+       panel, y reparte ese alto entre sus botones — así son grandes y fáciles
+       de pulsar con las manos mojadas, en el borde de la piscina. En
+       horizontal, la media query de más abajo la convierte además en una
+       columna lateral de ancho fijo (en vez de ancho completo). */
+    .rp-split, .rp-split-info{ display:contents; }
+    .rp-split-actions{ display:flex; flex-direction:column; gap:14px; flex:1; min-height:0; margin-top:18px; }
+    .rp-split-actions > .action-btn{ flex:1; display:flex; }
+    .rp-split-actions > .rp-nav-row{ flex:1; margin-top:0; min-height:0; }
+    .rp-split-actions > .rp-result-actions{ flex:1; display:flex; flex-direction:column; min-height:0; }
+    .rp-nav-row .action-btn{ flex:1; justify-content:center; }
+    .rp-result-actions .action-btn{ flex:1; justify-content:center; font-size:16px; padding:14px 18px; }
+
+    /* ---------- Countdown & Timer (pantalla completa, negro puro) ---------- */
+    .rp-fullblack{
+      position:fixed; inset:0; background:#000; z-index:2000; display:flex; flex-direction:column;
+      align-items:center; justify-content:center; padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+      animation:fullblackFadeIn .3s ease;
+    }
+    @keyframes fullblackFadeIn{ from{ opacity:0; } to{ opacity:1; } }
+    body[data-screen="countdown"] .rp-fullblack, body[data-screen="timer"] .rp-fullblack{ display:flex; }
+
+    .rp-countdown-inner{ display:flex; flex-direction:column; align-items:center; }
+    .rp-timer-info{ display:flex; flex-direction:column; align-items:center; }
+
+    .rp-cancel-x{
+      position:absolute; top:calc(18px + env(safe-area-inset-top)); right:calc(18px + env(safe-area-inset-right));
+      width:44px; height:44px; border-radius:50%; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.2);
+      color:#fff; font-size:20px; display:flex; align-items:center; justify-content:center; cursor:pointer;
+    }
+
+    #countdownNum{
+      font-size:min(38vw, 220px); font-weight:800; color:#fff; font-variant-numeric:tabular-nums;
+      text-shadow:0 0 40px rgba(52,211,153,.5);
+    }
+    #countdownNum.pulse{ animation:countdownPulse .9s cubic-bezier(.34,1.56,.64,1); }
+    #countdownNum.go{ color:#4ade80; text-shadow:0 0 60px rgba(74,222,128,.8); }
+    @keyframes countdownPulse{
+      0%{ transform:scale(.3); opacity:0; }
+      45%{ transform:scale(1.2); opacity:1; }
+      70%{ transform:scale(.95); }
+      100%{ transform:scale(1); opacity:1; }
+    }
+    .rp-countdown-ring{
+      position:relative; width:min(50vw,280px); height:min(50vw,280px); border-radius:50%;
+      display:flex; align-items:center; justify-content:center;
+      border:4px solid rgba(52,211,153,.25);
+    }
+    .rp-countdown-ring::before{
+      content:""; position:absolute; inset:-4px; border-radius:50%;
+      border:4px solid rgba(52,211,153,.7); border-top-color:transparent; border-right-color:transparent;
+      animation:ringSpin 1s linear infinite;
+    }
+    .rp-countdown-ring.go::before{ border-color:rgba(74,222,128,.8); border-top-color:transparent; border-right-color:transparent; }
+    @keyframes ringSpin{ from{ transform:rotate(0deg);} to{ transform:rotate(360deg);} }
+    #countdownLabel{ color:var(--muted); font-size:15px; margin-top:14px; letter-spacing:.05em; }
+
+    .rp-timer-top{ position:absolute; top:calc(22px + env(safe-area-inset-top)); left:0; right:0; text-align:center; padding:0 70px; pointer-events:none; }
+    .rp-timer-top .ex-name{ font-size:14px; color:var(--muted); font-weight:600; }
+    .rp-timer-top .ex-progress{ font-size:11px; color:#4b5563; margin-top:2px; }
+
+    #timerDisplay{
+      font-size:min(20vw, 96px); font-weight:800; font-variant-numeric:tabular-nums; color:#fff; letter-spacing:.01em;
+    }
+    #timerDisplay.paused{ color:#4b5563; }
+
+    #totalTimeDisplay{ font-size:15px; color:var(--muted); margin-top:8px; font-variant-numeric:tabular-nums; min-height:20px; }
+    #targetRef{ font-size:13px; color:var(--muted); margin-top:6px; min-height:18px; }
+
+    #lapCounter{ font-size:13px; color:var(--primary); font-weight:700; margin-top:16px; letter-spacing:.03em; min-height:18px; }
+
+    .rp-detail-toggle{
+      margin-top:18px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.18); color:var(--muted);
+      font-size:13px; font-weight:600; padding:8px 18px; border-radius:999px; cursor:pointer;
+    }
+    .rp-timer-detail{ display:none; margin-top:6px; }
+    .rp-timer-detail.expanded{ display:block; }
+
+    #lapFlash{
+      font-size:17px; font-weight:800; color:#4ade80; margin-top:10px; min-height:24px; opacity:0;
+    }
+    #lapFlash.show{ animation:lapFlashAnim 1.8s ease; }
+    @keyframes lapFlashAnim{
+      0%{ opacity:0; transform:translateY(8px) scale(.9); }
+      12%{ opacity:1; transform:translateY(0) scale(1.08); }
+      25%{ transform:scale(1); }
+      78%{ opacity:1; }
+      100%{ opacity:0; }
+    }
+
+    .rp-laps-mini{
+      margin-top:10px; max-height:70px; overflow-y:auto; width:100%; max-width:320px; font-size:12px;
+      color:var(--muted); text-align:center; font-variant-numeric:tabular-nums;
+    }
+    .rp-laps-mini div{ padding:2px 0; }
+
+    .rp-timer-controls{
+      position:absolute; bottom:calc(28px + env(safe-area-inset-bottom)); left:0; right:0;
+      display:flex; justify-content:center; gap:22px; padding:0 20px; flex-wrap:wrap;
+    }
+    .rp-ctrl-btn{
+      display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
+      width:112px; height:112px; border-radius:50%; border:2px solid rgba(255,255,255,.18);
+      background:rgba(255,255,255,.06); backdrop-filter:blur(6px); color:#fff; font-size:14px; font-weight:700; cursor:pointer;
+      transition:transform .15s ease, background .2s ease, box-shadow .2s ease;
+    }
+    .rp-ctrl-btn:active{ transform:scale(.93); }
+    .rp-ctrl-btn .icon{ font-size:34px; }
+    .rp-ctrl-btn.lap{ border-color:rgba(52,211,153,.6); box-shadow:0 0 22px -6px rgba(52,211,153,.6); }
+    .rp-ctrl-btn.stop{ border-color:rgba(239,68,68,.65); background:rgba(239,68,68,.16); box-shadow:0 0 22px -6px rgba(239,68,68,.6); }
+    .rp-ctrl-btn:disabled{ opacity:.3; cursor:not-allowed; transform:none; box-shadow:none; }
+
+    /* ---------- Result screen ---------- */
+    .rp-result-time{
+      font-size:min(16vw,64px); font-weight:800; font-variant-numeric:tabular-nums; text-align:center;
+      padding:26px 10px; border-radius:26px; margin-bottom:8px; border:1px solid transparent;
+    }
+    .rp-result-time.res-green{ background:rgba(34,197,94,.1); color:#4ade80; border-color:rgba(34,197,94,.3); box-shadow:0 0 40px -18px rgba(34,197,94,.8); }
+    .rp-result-time.res-yellow{ background:rgba(245,158,11,.1); color:#fbbf24; border-color:rgba(245,158,11,.3); box-shadow:0 0 40px -18px rgba(245,158,11,.8); }
+    .rp-result-time.res-red{ background:rgba(239,68,68,.1); color:#f87171; border-color:rgba(239,68,68,.3); box-shadow:0 0 40px -18px rgba(239,68,68,.8); }
+    .rp-result-time.res-neutral{ background:rgba(30,41,59,.6); color:var(--text); border-color:rgba(148,163,184,.14); }
+
+    .rp-result-sub{ text-align:center; color:var(--muted); font-size:13px; margin-bottom:22px; }
+
+    .rp-laps-list{ margin-bottom:24px; max-height:30vh; overflow-y:auto; }
+    .rp-lap-row{
+      display:flex; justify-content:space-between; align-items:center; padding:12px 16px; border-radius:13px;
+      margin-bottom:8px; font-variant-numeric:tabular-nums; font-size:14px; border:1px solid var(--border);
+      transition:.2s;
+    }
+    .rp-lap-row.res-green{ background:rgba(34,197,94,.08); border-color:rgba(34,197,94,.3); }
+    .rp-lap-row.res-yellow{ background:rgba(245,158,11,.08); border-color:rgba(245,158,11,.3); }
+    .rp-lap-row.res-red{ background:rgba(239,68,68,.08); border-color:rgba(239,68,68,.3); }
+    .rp-lap-row.res-neutral{ background:rgba(30,41,59,.5); }
+    .rp-lap-row .lap-label{ color:var(--muted); font-size:12.5px; }
+    .rp-lap-row .lap-time{ font-weight:700; }
+    .rp-lap-row.rp-lap-total{
+      margin-top:10px; border-top:1px solid var(--border); border-radius:13px;
+      background:linear-gradient(135deg, rgba(52,211,153,.14), rgba(20,184,166,.08)); border-color:rgba(52,211,153,.4);
+    }
+    .rp-lap-row.rp-lap-total .lap-label{ color:#6ee7b7; font-weight:700; font-size:13px; }
+    .rp-lap-row.rp-lap-total .lap-time{ font-size:16px; }
+
+    .rp-result-actions{ display:flex; flex-direction:column; gap:10px; }
+    .rp-result-actions .action-btn{ width:100%; }
+
+    .rp-empty{ text-align:center; padding:60px 20px; color:var(--muted); }
+    .rp-empty .icon{ font-size:44px; margin-bottom:14px; }
+
+    /* ---------- Botón flotante: entrar / salir de pantalla completa ----------
+       Siempre visible (para poder tanto entrar como salir), salvo en cuenta
+       atrás/cronómetro, donde ya hay un botón de cierre en la misma esquina. */
+    .rp-fs-toggle{
+      position:fixed; top:calc(16px + env(safe-area-inset-top)); right:calc(16px + env(safe-area-inset-right));
+      width:48px; height:48px; padding:0; border-radius:50%; z-index:1500; display:flex; align-items:center; justify-content:center;
+      background:rgba(15,23,42,.65); border:1px solid rgba(148,163,184,.25); color:var(--muted);
+      cursor:pointer; backdrop-filter:blur(10px); box-shadow:0 6px 18px -8px rgba(0,0,0,.5); transition:.2s;
+    }
+    .rp-fs-toggle:hover{ color:var(--text); border-color:var(--primary); }
+    .rp-fs-toggle svg{ width:20px; height:20px; display:block; }
+    body[data-screen="countdown"] .rp-fs-toggle,
+    body[data-screen="timer"]    .rp-fs-toggle{ display:none; }
+
+    /* ---------- Botón "Explicación disponible" + modal ---------- */
+    .rp-desc-btn{
+      align-self:flex-start; display:inline-flex; align-items:center; gap:8px;
+      background:linear-gradient(135deg, rgba(52,211,153,.16), rgba(20,184,166,.10));
+      border:1px solid rgba(52,211,153,.45); color:#6ee7b7; font-weight:700; font-size:13.5px;
+      font-family:'Sora',sans-serif; padding:11px 18px; border-radius:999px; cursor:pointer;
+      margin-bottom:18px; animation:descPulse 2.6s ease-in-out infinite; transition:border-color .2s, transform .15s;
+    }
+    .rp-desc-btn .icon{ font-size:16px; }
+    .rp-desc-btn:hover{ border-color:#6ee7b7; }
+    .rp-desc-btn:active{ transform:scale(.97); }
+    @keyframes descPulse{
+      0%,100%{ box-shadow:0 0 0 0 rgba(52,211,153,.35); }
+      50%{ box-shadow:0 0 0 9px rgba(52,211,153,0); }
+    }
+
+    .rp-modal-backdrop{
+      position:fixed; inset:0; z-index:3000; display:none; align-items:center; justify-content:center;
+      background:rgba(2,6,10,.75); backdrop-filter:blur(6px); padding:24px;
+      animation:fullblackFadeIn .2s ease;
+    }
+    .rp-modal-backdrop.show{ display:flex; }
+    .rp-modal{
+      position:relative; width:100%; max-width:520px; max-height:80vh; overflow-y:auto;
+      background:var(--panel); border:1px solid rgba(148,163,184,.2); border-radius:26px;
+      padding:32px 28px 28px; box-shadow:0 30px 70px -20px rgba(0,0,0,.7);
+    }
+    .rp-modal-close{
+      position:absolute; top:14px; right:14px; width:42px; height:42px; border-radius:50%;
+      background:rgba(255,255,255,.06); border:1px solid rgba(148,163,184,.2); color:var(--muted);
+      font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:.2s;
+    }
+    .rp-modal-close:hover{ color:var(--text); border-color:var(--primary); }
+    .rp-modal-header{ font-size:20px; font-weight:800; margin-bottom:14px; padding-right:38px; color:var(--text); }
+    .rp-modal-body{ color:var(--muted); font-size:15.5px; line-height:1.7; white-space:pre-wrap; }
+
+    @media (max-width:480px){
+      .rp-meta-grid{ grid-template-columns:1fr 1fr; }
+      .header h1{ font-size:24px; }
+    }
+
+    /* ============================================================
+       MÓVIL EN HORIZONTAL
+       Los teléfonos en horizontal tienen muy poca altura disponible.
+       Reestructuramos los paneles normales para aprovechar el ancho,
+       y sobre todo la cuenta atrás / cronómetro (pantalla completa,
+       la vista que se usa realmente en el borde de la piscina) para
+       que quepan sin recortes ni scroll.
+    ============================================================ */
+    /* La cabecera (título + descripción) solo tiene sentido en Importar/Resumen;
+       en Ejercicio y Resultado ocupa sitio que necesita la tarjeta, así que se
+       oculta siempre (vertical y horizontal), no solo en horizontal. */
+    body[data-screen="exercise"] .header,
+    body[data-screen="result"]   .header{ display:none; }
+
+    /* Ejercicio y Resultado ocupan siempre toda la altura de la pantalla
+       (vertical y horizontal), sin huecos muertos arriba/abajo, y sus
+       botones (rp-split-actions, definido más arriba) se reparten ese
+       espacio para ser lo más grandes y accesibles posible. */
+    body[data-screen="exercise"] .container,
+    body[data-screen="result"]   .container{ display:flex; flex-direction:column; min-height:100dvh; }
+    body[data-screen="exercise"] #screenExercise,
+    body[data-screen="result"]   #screenResult{ flex:1; display:flex; min-height:0; }
+    body[data-screen="exercise"] #screenExercise > .panel,
+    body[data-screen="result"]   #screenResult > .panel{ flex:1; display:flex; flex-direction:column; min-height:0; overflow-y:auto; }
+
+    @media (orientation:landscape) and (max-height:600px){
+      html, body{ height:100%; }
+      body{ padding-left:env(safe-area-inset-left); padding-right:env(safe-area-inset-right); display:flex; }
+      .container{ max-width:none; width:100%; margin:0; height:100%; padding:14px calc(20px + env(safe-area-inset-right)) 14px calc(20px + env(safe-area-inset-left)); }
+
+      .header{ margin-bottom:14px; }
+      .header h1{ font-size:22px; }
+      .header p{ font-size:12.5px; max-width:none; }
+      .badge-beta{ font-size:10px; }
+      .panel{ padding:18px 22px; border-radius:22px; }
+
+      /* ---- Detalle de ejercicio y Resultado: contenido a un lado,
+         botones grandes al otro que ocupan todo el alto disponible. ---- */
+      .rp-split{ display:flex; align-items:stretch; gap:28px; flex:1; min-height:0; }
+      .rp-split-info{ display:flex; flex-direction:column; justify-content:center; flex:1; min-width:0; }
+      .rp-split-actions{ display:flex; flex-direction:column; gap:14px; flex:0 0 320px; margin-top:0; }
+
+      .rp-meta-grid{ grid-template-columns:repeat(2,1fr); gap:8px; margin-bottom:0; }
+      .rp-meta-item{ padding:9px 10px; }
+      .rp-meta-item .label{ font-size:10px; margin-bottom:2px; }
+      .rp-meta-item .value{ font-size:15px; }
+      .rp-ex-name{ font-size:22px; margin-bottom:6px; }
+      .rp-desc-btn{ font-size:12.5px; padding:9px 15px; margin-bottom:12px; }
+      .rp-progress{ margin-bottom:2px; }
+      .rp-block-label{ margin-bottom:5px; }
+
+      .rp-split-actions .btn-block{ padding:0 22px; font-size:19px; border-radius:20px; }
+      .rp-nav-row{ flex-direction:column; margin-top:0; }
+      .rp-nav-row .action-btn{ padding:0 14px; font-size:15px; border-radius:16px; }
+
+      .rp-result-time{ padding:20px 10px; font-size:min(9vh,52px); margin-bottom:4px; }
+      .rp-result-sub{ margin-bottom:10px; }
+      .rp-laps-list{ max-height:22vh; overflow-y:auto; }
+      .rp-result-actions .action-btn{ padding:0 16px; font-size:16px; border-radius:16px; }
+
+      .rp-total-card{ margin-bottom:12px; padding-bottom:12px; }
+      .rp-block-title{ margin:14px 0 8px; }
+      .rp-ex-row{ padding:10px 14px; margin-bottom:7px; }
+
+      /* ---- Cuenta atrás: igual que en vertical, solo más compacta ---- */
+      .rp-fullblack{ padding-bottom:calc(16px + env(safe-area-inset-bottom)); padding-left:calc(16px + env(safe-area-inset-left)); padding-right:calc(16px + env(safe-area-inset-right)); }
+
+      .rp-countdown-ring{ width:min(65vh,190px); height:min(65vh,190px); }
+      #countdownNum{ font-size:min(28vh,120px); }
+      #countdownLabel{ font-size:13px; margin-top:8px; }
+
+      .rp-cancel-x{ top:calc(10px + env(safe-area-inset-top)); right:calc(10px + env(safe-area-inset-right)); width:42px; height:42px; font-size:17px; }
+
+      /* ---- Cronómetro: Vuelta pegada al borde izquierdo, Finalizar al
+         borde derecho —ambas ocupando todo el alto de la pantalla, de
+         arriba a abajo, para ser fáciles de golpear con el dedo mojado—
+         y el tiempo centrado ocupando todo el espacio que queda en medio. ---- */
+      #screenTimer .rp-fullblack{
+        flex-direction:row; align-items:center; justify-content:space-between; gap:18px;
+        padding-top:env(safe-area-inset-top); padding-bottom:env(safe-area-inset-bottom);
+      }
+      .rp-timer-top{ position:absolute; top:calc(8px + env(safe-area-inset-top)); left:0; right:0; padding:0 calc(min(20vw,150px) + 14px); }
+      .rp-timer-top .ex-name{ font-size:12.5px; }
+      .rp-timer-top .ex-progress{ font-size:10px; }
+
+      /* .rp-timer-controls pasa a ser "invisible" para el layout: sus tres
+         botones (Vuelta, Pausa, Finalizar) se convierten en hijos directos
+         de la fila junto con el bloque central del tiempo, y así podemos
+         colocar cada uno donde queremos con `order`. */
+      .rp-timer-controls{ display:contents; }
+      #lapBtn{ order:1; }
+      .rp-timer-info{ order:2; flex:1; min-width:0; }
+      #pauseBtn{ order:3; }
+      #stopBtn{ order:4; }
+
+      #lapBtn, #stopBtn{ align-self:stretch; width:min(20vw,150px); height:auto; border-radius:28px; flex-shrink:0; }
+      #lapBtn .icon, #stopBtn .icon{ font-size:34px; }
+      #lapBtn{ margin-left:calc(4px + env(safe-area-inset-left)); }
+      #stopBtn{ margin-right:calc(4px + env(safe-area-inset-right)); }
+      #pauseBtn{ width:min(9vw,74px); height:min(9vw,74px); flex-shrink:0; font-size:10px; }
+      #pauseBtn .icon{ font-size:20px; }
+
+      #timerDisplay{ font-size:min(11vw,130px); white-space:nowrap; }
+      .rp-detail-toggle{ margin-top:6px; font-size:11.5px; padding:6px 14px; }
+      .rp-timer-detail{ margin-top:2px; }
+      #totalTimeDisplay{ font-size:12px; margin-top:2px; }
+      #targetRef{ font-size:11px; margin-top:2px; }
+      #lapCounter{ font-size:11px; margin-top:4px; }
+      #lapFlash{ font-size:13px; margin-top:2px; min-height:18px; }
+      .rp-laps-mini{ max-height:8vh; margin-top:2px; }
+    }
+  </style>
+</head>
+<body data-screen="import">
+<button class="rp-fs-toggle" id="fsToggleBtn" title="Pantalla completa"></button>
+<div class="container">
+
+  <div class="header">
+    <div class="header-top">
+      <h1>Reproductor de sesiones</h1>
+      <span class="badge-beta">BETA</span>
+    </div>
+    <p>Pega el entrenamiento copiado desde el Generador de sesiones y hazlo ejercicio por ejercicio, con cronómetro.</p>
+  </div>
+
+  <!-- ============================================================
+    PANTALLA: IMPORTAR
+  ============================================================ -->
+  <div class="screen" id="screenImport">
+    <div class="panel">
+      <p style="color:var(--muted); font-size:14px; margin-bottom:14px;">Pega aquí el JSON que copiaste con el botón "📋 Copiar entrenamiento (JSON)" del generador.</p>
+      <textarea class="rp-input" id="importTextarea" placeholder='{"tipo":"sesion-natacion", ...}'></textarea>
+      <p id="importError"></p>
+      <div style="display:flex; gap:10px; margin-top:16px; flex-wrap:wrap;">
+        <button class="action-btn" id="pasteClipboardBtn" style="flex:1; justify-content:center;">📋 Pegar del portapapeles</button>
+        <button class="action-btn btn-success" id="loadTrainingBtn" style="flex:1; justify-content:center;">✓ Cargar entrenamiento</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+    PANTALLA: RESUMEN DEL ENTRENAMIENTO
+  ============================================================ -->
+  <div class="screen" id="screenOverview">
+    <div class="panel">
+      <div class="rp-total-card">
+        <div>
+          <div class="nombre" id="ovNombre"></div>
+          <div class="fecha" id="ovFecha"></div>
+        </div>
+        <div class="metros" id="ovMetros"></div>
+      </div>
+
+      <button class="action-btn btn-success btn-block" id="startTrainingBtn" style="font-size:17px; padding:20px; margin-bottom:22px; box-shadow:0 6px 24px rgba(34,197,94,.35);">▶ Comenzar entrenamiento</button>
+
+      <div id="ovList"></div>
+    </div>
+    <div style="display:flex; justify-content:center; gap:10px; margin-top:16px; flex-wrap:wrap;">
+      <button class="action-btn" id="viewSummaryBtn">📊 Ver resumen general</button>
+      <button class="action-btn" id="loadOtherBtn">🔄 Cargar otro entrenamiento</button>
+    </div>
+  </div>
+
+  <!-- ============================================================
+    PANTALLA: DETALLE DE EJERCICIO
+  ============================================================ -->
+  <div class="screen" id="screenExercise">
+    <div class="panel">
+      <div class="rp-split">
+        <div class="rp-split-info">
+          <div class="rp-progress" id="exProgress"></div>
+          <div class="rp-block-label" id="exBlockLabel"></div>
+          <div class="rp-ex-name" id="exNombre"></div>
+          <button class="rp-desc-btn" id="exDescBtn" type="button">
+            <span class="icon">💬</span> Explicación disponible
+          </button>
+
+          <div class="rp-meta-grid">
+            <div class="rp-meta-item">
+              <div class="label">Distancia</div>
+              <div class="value" id="exDistancia"></div>
+            </div>
+            <div class="rp-meta-item">
+              <div class="label">Series</div>
+              <div class="value" id="exSeries"></div>
+            </div>
+            <div class="rp-meta-item">
+              <div class="label">Intensidad</div>
+              <div class="value" id="exIntensidad"></div>
+            </div>
+            <div class="rp-meta-item">
+              <div class="label">Objetivo / serie</div>
+              <div class="value" id="exObjetivo"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="rp-split-actions">
+          <button class="action-btn btn-primary btn-block" id="startExerciseBtn">▶ Empezar</button>
+
+          <div class="rp-nav-row">
+            <button class="action-btn btn-nav-prev" id="prevExBtn">← Anterior</button>
+            <button class="action-btn btn-nav-back" id="backToOverviewBtn">☰ Volver</button>
+            <button class="action-btn btn-nav-next" id="nextExBtn">Siguiente →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+    PANTALLA: RESULTADO
+  ============================================================ -->
+  <div class="screen" id="screenResult">
+    <div class="panel">
+      <div class="rp-split">
+        <div class="rp-split-info">
+          <div class="rp-block-label" id="resBlockLabel"></div>
+          <div class="rp-ex-name" id="resNombre" style="margin-bottom:18px;"></div>
+
+          <div class="rp-result-time res-neutral" id="resTimeMain">00:00</div>
+          <div class="rp-result-sub" id="resSub"></div>
+
+          <div class="rp-laps-list" id="resLapsList"></div>
+        </div>
+
+        <div class="rp-split-actions">
+          <div class="rp-result-actions">
+            <button class="action-btn btn-primary" id="repeatExBtn">🔁 Repetir ejercicio</button>
+            <button class="action-btn btn-success" id="nextFromResultBtn">⏭ Siguiente ejercicio</button>
+            <button class="action-btn" id="overviewFromResultBtn">☰ Volver</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+    PANTALLA: RESUMEN GENERAL DEL ENTRENAMIENTO
+  ============================================================ -->
+  <div class="screen" id="screenSummary">
+    <div class="panel">
+      <div class="rp-block-label">🏁 Resumen del entrenamiento</div>
+      <div class="rp-ex-name" style="margin-bottom:18px;" id="sumNombre"></div>
+
+      <div class="rp-meta-grid" style="grid-template-columns:repeat(3,1fr); margin-bottom:24px;">
+        <div class="rp-meta-item">
+          <div class="label">Metros totales</div>
+          <div class="value" id="sumMetros">0m</div>
+        </div>
+        <div class="rp-meta-item">
+          <div class="label">Tiempo total</div>
+          <div class="value" id="sumTiempo">00:00</div>
+        </div>
+        <div class="rp-meta-item">
+          <div class="label">Ritmo /100m</div>
+          <div class="value" id="sumRitmo">—</div>
+        </div>
+      </div>
+
+      <div id="sumList"></div>
+
+      <div style="display:flex; gap:10px; margin-top:22px; flex-wrap:wrap;">
+        <button class="action-btn" id="downloadFullPngBtn" style="flex:1; min-width:140px; justify-content:center;">🖼️ PNG completo</button>
+        <button class="action-btn" id="downloadReducedPngBtn" style="flex:1; min-width:140px; justify-content:center;">🖼️ PNG reducido</button>
+      </div>
+      <button class="action-btn btn-block" id="summaryBackBtn" style="margin-top:14px;">☰ Volver</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- ============================================================
+  PANTALLA: CUENTA ATRÁS (pantalla completa, negro puro)
+============================================================ -->
+<div class="screen" id="screenCountdown">
+  <div class="rp-fullblack">
+    <div class="rp-cancel-x" id="cancelCountdownBtn">✕</div>
+    <div class="rp-countdown-inner">
+      <div class="rp-countdown-ring" id="countdownRing">
+        <div id="countdownNum">3</div>
+      </div>
+      <div id="countdownLabel">Prepárate…</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+  PANTALLA: CRONÓMETRO (pantalla completa, negro puro)
+============================================================ -->
+<div class="screen" id="screenTimer">
+  <div class="rp-fullblack">
+    <div class="rp-timer-top">
+      <div class="ex-name" id="timerExName"></div>
+      <div class="ex-progress" id="timerExProgress"></div>
+    </div>
+
+    <div class="rp-timer-info">
+      <div id="timerDisplay">00:00.0</div>
+      <div id="totalTimeDisplay">Total: 00:00.0</div>
+      <div id="lapFlash"></div>
+      <button class="rp-detail-toggle" id="detailToggleBtn">👁 Ver detalles</button>
+      <div class="rp-timer-detail" id="timerDetail">
+        <div id="targetRef"></div>
+        <div id="lapCounter"></div>
+        <div class="rp-laps-mini" id="lapsMini"></div>
+      </div>
+    </div>
+
+    <div class="rp-timer-controls">
+      <button class="rp-ctrl-btn lap" id="lapBtn"><span class="icon">🚩</span>Vuelta</button>
+      <button class="rp-ctrl-btn" id="pauseBtn"><span class="icon">⏸</span>Pausa</button>
+      <button class="rp-ctrl-btn stop" id="stopBtn"><span class="icon">🏁</span>Finalizar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+  MODAL: EXPLICACIÓN DEL EJERCICIO
+  No cierra ni cambia la pantalla de detrás; solo se superpone.
+============================================================ -->
+<div class="rp-modal-backdrop" id="descModalBackdrop">
+  <div class="rp-modal" role="dialog" aria-modal="true" aria-labelledby="descModalTitle">
+    <button class="rp-modal-close" id="descModalClose" type="button" aria-label="Cerrar">✕</button>
+    <div class="rp-modal-header" id="descModalTitle"></div>
+    <div class="rp-modal-body" id="descModalBody"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+
+  // ====================================================================
+  // 🧠 ESTADO
+  // ====================================================================
+  let session = null;      // JSON del entrenamiento cargado
+  let flat = [];           // lista plana de ejercicios [{bi, ei, ex, bloqueTitulo}]
+  let currentIdx = -1;      // índice dentro de `flat` del ejercicio activo
+  let completedSet = new Set(); // índices de ejercicios ya completados (marcados al Stop)
+  let exerciseResults = {};     // idx -> {elapsedMs, laps, ex} — resultados guardados de cada ejercicio completado
+
+  let timerState = "idle"; // idle | running | paused | stopped
+  let startTime = 0, pausedAccum = 0, pauseStartedAt = 0;
+  let laps = [];            // [{elapsedMs, splitMs}]
+  let tickHandle = null;
+  let countdownActive = false, countdownHandle = null;
+  let wakeLock = null;
+
+  // ====================================================================
+  // 🔧 UTILIDADES
+  // ====================================================================
+  function showScreen(name){ document.body.setAttribute("data-screen", name); }
+
+  function formatTime(ms, withTenths){
+    const total = Math.max(0, Math.round(ms));
+    const h = Math.floor(total / 3600000);
+    const m = Math.floor((total % 3600000) / 60000);
+    const s = Math.floor((total % 60000) / 1000);
+    const t = Math.floor((total % 1000) / 100);
+    const mm = String(m).padStart(2,"0");
+    const ss = String(s).padStart(2,"0");
+    const base = h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
+    return withTenths ? base + "." + t : base;
+  }
+
+  // Umbral de color del resultado frente al objetivo (segundos):
+  //  · verde  → dentro del objetivo (hasta 3% de margen)
+  //  · amarillo → hasta un 15% por encima del objetivo
+  //  · rojo   → más de un 15% por encima
+  //  · neutral → el ejercicio no tiene objetivo de tiempo
+  function claseResultado(actualSec, objetivoSec){
+    if(objetivoSec === null || objetivoSec === undefined) return "res-neutral";
+    const ratio = actualSec / objetivoSec;
+    if(ratio <= 1.03) return "res-green";
+    if(ratio <= 1.15) return "res-yellow";
+    return "res-red";
+  }
+
+  function intensidadEmoji(pct){
+    if(pct === null || pct === undefined) return "";
+    if(pct === 0) return "⬜";
+    if(pct <= 30) return "🟢";
+    if(pct <= 55) return "🟡";
+    if(pct <= 75) return "🟠";
+    if(pct <= 90) return "🔴";
+    return "💀";
+  }
+
+  async function requestWakeLock(){
+    try{ if("wakeLock" in navigator) wakeLock = await navigator.wakeLock.request("screen"); }catch(e){ /* no soportado o denegado */ }
+  }
+  function releaseWakeLock(){ if(wakeLock){ wakeLock.release().catch(()=>{}); wakeLock = null; } }
+  document.addEventListener("visibilitychange", () => {
+    if(document.visibilityState === "visible" && (document.fullscreenElement || timerState === "running" || timerState === "paused")) requestWakeLock();
+  });
+
+  function enterFullscreen(){
+    const el = document.documentElement;
+    const req = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
+    if(req) req.call(el).catch ? req.call(el).catch(()=>{}) : null;
+  }
+  function exitFullscreen(){
+    const ex = document.exitFullscreen || document.webkitExitFullscreen || document.msExitFullscreen;
+    if(document.fullscreenElement && ex){ const r = ex.call(document); if(r && r.catch) r.catch(()=>{}); }
+  }
+
+  // La sesión entera (resumen → ejercicios → resultados) se queda en
+  // pantalla completa una vez empieza; solo se sale al cargar otro
+  // entrenamiento o al pulsar el botón flotante (que también sirve para
+  // volver a entrar si el navegador la cerró, p. ej. al pulsar Esc).
+  const ICON_EXPAND = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>';
+  const ICON_COMPRESS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3"/><path d="M21 8h-3a2 2 0 0 1-2-2V3"/><path d="M3 16h3a2 2 0 0 1 2 2v3"/><path d="M16 21v-3a2 2 0 0 1 2-2h3"/></svg>';
+  function updateFsBodyClass(){
+    const active = !!document.fullscreenElement;
+    document.body.classList.toggle("is-fullscreen", active);
+    const btn = document.getElementById("fsToggleBtn");
+    btn.innerHTML = active ? ICON_COMPRESS : ICON_EXPAND;
+    btn.title = active ? "Salir de pantalla completa" : "Entrar en pantalla completa";
+  }
+  ["fullscreenchange","webkitfullscreenchange","msfullscreenchange"].forEach(ev =>
+    document.addEventListener(ev, updateFsBodyClass)
+  );
+  document.getElementById("fsToggleBtn").addEventListener("click", () => {
+    if(document.fullscreenElement){
+      exitFullscreen();
+      releaseWakeLock();
+    }else{
+      enterFullscreen();
+      requestWakeLock();
+    }
+  });
+  updateFsBodyClass();
+
+  // ====================================================================
+  // 📋 IMPORTACIÓN
+  // ====================================================================
+  const importTextarea = document.getElementById("importTextarea");
+  const importError = document.getElementById("importError");
+
+  document.getElementById("pasteClipboardBtn").addEventListener("click", async () => {
+    try{
+      const text = await navigator.clipboard.readText();
+      importTextarea.value = text;
+    }catch(e){
+      importError.textContent = "No se pudo leer el portapapeles automáticamente. Pégalo manualmente (mantén pulsado el campo → Pegar).";
+      importError.style.display = "block";
+    }
+  });
+
+  document.getElementById("loadTrainingBtn").addEventListener("click", () => {
+    const raw = importTextarea.value.trim();
+    if(!raw){
+      importError.textContent = "Pega primero el JSON del entrenamiento.";
+      importError.style.display = "block";
+      return;
+    }
+    try{
+      const data = JSON.parse(raw);
+      if(data.tipo !== "sesion-natacion" || !Array.isArray(data.bloques)){
+        throw new Error("El JSON no tiene el formato de un entrenamiento válido.");
+      }
+      session = data;
+      buildFlat();
+      completedSet = new Set();
+      exerciseResults = {};
+      renderOverview();
+      showScreen("overview");
+      importError.style.display = "none";
+    }catch(err){
+      importError.textContent = "No se pudo leer el JSON: " + err.message;
+      importError.style.display = "block";
+    }
+  });
+
+  document.getElementById("startTrainingBtn").addEventListener("click", () => {
+    if(flat.length === 0) return;
+    let startIdx = flat.findIndex((_, i) => !completedSet.has(i));
+    if(startIdx === -1) startIdx = 0;
+    openExercise(startIdx);
+  });
+
+  document.getElementById("viewSummaryBtn").addEventListener("click", () => {
+    renderSummaryScreen();
+    showScreen("summary");
+  });
+
+  document.getElementById("loadOtherBtn").addEventListener("click", () => {
+    session = null; flat = []; currentIdx = -1; completedSet = new Set(); exerciseResults = {};
+    importTextarea.value = "";
+    importError.style.display = "none";
+    exitFullscreen();
+    releaseWakeLock();
+    showScreen("import");
+  });
+
+  // ====================================================================
+  // 📚 RESUMEN
+  // ====================================================================
+  function buildFlat(){
+    flat = [];
+    session.bloques.forEach((b, bi) => {
+      (b.ejercicios || []).forEach((ex, ei) => {
+        flat.push({ bi, ei, ex, bloqueTitulo: b.titulo });
+      });
+    });
+  }
+
+  function metaLineExercise(ex){
+    const dist = (ex.distanciaTotal || (ex.series * ex.metros) || 0) + "m";
+    const objetivo = ex.tiempoObjetivo ? ` · 🎯 ${formatTime(ex.tiempoObjetivo*1000,false)}/serie` : "";
+    return `${ex.series}×${ex.metros}m (${dist})${objetivo}`;
+  }
+
+  function renderOverview(){
+    document.getElementById("ovNombre").textContent = session.nombre || "Entrenamiento";
+    document.getElementById("ovFecha").textContent = session.generadoEn
+      ? new Date(session.generadoEn).toLocaleDateString("es-ES", { day:"numeric", month:"long", year:"numeric" })
+      : "";
+    document.getElementById("ovMetros").textContent = completedSet.size > 0
+      ? `${computeSummaryStats().totalMetros}/${session.totalMetros || 0}m`
+      : (session.totalMetros || 0) + "m";
+
+    const listEl = document.getElementById("ovList");
+    listEl.innerHTML = "";
+    let flatIdx = 0;
+    session.bloques.forEach((b) => {
+      const title = document.createElement("div");
+      title.className = "rp-block-title";
+      title.textContent = `${b.titulo || "Bloque"} · ${b.distancia || ""}`;
+      listEl.appendChild(title);
+
+      (b.ejercicios || []).forEach((ex) => {
+        const idx = flatIdx;
+        const row = document.createElement("div");
+        row.className = "rp-ex-row" + (completedSet.has(idx) ? " done" : "");
+        row.innerHTML = `
+          <div class="num">${completedSet.has(idx) ? "✓" : (idx+1)}</div>
+          <div class="info">
+            <div class="nombre">${ex.nombre}</div>
+            <div class="meta">${metaLineExercise(ex)}</div>
+          </div>
+          <div class="chevron">›</div>`;
+        row.addEventListener("click", () => openExercise(idx));
+        listEl.appendChild(row);
+        flatIdx++;
+      });
+    });
+
+    if(flat.length === 0){
+      listEl.innerHTML = `<div class="rp-empty"><div class="icon">🏊</div><p>Este entrenamiento no tiene ejercicios.</p></div>`;
+    }
+
+    const startBtn = document.getElementById("startTrainingBtn");
+    startBtn.textContent = completedSet.size > 0 ? "▶ Continuar" : "▶ Comenzar entrenamiento";
+  }
+
+  // ====================================================================
+  // 🏊 DETALLE DE EJERCICIO
+  // ====================================================================
+  function openExercise(idx){
+    if(idx < 0 || idx >= flat.length) return;
+    currentIdx = idx;
+    resetTimerVars();
+    enterFullscreen();
+    requestWakeLock();
+    renderExerciseScreen();
+    showScreen("exercise");
+  }
+
+  function renderExerciseScreen(){
+    const item = flat[currentIdx];
+    const ex = item.ex;
+    document.getElementById("exProgress").textContent = `Ejercicio ${currentIdx+1} de ${flat.length}`;
+    document.getElementById("exBlockLabel").textContent = item.bloqueTitulo || "";
+    document.getElementById("exNombre").textContent = ex.nombre;
+    document.getElementById("exDescBtn").style.display = ex.desc ? "" : "none";
+
+    document.getElementById("exDistancia").textContent = (ex.distanciaTotal || (ex.series*ex.metros) || 0) + "m";
+    document.getElementById("exSeries").textContent = `${ex.series} × ${ex.metros}m`;
+    document.getElementById("exIntensidad").textContent = ex.intensidad !== null && ex.intensidad !== undefined ? `${intensidadEmoji(ex.intensidad)} ${ex.intensidad}%` : "—";
+    document.getElementById("exObjetivo").textContent = ex.tiempoObjetivo ? formatTime(ex.tiempoObjetivo*1000,false) : "Sin objetivo";
+
+    document.getElementById("prevExBtn").disabled = currentIdx === 0;
+    document.getElementById("nextExBtn").disabled = currentIdx === flat.length - 1;
+  }
+
+  document.getElementById("prevExBtn").addEventListener("click", () => openExercise(currentIdx - 1));
+  document.getElementById("nextExBtn").addEventListener("click", () => openExercise(currentIdx + 1));
+  document.getElementById("backToOverviewBtn").addEventListener("click", () => { renderOverview(); showScreen("overview"); });
+  document.getElementById("startExerciseBtn").addEventListener("click", startCountdown);
+
+  // ====================================================================
+  // ⏱ CUENTA ATRÁS (3 segundos, pantalla completa)
+  // ====================================================================
+  function startCountdown(){
+    showScreen("countdown");
+    enterFullscreen();
+    requestWakeLock();
+    countdownActive = true;
+    let n = 3;
+    const numEl = document.getElementById("countdownNum");
+    const labelEl = document.getElementById("countdownLabel");
+    const ringEl = document.getElementById("countdownRing");
+    numEl.classList.remove("go");
+    ringEl.classList.remove("go");
+    labelEl.textContent = "Prepárate…";
+    numEl.textContent = n;
+    pulse(numEl);
+
+    function pulse(el){
+      el.classList.remove("pulse");
+      void el.offsetWidth; // fuerza reflow para poder re-disparar la animación
+      el.classList.add("pulse");
+    }
+
+    function step(){
+      if(!countdownActive) return;
+      n--;
+      if(n > 0){
+        numEl.textContent = n;
+        pulse(numEl);
+        countdownHandle = setTimeout(step, 1000);
+      } else {
+        numEl.textContent = "¡YA!";
+        numEl.classList.add("go");
+        ringEl.classList.add("go");
+        labelEl.textContent = "";
+        pulse(numEl);
+        countdownHandle = setTimeout(() => { if(countdownActive) startTimerRun(); }, 600);
+      }
+    }
+    countdownHandle = setTimeout(step, 1000);
+  }
+
+  document.getElementById("cancelCountdownBtn").addEventListener("click", () => {
+    countdownActive = false;
+    clearTimeout(countdownHandle);
+    showScreen("exercise");
+  });
+
+  // ====================================================================
+  // ⏱ CRONÓMETRO
+  // ====================================================================
+  function resetTimerVars(){
+    timerState = "idle";
+    startTime = 0; pausedAccum = 0; pauseStartedAt = 0;
+    laps = [];
+    clearInterval(tickHandle);
+  }
+
+  function startTimerRun(){
+    timerState = "running";
+    startTime = Date.now();
+    pausedAccum = 0;
+    laps = [];
+    renderTimerScreen();
+    showScreen("timer");
+    tickHandle = setInterval(updateTimerDisplay, 100);
+    updateTimerDisplay();
+  }
+
+  function renderTimerScreen(){
+    const item = flat[currentIdx];
+    const ex = item.ex;
+    document.getElementById("timerExName").textContent = ex.nombre;
+    document.getElementById("timerExProgress").textContent = `Ejercicio ${currentIdx+1} de ${flat.length}`;
+    document.getElementById("targetRef").textContent = ex.tiempoObjetivo
+      ? `🎯 Objetivo: ${formatTime(ex.tiempoObjetivo*1000,false)} / serie`
+      : "";
+    document.getElementById("lapBtn").disabled = false;
+    document.getElementById("pauseBtn").innerHTML = `<span class="icon">⏸</span>Pausa`;
+    document.getElementById("timerDisplay").classList.remove("paused");
+    updateLapCounter();
+    document.getElementById("lapsMini").innerHTML = "";
+    document.getElementById("totalTimeDisplay").textContent = "Total: 00:00.0";
+    const flashEl = document.getElementById("lapFlash");
+    flashEl.textContent = "";
+    flashEl.classList.remove("show");
+    document.getElementById("timerDetail").classList.remove("expanded");
+    document.getElementById("detailToggleBtn").textContent = "👁 Ver detalles";
+  }
+
+  function updateLapCounter(){
+    const ex = flat[currentIdx].ex;
+    const lapCounterEl = document.getElementById("lapCounter");
+    if(laps.length === 0){
+      lapCounterEl.textContent = ex.series > 1 ? `Vuelta 1 de ${ex.series}` : "";
+    } else {
+      lapCounterEl.textContent = ex.series > 1
+        ? `Vuelta ${laps.length + 1} de ${ex.series}`
+        : `Vueltas marcadas: ${laps.length}`;
+    }
+  }
+
+  function updateTimerDisplay(){
+    if(timerState !== "running") return;
+    const elapsed = Date.now() - startTime - pausedAccum;
+    const lastLap = laps.length ? laps[laps.length-1].elapsedMs : 0;
+    const splitElapsed = elapsed - lastLap;
+    // Cronómetro grande = tiempo desde la última vuelta (el que "se inicia" cada
+    // vez que se pulsa Vuelta). El original (tiempo total del ejercicio) sigue
+    // corriendo de fondo, más pequeño, debajo.
+    document.getElementById("timerDisplay").textContent = formatTime(splitElapsed, true);
+    document.getElementById("totalTimeDisplay").textContent = "Total: " + formatTime(elapsed, true);
+  }
+
+  document.getElementById("detailToggleBtn").addEventListener("click", () => {
+    const detail = document.getElementById("timerDetail");
+    const btn = document.getElementById("detailToggleBtn");
+    const expanded = detail.classList.toggle("expanded");
+    btn.textContent = expanded ? "🙈 Ocultar detalles" : "👁 Ver detalles";
+  });
+
+  document.getElementById("lapBtn").addEventListener("click", () => {
+    if(timerState !== "running") return;
+    const elapsed = Date.now() - startTime - pausedAccum;
+    const prev = laps.length ? laps[laps.length-1].elapsedMs : 0;
+    laps.push({ elapsedMs: elapsed, splitMs: elapsed - prev });
+    updateLapCounter();
+    renderLapsMini();
+    flashLap(laps.length, elapsed - prev);
+  });
+
+  function flashLap(numero, splitMs){
+    const el = document.getElementById("lapFlash");
+    el.textContent = `🏁 Vuelta ${numero} marcada — ${formatTime(splitMs, true)}`;
+    el.classList.remove("show");
+    void el.offsetWidth; // fuerza reflow para poder re-disparar la animación en marcas consecutivas
+    el.classList.add("show");
+  }
+
+  function renderLapsMini(){
+    const el = document.getElementById("lapsMini");
+    el.innerHTML = laps.map((l,i) => `<div>Vuelta ${i+1}: ${formatTime(l.splitMs, true)}</div>`).join("");
+    el.scrollTop = el.scrollHeight;
+  }
+
+  document.getElementById("pauseBtn").addEventListener("click", () => {
+    if(timerState === "running"){
+      timerState = "paused";
+      pauseStartedAt = Date.now();
+      clearInterval(tickHandle);
+      document.getElementById("pauseBtn").innerHTML = `<span class="icon">▶</span>Reanudar`;
+      document.getElementById("timerDisplay").classList.add("paused");
+    } else if(timerState === "paused"){
+      pausedAccum += Date.now() - pauseStartedAt;
+      timerState = "running";
+      tickHandle = setInterval(updateTimerDisplay, 100);
+      document.getElementById("pauseBtn").innerHTML = `<span class="icon">⏸</span>Pausa`;
+      document.getElementById("timerDisplay").classList.remove("paused");
+    }
+  });
+
+  document.getElementById("stopBtn").addEventListener("click", stopExercise);
+
+  function stopExercise(){
+    if(timerState !== "running" && timerState !== "paused") return;
+    const elapsed = Date.now() - startTime - (timerState === "paused" ? (pausedAccum + (Date.now()-pauseStartedAt)) : pausedAccum);
+    clearInterval(tickHandle);
+    timerState = "stopped";
+    completedSet.add(currentIdx);
+    exerciseResults[currentIdx] = { elapsedMs: elapsed, laps: laps.slice(), ex: flat[currentIdx].ex };
+    renderResultScreen(elapsed);
+    showScreen("result");
+  }
+
+  // ====================================================================
+  // 🏁 RESULTADO
+  // ====================================================================
+  function renderResultScreen(totalElapsedMs){
+    const item = flat[currentIdx];
+    const ex = item.ex;
+    document.getElementById("resBlockLabel").textContent = item.bloqueTitulo || "";
+    document.getElementById("resNombre").textContent = ex.nombre;
+
+    const mainEl = document.getElementById("resTimeMain");
+    const subEl = document.getElementById("resSub");
+    const lapsListEl = document.getElementById("resLapsList");
+    lapsListEl.innerHTML = "";
+
+    if(laps.length > 0){
+      // Resultado por vueltas — se muestran todas las marcas registradas y el total,
+      // tenga el ejercicio una o varias series.
+      mainEl.textContent = formatTime(totalElapsedMs, true);
+      mainEl.className = "rp-result-time res-neutral";
+      subEl.textContent = ex.series > 1
+        ? `Tiempo total · ${laps.length} de ${ex.series} vueltas registradas`
+        : `Tiempo total · ${laps.length} vuelta${laps.length > 1 ? "s" : ""} registrada${laps.length > 1 ? "s" : ""}`;
+
+      laps.forEach((l, i) => {
+        const cls = claseResultado(l.splitMs/1000, ex.tiempoObjetivo);
+        const row = document.createElement("div");
+        row.className = "rp-lap-row " + cls;
+        row.innerHTML = `<span class="lap-label">Vuelta ${i+1}</span><span class="lap-time">${formatTime(l.splitMs, true)}</span>`;
+        lapsListEl.appendChild(row);
+      });
+
+      const lastLapMs = laps[laps.length-1].elapsedMs;
+      if(totalElapsedMs - lastLapMs > 1000){
+        const restante = totalElapsedMs - lastLapMs;
+        const cls = claseResultado(restante/1000, ex.tiempoObjetivo);
+        const row = document.createElement("div");
+        row.className = "rp-lap-row " + cls;
+        row.innerHTML = `<span class="lap-label">Sin marcar</span><span class="lap-time">${formatTime(restante, true)}</span>`;
+        lapsListEl.appendChild(row);
+      }
+
+      const totalRow = document.createElement("div");
+      totalRow.className = "rp-lap-row rp-lap-total";
+      totalRow.innerHTML = `<span class="lap-label">Total</span><span class="lap-time">${formatTime(totalElapsedMs, true)}</span>`;
+      lapsListEl.appendChild(totalRow);
+    } else if(ex.series > 1){
+      // Se detuvo sin marcar ninguna vuelta: comparar contra el objetivo combinado
+      const objetivoTotal = ex.tiempoObjetivo ? ex.tiempoObjetivo * ex.series : null;
+      const cls = claseResultado(totalElapsedMs/1000, objetivoTotal);
+      mainEl.textContent = formatTime(totalElapsedMs, true);
+      mainEl.className = "rp-result-time " + cls;
+      subEl.textContent = objetivoTotal
+        ? `Tiempo total (sin vueltas marcadas) · objetivo combinado ${formatTime(objetivoTotal*1000,false)}`
+        : "Tiempo total (sin vueltas marcadas)";
+    } else {
+      // Ejercicio de una sola serie
+      const cls = claseResultado(totalElapsedMs/1000, ex.tiempoObjetivo);
+      mainEl.textContent = formatTime(totalElapsedMs, true);
+      mainEl.className = "rp-result-time " + cls;
+      subEl.textContent = ex.tiempoObjetivo ? `Objetivo: ${formatTime(ex.tiempoObjetivo*1000,false)}` : "Sin objetivo de tiempo";
+    }
+
+    const nextBtn = document.getElementById("nextFromResultBtn");
+    nextBtn.style.display = "";
+    if(currentIdx < flat.length - 1){
+      nextBtn.innerHTML = "⏭ Siguiente ejercicio";
+      nextBtn.onclick = () => openExercise(currentIdx + 1);
+    } else {
+      nextBtn.innerHTML = "🏁 Ver resumen del entrenamiento";
+      nextBtn.onclick = () => { renderSummaryScreen(); showScreen("summary"); };
+    }
+  }
+
+  document.getElementById("repeatExBtn").addEventListener("click", () => {
+    resetTimerVars();
+    document.getElementById("lapBtn").disabled = false;
+    showScreen("exercise");
+  });
+  document.getElementById("overviewFromResultBtn").addEventListener("click", () => { renderOverview(); showScreen("overview"); });
+
+  // ====================================================================
+  // 📊 RESUMEN GENERAL DEL ENTRENAMIENTO
+  // ====================================================================
+  function computeSummaryStats(){
+    let totalMetros = 0, totalTimeMs = 0;
+    Object.keys(exerciseResults).forEach(k => {
+      const r = exerciseResults[k];
+      totalMetros += (r.ex.distanciaTotal || (r.ex.series * r.ex.metros) || 0);
+      totalTimeMs += r.elapsedMs;
+    });
+    const paceMs = totalMetros > 0 ? (totalTimeMs / totalMetros) * 100 : 0;
+    return { totalMetros, totalTimeMs, paceMs };
+  }
+
+  function renderSummaryScreen(){
+    const stats = computeSummaryStats();
+    document.getElementById("sumNombre").textContent = session ? (session.nombre || "Entrenamiento") : "";
+    document.getElementById("sumMetros").textContent = stats.totalMetros + "m";
+    document.getElementById("sumTiempo").textContent = formatTime(stats.totalTimeMs, false);
+    document.getElementById("sumRitmo").textContent = stats.totalMetros > 0 ? formatTime(stats.paceMs, false) + " /100m" : "—";
+
+    const listEl = document.getElementById("sumList");
+    listEl.innerHTML = "";
+    let any = false;
+    flat.forEach((item, idx) => {
+      const r = exerciseResults[idx];
+      if(!r) return;
+      any = true;
+      const objetivoTotal = item.ex.tiempoObjetivo ? item.ex.tiempoObjetivo * item.ex.series : null;
+      const cls = claseResultado(r.elapsedMs / 1000, objetivoTotal);
+      const row = document.createElement("div");
+      row.className = "rp-lap-row " + cls;
+      row.innerHTML = `<span class="lap-label">${item.ex.nombre}</span><span class="lap-time">${formatTime(r.elapsedMs, false)}</span>`;
+      listEl.appendChild(row);
+    });
+    if(!any){
+      listEl.innerHTML = `<div class="rp-empty"><div class="icon">🏊</div><p>Todavía no has completado ningún ejercicio.</p></div>`;
+    }
+
+    const hasResults = Object.keys(exerciseResults).length > 0;
+    document.getElementById("downloadFullPngBtn").disabled = !hasResults;
+    document.getElementById("downloadReducedPngBtn").disabled = !hasResults;
+  }
+
+  document.getElementById("summaryBackBtn").addEventListener("click", () => { renderOverview(); showScreen("overview"); });
+
+  // ====================================================================
+  // 🖼️ EXPORTAR RESUMEN A PNG (completo / reducido)
+  // ====================================================================
+  function truncateText(ctx, text, maxWidth){
+    if(ctx.measureText(text).width <= maxWidth) return text;
+    let t = text;
+    while(t.length > 1 && ctx.measureText(t + "…").width > maxWidth){ t = t.slice(0, -1); }
+    return t + "…";
+  }
+
+  function roundRect(ctx, x, y, w, h, r){
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y,     x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x,     y + h, r);
+    ctx.arcTo(x,     y + h, x,     y,     r);
+    ctx.arcTo(x,     y,     x + w, y,     r);
+    ctx.closePath();
+  }
+
+  // Fecha y día en que se ha hecho el entrenamiento (momento de exportar el
+  // resumen, justo tras completarlo), para el título de la imagen y del archivo.
+  function fechaSesionBonita(){
+    const s = new Date().toLocaleDateString("es-ES", { weekday:"long", day:"numeric", month:"long", year:"numeric" });
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  }
+
+  async function generarResumenPNG(full){
+    if(document.fonts && document.fonts.ready){ try{ await document.fonts.ready; }catch(e){} }
+
+    const stats = computeSummaryStats();
+    const nombre = session ? (session.nombre || "Entrenamiento") : "Entrenamiento";
+    const fechaBonita = fechaSesionBonita();
+    const colorMap = { "res-green":"#4ade80", "res-yellow":"#fbbf24", "res-red":"#f87171", "res-neutral":"#e2e8f0" };
+
+    const ejercicios = [];
+    if(full){
+      flat.forEach((item, idx) => {
+        const r = exerciseResults[idx];
+        if(!r) return;
+        const objetivoTotal = item.ex.tiempoObjetivo ? item.ex.tiempoObjetivo * item.ex.series : null;
+        const cls = claseResultado(r.elapsedMs / 1000, objetivoTotal);
+        ejercicios.push({ nombre: item.ex.nombre, tiempo: formatTime(r.elapsedMs, false), cls });
+      });
+    }
+
+    const BASE_W = 720, SCALE = 3, OUTER_PAD = 30, INNER_PAD = 32, RADIUS = 32;
+    const HEADER_H = 34, NAME_H = 40, DATE_H = 28, STATS_H = 92, DIVIDER_H = 26, EJ_TITLE_H = 26, EJ_ROW_H = 32, FOOTER_H = 34;
+
+    let cardH = INNER_PAD*2 + HEADER_H + NAME_H + DATE_H + STATS_H + FOOTER_H;
+    if(full && ejercicios.length){ cardH += DIVIDER_H + EJ_TITLE_H + ejercicios.length * EJ_ROW_H; }
+
+    const cardW = BASE_W - OUTER_PAD*2;
+    const canvasW = BASE_W;
+    const canvasH = cardH + OUTER_PAD*2;
+
+    const canvas = document.createElement("canvas");
+    canvas.width = canvasW * SCALE;
+    canvas.height = canvasH * SCALE;
+    const ctx = canvas.getContext("2d");
+    ctx.scale(SCALE, SCALE);
+    // El canvas se deja transparente (sin fillRect de fondo); solo se pinta
+    // la tarjeta "glass" redondeada, así el PNG se puede compartir sobre
+    // cualquier fondo (estilo tarjeta de Strava).
+
+    roundRect(ctx, OUTER_PAD, OUTER_PAD, cardW, cardH, RADIUS);
+    ctx.fillStyle = "rgba(6,10,16,0.68)";
+    ctx.fill();
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = "rgba(255,255,255,0.09)";
+    ctx.stroke();
+
+    const x = OUTER_PAD + INNER_PAD;
+    const contentW = cardW - INNER_PAD*2;
+    let y = OUTER_PAD + INNER_PAD;
+
+    ctx.textAlign = "left";
+    ctx.font = "800 13px 'Sora',system-ui,sans-serif";
+    ctx.fillStyle = "#6ee7b7";
+    ctx.fillText("🏁 RESUMEN DE SESIÓN", x, y + 13);
+    y += HEADER_H;
+
+    ctx.font = "800 27px 'Sora',system-ui,sans-serif";
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText(truncateText(ctx, nombre, contentW), x, y + 21);
+    y += NAME_H;
+
+    ctx.font = "600 14px 'Sora',system-ui,sans-serif";
+    ctx.fillStyle = "rgba(226,232,240,.68)";
+    ctx.fillText(fechaBonita, x, y + 12);
+    y += DATE_H;
+
+    // Fila de 3 estadísticas grandes, estilo tarjeta de Strava:
+    // número enorme y en negrita, etiqueta pequeña en verde debajo.
+    const statColW = contentW / 3;
+    const statDefs = [
+      { label:"METROS",       value: stats.totalMetros + "m" },
+      { label:"TIEMPO",       value: formatTime(stats.totalTimeMs, false) },
+      { label:"RITMO /100M",  value: stats.totalMetros > 0 ? formatTime(stats.paceMs, false) : "—" },
+    ];
+    statDefs.forEach((s, i) => {
+      const cx = x + statColW * i;
+      ctx.font = "800 30px 'Sora',system-ui,sans-serif";
+      ctx.fillStyle = "#ffffff";
+      ctx.fillText(truncateText(ctx, s.value, statColW - 8), cx, y + 32);
+      ctx.font = "800 11px 'Sora',system-ui,sans-serif";
+      ctx.fillStyle = "#6ee7b7";
+      ctx.fillText(s.label, cx, y + 52);
+    });
+    y += STATS_H;
+
+    if(full && ejercicios.length){
+      ctx.strokeStyle = "rgba(255,255,255,.12)";
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + contentW, y); ctx.stroke();
+      y += DIVIDER_H - 12;
+
+      ctx.font = "800 12px 'Sora',system-ui,sans-serif";
+      ctx.fillStyle = "#6ee7b7";
+      ctx.fillText("EJERCICIOS", x, y + 12);
+      y += EJ_TITLE_H;
+
+      ejercicios.forEach(e => {
+        ctx.font = "600 14px 'Sora',system-ui,sans-serif";
+        ctx.fillStyle = "#e2e8f0";
+        const nameW = contentW - 90;
+        ctx.fillText(truncateText(ctx, e.nombre, nameW), x, y + 16);
+        ctx.textAlign = "right";
+        ctx.font = "800 14px 'Sora',system-ui,sans-serif";
+        ctx.fillStyle = colorMap[e.cls] || "#e2e8f0";
+        ctx.fillText(e.tiempo, x + contentW, y + 16);
+        ctx.textAlign = "left";
+        y += EJ_ROW_H;
+      });
+    }
+
+    ctx.font = "600 11px 'Sora',system-ui,sans-serif";
+    ctx.fillStyle = "rgba(148,163,184,.7)";
+    ctx.fillText("🏊 Generado con el Reproductor de Sesiones", x, OUTER_PAD + cardH - INNER_PAD + 14);
+
+    canvas.toBlob(blob => {
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `Resumen sesión ${fechaBonita} (${full ? "completo" : "reducido"}).png`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }, "image/png");
+  }
+
+  document.getElementById("downloadFullPngBtn").addEventListener("click", () => generarResumenPNG(true));
+  document.getElementById("downloadReducedPngBtn").addEventListener("click", () => generarResumenPNG(false));
+
+  // ====================================================================
+  // 💬 MODAL DE EXPLICACIÓN DEL EJERCICIO
+  // ====================================================================
+  function openDescModal(title, body){
+    document.getElementById("descModalTitle").textContent = title;
+    document.getElementById("descModalBody").textContent = body;
+    document.getElementById("descModalBackdrop").classList.add("show");
+  }
+  function closeDescModal(){
+    document.getElementById("descModalBackdrop").classList.remove("show");
+  }
+  document.getElementById("exDescBtn").addEventListener("click", () => {
+    const item = flat[currentIdx];
+    if(!item) return;
+    openDescModal(item.ex.nombre, item.ex.desc || "");
+  });
+  document.getElementById("descModalClose").addEventListener("click", closeDescModal);
+  document.getElementById("descModalBackdrop").addEventListener("click", (e) => {
+    if(e.target.id === "descModalBackdrop") closeDescModal();
+  });
+  document.addEventListener("keydown", (e) => {
+    if(e.key === "Escape") closeDescModal();
+  });
+
+})();
+</script>
+
+</body>
+</html>
