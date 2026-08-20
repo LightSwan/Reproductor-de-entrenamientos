@@ -34,6 +34,10 @@
 
     *{ margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 
+    /* Evita el "flash" blanco al rebotar el scroll en iOS/Android: sin esto,
+       el rebote deja ver el fondo por defecto de <html> (blanco) durante
+       una fracción de segundo, ya que solo <body> tenía color de fondo. */
+    html{ background:#020617; overscroll-behavior-y:none; }
     html, body{ height:100%; }
 
     body{
@@ -131,7 +135,8 @@
        (.rp-fullblack) y un transform en un ancestro rompe su posicionamiento
        respecto al viewport, provocando que el contenido se desajuste y se solape. */
     body[data-screen="countdown"] #screenCountdown,
-    body[data-screen="timer"]    #screenTimer{ display:block; }
+    body[data-screen="timer"]    #screenTimer,
+    body[data-screen="fisico"]   #screenFisicoActivo{ display:block; }
 
     /* ---------- Import ---------- */
     #importError{ color:#f87171; font-size:13px; margin-top:10px; display:none; }
@@ -189,6 +194,18 @@
     .rp-meta-item .label{ font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; margin-bottom:5px; }
     .rp-meta-item .value{ font-size:17.5px; font-weight:700; }
 
+    /* ---------- Rutinas físicas: hueco del GIF/animación del ejercicio ---------- */
+    .rp-gif-wrap{
+      background:rgba(30,41,59,.55); border:1px solid rgba(148,163,184,.12); border-radius:18px;
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      gap:10px; padding:22px 16px; margin-bottom:20px; min-height:180px; text-align:center;
+    }
+    .rp-gif-placeholder{ color:var(--muted); opacity:.6; display:flex; flex-direction:column; align-items:center; gap:10px; }
+    .rp-gif-placeholder::after{ content:"Animación no disponible todavía"; font-size:12.5px; }
+    .rp-gif-wrap img{ max-width:100%; max-height:220px; border-radius:12px; }
+    .rp-gif-wrap a{ color:var(--primary); font-size:13px; font-weight:600; text-decoration:none; }
+    .rp-gif-wrap a:hover{ text-decoration:underline; }
+
     .rp-nav-row{ display:flex; gap:10px; margin-top:18px; }
 
     /* rp-split y rp-split-info siguen siendo "invisibles" para el layout en
@@ -213,10 +230,29 @@
       animation:fullblackFadeIn .3s ease;
     }
     @keyframes fullblackFadeIn{ from{ opacity:0; } to{ opacity:1; } }
-    body[data-screen="countdown"] .rp-fullblack, body[data-screen="timer"] .rp-fullblack{ display:flex; }
+    body[data-screen="countdown"] .rp-fullblack,
+    body[data-screen="timer"] .rp-fullblack,
+    body[data-screen="fisico"] .rp-fullblack{ display:flex; }
 
     .rp-countdown-inner{ display:flex; flex-direction:column; align-items:center; }
     .rp-timer-info{ display:flex; flex-direction:column; align-items:center; }
+
+    /* ---------- Ejercicio físico activo (pantalla completa) ---------- */
+    .rp-fisico-gif-wrap{
+      width:min(86vw,420px); aspect-ratio:1/1; max-height:46vh;
+      background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.1); border-radius:24px;
+      display:flex; align-items:center; justify-content:center; overflow:hidden; margin-top:44px;
+    }
+    .rp-fisico-gif-placeholder{ color:rgba(255,255,255,.4); display:flex; flex-direction:column; align-items:center; gap:14px; text-align:center; padding:20px; font-size:13px; }
+    .rp-fisico-gif-wrap img{ width:100%; height:100%; object-fit:contain; }
+    .rp-fisico-info{ color:#fff; font-size:19px; font-weight:700; margin:22px 0; text-align:center; }
+
+    /* ---------- Cronómetro + barra de progreso (ejercicios por tiempo) ---------- */
+    .rp-fisico-timer-wrap{ width:min(86vw,420px); margin:4px 0 28px; display:flex; flex-direction:column; align-items:center; gap:8px; }
+    .rp-fisico-serie-label{ color:rgba(255,255,255,.6); font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; }
+    .rp-fisico-countdown{ color:#fff; font-size:44px; font-weight:800; font-variant-numeric:tabular-nums; }
+    .rp-fisico-progress-track{ width:100%; height:10px; border-radius:999px; background:rgba(255,255,255,.12); overflow:hidden; }
+    .rp-fisico-progress-bar{ height:100%; width:0%; border-radius:999px; background:linear-gradient(90deg,#10b981,#34d399); }
 
     .rp-cancel-x{
       position:absolute; top:calc(18px + env(safe-area-inset-top)); right:calc(18px + env(safe-area-inset-right));
@@ -295,14 +331,14 @@
     }
     .rp-ctrl-btn{
       display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
-      width:112px; height:112px; border-radius:50%; border:2px solid rgba(255,255,255,.18);
+      width:112px; height:112px; border-radius:22px; border:2px solid rgba(255,255,255,.18);
       background:rgba(255,255,255,.06); backdrop-filter:blur(6px); color:#fff; font-size:14px; font-weight:700; cursor:pointer;
       transition:transform .15s ease, background .2s ease, box-shadow .2s ease;
     }
     .rp-ctrl-btn:active{ transform:scale(.93); }
     .rp-ctrl-btn .icon{ font-size:34px; }
-    .rp-ctrl-btn.lap{ border-color:rgba(52,211,153,.6); box-shadow:0 0 22px -6px rgba(52,211,153,.6); }
-    .rp-ctrl-btn.stop{ border-color:rgba(239,68,68,.65); background:rgba(239,68,68,.16); box-shadow:0 0 22px -6px rgba(239,68,68,.6); }
+    .rp-ctrl-btn.lap{ border-color:rgba(52,211,153,.6); box-shadow:0 0 8px -3px rgba(52,211,153,.5); }
+    .rp-ctrl-btn.stop{ border-color:rgba(239,68,68,.65); background:rgba(239,68,68,.16); box-shadow:0 0 8px -3px rgba(239,68,68,.5); }
     .rp-ctrl-btn:disabled{ opacity:.3; cursor:not-allowed; transform:none; box-shadow:none; }
 
     /* ---------- Result screen ---------- */
@@ -370,6 +406,28 @@
     @keyframes descPulse{
       0%,100%{ box-shadow:0 0 0 0 rgba(52,211,153,.35); }
       50%{ box-shadow:0 0 0 9px rgba(52,211,153,0); }
+    }
+    /* Rutinas físicas: la explicación no va escondida detrás de un botón/
+       modal (como en natación), se muestra directamente en la pantalla. */
+    .rp-ex-desc-inline{
+      background:rgba(30,41,59,.55); border:1px solid rgba(148,163,184,.12); border-radius:15px;
+      padding:13px 15px; font-size:14px; line-height:1.5; color:var(--text); margin-bottom:18px;
+      transition:border-color .2s, background .2s;
+    }
+    /* Cuando la animación es solo orientativa (ejercicio parecido, no el
+       exacto), se resalta la explicación para dejarlo claro de un vistazo. */
+    .rp-ex-desc-inline.rp-desc-aproximado{
+      border:1.5px solid #fb923c; background:rgba(251,146,60,.10);
+    }
+    .rp-gif-aviso{
+      width:100%; text-align:center; color:#fb923c; background:rgba(251,146,60,.12);
+      border:1px solid rgba(251,146,60,.4); border-radius:10px; padding:7px 10px;
+      font-size:12px; font-weight:700; margin-bottom:10px;
+    }
+    .rp-fisico-aviso{
+      color:#fb923c; background:rgba(251,146,60,.12); border:1px solid rgba(251,146,60,.4);
+      border-radius:10px; padding:8px 14px; font-size:12.5px; font-weight:700;
+      margin-top:14px; text-align:center;
     }
 
     .rp-modal-backdrop{
@@ -530,14 +588,14 @@
       <p style="color:var(--muted); font-size:14px; margin-bottom:14px;">Pega aquí el JSON que copiaste con el botón "📋 Copiar entrenamiento (JSON)" del generador.</p>
       <textarea class="rp-input" id="importTextarea" placeholder='{"tipo":"sesion-natacion", ...}'></textarea>
       <p id="importError"></p>
-      <div style="display:flex; gap:10px; margin-top:16px; flex-wrap:wrap;">
-        <button class="action-btn" id="pasteClipboardBtn" style="flex:1; justify-content:center;">📋 Pegar del portapapeles</button>
-        <button class="action-btn btn-success" id="loadTrainingBtn" style="flex:1; justify-content:center;">✓ Cargar entrenamiento</button>
+      <div style="display:flex; flex-direction:column; gap:10px; margin-top:16px;">
+        <button class="action-btn" id="pasteClipboardBtn" style="justify-content:center;">📋 Pegar del portapapeles</button>
+        <button class="action-btn btn-success" id="loadTrainingBtn" style="justify-content:center; padding:19px 22px; font-size:17px; border-radius:18px;">✓ Cargar entrenamiento</button>
       </div>
 
-      <div style="display:flex; flex-direction:column; align-items:center; gap:10px; margin-top:28px; padding-top:24px; border-top:1px solid rgba(148,163,184,.15);">
-        <button class="action-btn" id="goToGeneratorBtn" title="Abrir el Generador de sesiones" style="width:100%; max-width:420px; justify-content:center; gap:12px; padding:20px 28px; font-size:17px; background:linear-gradient(135deg,#34d399,#0d9488); color:#fff; border:none; font-weight:800; border-radius:999px; box-shadow:0 8px 28px rgba(52,211,153,.45);">
-          <span style="font-size:22px;">✍️</span>Crea tu entrenamiento aquí
+      <div style="display:flex; flex-direction:column; align-items:center; gap:8px; margin-top:24px; padding-top:20px; border-top:1px solid rgba(148,163,184,.15);">
+        <button class="action-btn" id="goToGeneratorBtn" title="Abrir el Generador de sesiones" style="width:100%; max-width:420px; justify-content:center; gap:8px; font-size:13.5px; background:rgba(52,211,153,.08); border:1px solid rgba(52,211,153,.35); color:#34d399; font-weight:700;">
+          <span style="font-size:15px;">✍️</span>Crea tu entrenamiento aquí
         </button>
         <p style="max-width:420px; text-align:center; color:var(--muted); font-size:12.5px; line-height:1.5; margin:0;">
           Crea tu entrenamiento en el Generador de sesiones y pégalo en esta página web para comenzar.
@@ -582,22 +640,32 @@
           <button class="rp-desc-btn" id="exDescBtn" type="button">
             <span class="icon">💬</span> Explicación disponible
           </button>
+          <div class="rp-ex-desc-inline" id="exDescInline" style="display:none;"></div>
 
-          <div class="rp-meta-grid">
-            <div class="rp-meta-item">
-              <div class="label">Distancia</div>
+          <div class="rp-gif-wrap" id="exGifWrap" style="display:none;">
+            <div class="rp-gif-aviso" id="exGifAviso" style="display:none;">⚠️ Animación orientativa — ejercicio parecido, no exacto</div>
+            <div class="rp-gif-placeholder" id="exGifPlaceholder">
+              <svg viewBox="0 0 24 24" width="46" height="46" fill="currentColor" aria-hidden="true"><path d="M20.57 14.86 22 13.43 20.57 12 17 15.57 8.43 7 12 3.43 10.57 2 9.14 3.43 7.71 2 5.57 4.14 4.14 2.71 2.71 4.14l1.43 1.43L2 7.71l1.43 1.43L2 10.57 3.43 12 7 8.43 15.57 17 12 20.57 13.43 22l1.43-1.43L16.29 22l2.14-2.14 1.43 1.43 1.43-1.43-1.43-1.43L22 16.29l-1.43-1.43z"/></svg>
+            </div>
+            <img id="exGifImg" alt="" style="display:none;">
+            <a id="exGifInfoLink" href="#" target="_blank" rel="noopener" style="display:none;">Ver ejercicio ↗</a>
+          </div>
+
+          <div class="rp-meta-grid" id="exMetaGrid">
+            <div class="rp-meta-item" id="exDistanciaItem">
+              <div class="label" id="exDistanciaLabel">Distancia</div>
               <div class="value" id="exDistancia"></div>
             </div>
             <div class="rp-meta-item">
-              <div class="label">Series</div>
+              <div class="label" id="exSeriesLabel">Series</div>
               <div class="value" id="exSeries"></div>
             </div>
             <div class="rp-meta-item">
-              <div class="label">Intensidad</div>
+              <div class="label" id="exIntensidadLabel">Intensidad</div>
               <div class="value" id="exIntensidad"></div>
             </div>
             <div class="rp-meta-item">
-              <div class="label">Objetivo / serie</div>
+              <div class="label" id="exObjetivoLabel">Objetivo / serie</div>
               <div class="value" id="exObjetivo"></div>
             </div>
           </div>
@@ -653,15 +721,15 @@
 
       <div class="rp-meta-grid" style="grid-template-columns:repeat(3,1fr); margin-bottom:24px;">
         <div class="rp-meta-item">
-          <div class="label">Metros totales</div>
+          <div class="label" id="sumMetrosLabel">Metros totales</div>
           <div class="value" id="sumMetros">0m</div>
         </div>
         <div class="rp-meta-item">
-          <div class="label">Tiempo total</div>
+          <div class="label" id="sumTiempoLabel">Tiempo total</div>
           <div class="value" id="sumTiempo">00:00</div>
         </div>
         <div class="rp-meta-item">
-          <div class="label">Ritmo /100m</div>
+          <div class="label" id="sumRitmoLabel">Ritmo /100m</div>
           <div class="value" id="sumRitmo">—</div>
         </div>
       </div>
@@ -724,6 +792,42 @@
 </div>
 
 <!-- ============================================================
+  PANTALLA: EJERCICIO FÍSICO ACTIVO (pantalla completa, negro puro)
+  Equivalente físico del cronómetro: en vez de tiempo, muestra la
+  animación/GIF del ejercicio en grande y un botón para finalizarlo.
+============================================================ -->
+<div class="screen" id="screenFisicoActivo">
+  <div class="rp-fullblack">
+    <div class="rp-cancel-x" id="cancelFisicoBtn">✕</div>
+    <div class="rp-timer-top">
+      <div class="ex-name" id="fisicoExName"></div>
+      <div class="ex-progress" id="fisicoExProgress"></div>
+    </div>
+
+    <div class="rp-fisico-gif-wrap" id="fisicoGifWrap">
+      <div class="rp-fisico-gif-placeholder" id="fisicoGifPlaceholder">
+        <svg viewBox="0 0 24 24" width="64" height="64" fill="currentColor" aria-hidden="true"><path d="M20.57 14.86 22 13.43 20.57 12 17 15.57 8.43 7 12 3.43 10.57 2 9.14 3.43 7.71 2 5.57 4.14 4.14 2.71 2.71 4.14l1.43 1.43L2 7.71l1.43 1.43L2 10.57 3.43 12 7 8.43 15.57 17 12 20.57 13.43 22l1.43-1.43L16.29 22l2.14-2.14 1.43 1.43 1.43-1.43-1.43-1.43L22 16.29l-1.43-1.43z"/></svg>
+        <div>Animación no disponible todavía</div>
+      </div>
+      <img id="fisicoGifImg" alt="" style="display:none;">
+    </div>
+    <div class="rp-fisico-aviso" id="fisicoAviso" style="display:none;">⚠️ Animación orientativa — ejercicio parecido, no exacto</div>
+
+    <div class="rp-fisico-info" id="fisicoInfo"></div>
+
+    <div class="rp-fisico-timer-wrap" id="fisicoTimerWrap" style="display:none;">
+      <div class="rp-fisico-serie-label" id="fisicoSerieLabel"></div>
+      <div class="rp-fisico-countdown" id="fisicoCountdown">0:00</div>
+      <div class="rp-fisico-progress-track">
+        <div class="rp-fisico-progress-bar" id="fisicoProgressBar"></div>
+      </div>
+    </div>
+
+    <button class="rp-ctrl-btn stop" id="fisicoFinalizarBtn"><span class="icon">🏁</span>Finalizar</button>
+  </div>
+</div>
+
+<!-- ============================================================
   MODAL: EXPLICACIÓN DEL EJERCICIO
   No cierra ni cambia la pantalla de detrás; solo se superpone.
 ============================================================ -->
@@ -746,6 +850,7 @@
   let currentIdx = -1;      // índice dentro de `flat` del ejercicio activo
   let completedSet = new Set(); // índices de ejercicios ya completados (marcados al Stop)
   let exerciseResults = {};     // idx -> {elapsedMs, laps, ex} — resultados guardados de cada ejercicio completado
+  let modoFisico = false;   // true cuando session.tipo === "sesion-fisica" (rutina fuera del agua)
 
   let timerState = "idle"; // idle | running | paused | stopped
   let startTime = 0, pausedAccum = 0, pauseStartedAt = 0;
@@ -862,6 +967,24 @@
     }
   });
 
+  // Carga una sesión a partir de un string JSON. La usan tanto el botón
+  // manual de "Cargar" como la carga automática desde la Biblioteca.
+  function cargarSesionDesdeJSON(raw){
+    const data = JSON.parse(raw);
+    const TIPOS_VALIDOS = ["sesion-natacion", "sesion-fisica"];
+    if(!TIPOS_VALIDOS.includes(data.tipo) || !Array.isArray(data.bloques)){
+      throw new Error("El JSON no tiene el formato de un entrenamiento válido.");
+    }
+    session = data;
+    modoFisico = data.tipo === "sesion-fisica";
+    document.body.classList.toggle("modo-fisico", modoFisico);
+    buildFlat();
+    completedSet = new Set();
+    exerciseResults = {};
+    renderOverview();
+    showScreen("overview");
+  }
+
   document.getElementById("loadTrainingBtn").addEventListener("click", () => {
     const raw = importTextarea.value.trim();
     if(!raw){
@@ -870,22 +993,31 @@
       return;
     }
     try{
-      const data = JSON.parse(raw);
-      if(data.tipo !== "sesion-natacion" || !Array.isArray(data.bloques)){
-        throw new Error("El JSON no tiene el formato de un entrenamiento válido.");
-      }
-      session = data;
-      buildFlat();
-      completedSet = new Set();
-      exerciseResults = {};
-      renderOverview();
-      showScreen("overview");
+      cargarSesionDesdeJSON(raw);
       importError.style.display = "none";
     }catch(err){
       importError.textContent = "No se pudo leer el JSON: " + err.message;
       importError.style.display = "block";
     }
   });
+
+  // ====================================================================
+  // 🔗 CARGA AUTOMÁTICA DESDE LA BIBLIOTECA DE NATACIÓN
+  // Cuando en la Biblioteca se pulsa "Cargar en Reproductor", la sesión
+  // se guarda en localStorage bajo esta clave (mismo origen
+  // lightswan.github.io, compartido entre todas las apps) y esta página
+  // la recoge y la carga sola nada más entrar. La clave se borra al
+  // consumirla para no repetir la carga en visitas posteriores.
+  // ====================================================================
+  (function autoCargarSesionPendiente(){
+    try{
+      const pendiente = localStorage.getItem("lightswan_sesion_pendiente");
+      if(pendiente){
+        localStorage.removeItem("lightswan_sesion_pendiente");
+        cargarSesionDesdeJSON(pendiente);
+      }
+    }catch(e){ /* localStorage no disponible: se ignora, queda la pantalla de importación manual */ }
+  })();
 
   document.getElementById("startTrainingBtn").addEventListener("click", () => {
     if(flat.length === 0) return;
@@ -921,6 +1053,12 @@
   }
 
   function metaLineExercise(ex){
+    if(modoFisico){
+      const cantidad = ex.duracionSegundos != null
+        ? formatTime(ex.duracionSegundos*1000, false)
+        : `${ex.repeticiones != null ? ex.repeticiones : "?"} rep${ex.porLado ? "/lado" : ""}`;
+      return `${ex.series} × ${cantidad}`;
+    }
     const dist = (ex.distanciaTotal || (ex.series * ex.metros) || 0) + "m";
     const objetivo = ex.tiempoObjetivo ? ` · 🎯 ${formatTime(ex.tiempoObjetivo*1000,false)}/serie` : "";
     return `${ex.series}×${ex.metros}m (${dist})${objetivo}`;
@@ -931,9 +1069,11 @@
     document.getElementById("ovFecha").textContent = session.generadoEn
       ? new Date(session.generadoEn).toLocaleDateString("es-ES", { day:"numeric", month:"long", year:"numeric" })
       : "";
-    document.getElementById("ovMetros").textContent = completedSet.size > 0
-      ? `${computeSummaryStats().totalMetros}/${session.totalMetros || 0}m`
-      : (session.totalMetros || 0) + "m";
+    document.getElementById("ovMetros").textContent = modoFisico
+      ? `${completedSet.size}/${flat.length} ejercicios`
+      : (completedSet.size > 0
+          ? `${computeSummaryStats().totalMetros}/${session.totalMetros || 0}m`
+          : (session.totalMetros || 0) + "m");
 
     const listEl = document.getElementById("ovList");
     listEl.innerHTML = "";
@@ -941,7 +1081,7 @@
     session.bloques.forEach((b) => {
       const title = document.createElement("div");
       title.className = "rp-block-title";
-      title.textContent = `${b.titulo || "Bloque"} · ${b.distancia || ""}`;
+      title.textContent = modoFisico ? (b.titulo || "Bloque") : `${b.titulo || "Bloque"} · ${b.distancia || ""}`;
       listEl.appendChild(title);
 
       (b.ejercicios || []).forEach((ex) => {
@@ -962,11 +1102,98 @@
     });
 
     if(flat.length === 0){
-      listEl.innerHTML = `<div class="rp-empty"><div class="icon">🏊</div><p>Este entrenamiento no tiene ejercicios.</p></div>`;
+      listEl.innerHTML = `<div class="rp-empty"><div class="icon">${modoFisico ? "🏋️" : "🏊"}</div><p>Este entrenamiento no tiene ejercicios.</p></div>`;
     }
 
     const startBtn = document.getElementById("startTrainingBtn");
     startBtn.textContent = completedSet.size > 0 ? "▶ Continuar" : "▶ Comenzar entrenamiento";
+  }
+
+  // ====================================================================
+  // 🏋️ BASE DE DATOS DE EJERCICIOS FÍSICOS (free-exercise-db)
+  // Fuente: github.com/yuhonas/free-exercise-db (dominio público, sin
+  // atribución requerida). OJO: no son GIFs animados — cada ejercicio
+  // trae 2 fotos fijas (posición inicial y final), así que se alternan
+  // cada ~900ms para simular el movimiento.
+  //
+  // Es una base en inglés y los nombres no coinciden con los nuestros en
+  // español ("Sentadillas búlgaras" vs "Split Squats"), así que no hay
+  // forma fiable de emparejarlos automáticamente: el emparejamiento de
+  // abajo se ha hecho a mano, ejercicio a ejercicio, comparando contra
+  // ex.gifQuery (el nombre normalizado que genera la Biblioteca).
+  //
+  // Cada entrada puede llevar "aproximado:true" cuando no hay equivalente
+  // exacto en la base (p. ej. Cobra, que es una postura de yoga y esta
+  // base es de gimnasio/pesas) pero sí un ejercicio parecido que ayuda a
+  // hacerse una idea del movimiento. En esos casos, renderExerciseScreen()
+  // resalta la explicación con un borde naranja y un aviso, para que quede
+  // claro que la animación es orientativa y no el ejercicio exacto.
+  //
+  // Si añades más ejercicios a la Biblioteca, busca su id en
+  // https://github.com/yuhonas/free-exercise-db/tree/main/exercises y
+  // añade aquí una línea nueva.
+  // ====================================================================
+  const FREE_EXERCISE_DB_BASE = "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/";
+  const FREE_EXERCISE_DB_MAP = {
+    "gato-vaca": { id: "Cat_Stretch" },
+    "flexiones": { id: "Pushups" },
+    "sentadillas-frontales": { id: "Bodyweight_Squat" },
+    "sentadillas-bulgaras": { id: "Split_Squats", aproximado: true }, // sin el pie trasero elevado
+    "giro-de-oblicuos": { id: "Russian_Twist" },
+    "giros-oblicuos": { id: "Russian_Twist" },
+    "plancha": { id: "Plank" },
+    "dominadas": { id: "Pullups" },
+    "superman": { id: "Superman" },
+    "zancadas-con-peso": { id: "Dumbbell_Lunges" },
+    "comba-continua": { id: "Rope_Jumping" },
+    "cobra": { id: "Hyperextensions_Back_Extensions", aproximado: true }, // postura de yoga, sin equivalente exacto
+    "flexiones-cobra": { id: "Hyperextensions_Back_Extensions", aproximado: true },
+    "abdominales-con-peso": { id: "Dead_Bug", aproximado: true }, // Hollow Hold es isométrico, sin equivalente exacto
+    "flexiones-verticales": { id: "Handstand_Push-Ups", aproximado: true } // pike push-up parcial vs. pino completo
+    // "extensiones-de-flexor" / "extensiones-de-flexores-de-rodilla" NO están
+    // aquí a propósito: esos ejercicios en la Biblioteca ya enlazan a una
+    // imagen real (miniatura de YouTube) en vez de a una página, y
+    // buscarGif() la usa directamente — ver más abajo. Esta entrada de
+    // máquina de gimnasio queda solo de red de seguridad por si algún día
+    // ese enlace deja de ser una imagen directa.
+  };
+  const FREE_EXERCISE_DB_MAP_RESPALDO = {
+    "extensiones-de-flexor": { id: "Lying_Leg_Curls", aproximado: true },
+    "extensiones-de-flexores-de-rodilla": { id: "Lying_Leg_Curls", aproximado: true }
+  };
+
+  function buscarGif(ex){
+    // 1) Si el propio enlace de la Biblioteca (ex.info) ya apunta a una
+    //    imagen (no a una página web), es la foto real del ejercicio: se
+    //    usa esa antes que cualquier sustituto aproximado.
+    if(ex.info && /\.(jpe?g|png|webp|gif)(\?|#|$)/i.test(ex.info)){
+      return { urls: [ex.info], aproximado: false };
+    }
+    if(!ex.gifQuery) return null;
+    const entrada = FREE_EXERCISE_DB_MAP[ex.gifQuery] || FREE_EXERCISE_DB_MAP_RESPALDO[ex.gifQuery];
+    if(!entrada) return null;
+    return {
+      urls: [0, 1].map(n => `${FREE_EXERCISE_DB_BASE}${entrada.id}/${n}.jpg`),
+      aproximado: !!entrada.aproximado
+    };
+  }
+
+  // Alterna las fotos de un array sobre un <img>, para simular animación.
+  let gifIntervalHandle = null;
+  function iniciarAnimacionGif(imgEl, urls){
+    detenerAnimacionGif();
+    if(!urls || urls.length === 0) return;
+    let i = 0;
+    imgEl.src = urls[0];
+    if(urls.length > 1){
+      gifIntervalHandle = setInterval(() => {
+        i = (i + 1) % urls.length;
+        imgEl.src = urls[i];
+      }, 900);
+    }
+  }
+  function detenerAnimacionGif(){
+    if(gifIntervalHandle){ clearInterval(gifIntervalHandle); gifIntervalHandle = null; }
   }
 
   // ====================================================================
@@ -988,12 +1215,84 @@
     document.getElementById("exProgress").textContent = `Ejercicio ${currentIdx+1} de ${flat.length}`;
     document.getElementById("exBlockLabel").textContent = item.bloqueTitulo || "";
     document.getElementById("exNombre").textContent = ex.nombre;
-    document.getElementById("exDescBtn").style.display = ex.desc ? "" : "none";
 
-    document.getElementById("exDistancia").textContent = (ex.distanciaTotal || (ex.series*ex.metros) || 0) + "m";
-    document.getElementById("exSeries").textContent = `${ex.series} × ${ex.metros}m`;
-    document.getElementById("exIntensidad").textContent = ex.intensidad !== null && ex.intensidad !== undefined ? `${intensidadEmoji(ex.intensidad)} ${ex.intensidad}%` : "—";
-    document.getElementById("exObjetivo").textContent = ex.tiempoObjetivo ? formatTime(ex.tiempoObjetivo*1000,false) : "Sin objetivo";
+    const gifResultado = modoFisico ? buscarGif(ex) : null;
+
+    const descInline = document.getElementById("exDescInline");
+    if(modoFisico){
+      document.getElementById("exDescBtn").style.display = "none";
+      if(ex.desc){
+        descInline.textContent = ex.desc;
+        descInline.style.display = "";
+      } else {
+        descInline.style.display = "none";
+      }
+      // Si la animación es solo orientativa (ejercicio parecido, no exacto),
+      // se resalta la explicación para dejarlo claro y evitar confusiones.
+      descInline.classList.toggle("rp-desc-aproximado", !!(gifResultado && gifResultado.aproximado));
+      document.getElementById("exGifAviso").style.display = (gifResultado && gifResultado.aproximado) ? "" : "none";
+    } else {
+      descInline.style.display = "none";
+      descInline.classList.remove("rp-desc-aproximado");
+      document.getElementById("exGifAviso").style.display = "none";
+      document.getElementById("exDescBtn").style.display = ex.desc ? "" : "none";
+    }
+
+    const gifWrap = document.getElementById("exGifWrap");
+    const gifImg = document.getElementById("exGifImg");
+    const gifPlaceholder = document.getElementById("exGifPlaceholder");
+    const gifInfoLink = document.getElementById("exGifInfoLink");
+    const metaGrid = document.getElementById("exMetaGrid");
+    const distanciaItem = document.getElementById("exDistanciaItem");
+    const startBtn = document.getElementById("startExerciseBtn");
+
+    if(modoFisico){
+      gifWrap.style.display = "flex";
+      if(gifResultado){
+        iniciarAnimacionGif(gifImg, gifResultado.urls);
+        gifImg.style.display = "";
+        gifPlaceholder.style.display = "none";
+      } else {
+        detenerAnimacionGif();
+        gifImg.style.display = "none";
+        gifPlaceholder.style.display = "flex";
+      }
+      if(ex.info){
+        gifInfoLink.href = ex.info;
+        gifInfoLink.style.display = "";
+      } else {
+        gifInfoLink.style.display = "none";
+      }
+
+      distanciaItem.style.display = "none";
+      metaGrid.style.gridTemplateColumns = "1fr 1fr 1fr";
+      document.getElementById("exSeriesLabel").textContent = "Series";
+      document.getElementById("exSeries").textContent = ex.series;
+      document.getElementById("exIntensidadLabel").textContent = ex.duracionSegundos != null ? "Duración" : "Repeticiones";
+      document.getElementById("exIntensidad").textContent = ex.duracionSegundos != null
+        ? formatTime(ex.duracionSegundos*1000, false)
+        : `${ex.repeticiones != null ? ex.repeticiones : "—"}${ex.porLado ? " / lado" : ""}`;
+      document.getElementById("exObjetivoLabel").textContent = "Grupo";
+      document.getElementById("exObjetivo").textContent = (ex.tags && ex.tags.length) ? ex.tags.join(", ") : "—";
+
+      startBtn.textContent = completedSet.has(currentIdx) ? "✓ Repetir ejercicio" : "▶ Empezar";
+    } else {
+      detenerAnimacionGif();
+      gifWrap.style.display = "none";
+      distanciaItem.style.display = "";
+      metaGrid.style.gridTemplateColumns = "";
+      document.getElementById("exSeriesLabel").textContent = "Series";
+      document.getElementById("exDistanciaLabel").textContent = "Distancia";
+      document.getElementById("exIntensidadLabel").textContent = "Intensidad";
+      document.getElementById("exObjetivoLabel").textContent = "Objetivo / serie";
+
+      document.getElementById("exDistancia").textContent = (ex.distanciaTotal || (ex.series*ex.metros) || 0) + "m";
+      document.getElementById("exSeries").textContent = `${ex.series} × ${ex.metros}m`;
+      document.getElementById("exIntensidad").textContent = ex.intensidad !== null && ex.intensidad !== undefined ? `${intensidadEmoji(ex.intensidad)} ${ex.intensidad}%` : "—";
+      document.getElementById("exObjetivo").textContent = ex.tiempoObjetivo ? formatTime(ex.tiempoObjetivo*1000,false) : "Sin objetivo";
+
+      startBtn.textContent = "▶ Empezar";
+    }
 
     document.getElementById("prevExBtn").disabled = currentIdx === 0;
     document.getElementById("nextExBtn").disabled = currentIdx === flat.length - 1;
@@ -1001,8 +1300,135 @@
 
   document.getElementById("prevExBtn").addEventListener("click", () => openExercise(currentIdx - 1));
   document.getElementById("nextExBtn").addEventListener("click", () => openExercise(currentIdx + 1));
-  document.getElementById("backToOverviewBtn").addEventListener("click", () => { renderOverview(); showScreen("overview"); });
-  document.getElementById("startExerciseBtn").addEventListener("click", startCountdown);
+  document.getElementById("backToOverviewBtn").addEventListener("click", () => { detenerAnimacionGif(); detenerCronometroFisico(); renderOverview(); showScreen("overview"); });
+  document.getElementById("startExerciseBtn").addEventListener("click", () => {
+    if(modoFisico){ abrirPantallaFisicaActiva(); } else { startCountdown(); }
+  });
+
+  // ====================================================================
+  // 🏋️ EJERCICIO FÍSICO — pantalla completa negra con la animación en el
+  // centro (equivalente al cronómetro de natación, pero sin cronómetro:
+  // solo hay que marcar "Finalizar" cuando se han hecho las series).
+  // ====================================================================
+  function abrirPantallaFisicaActiva(){
+    const item = flat[currentIdx];
+    const ex = item.ex;
+    document.getElementById("fisicoExName").textContent = ex.nombre;
+    document.getElementById("fisicoExProgress").textContent = `Ejercicio ${currentIdx+1} de ${flat.length}`;
+
+    const gifImg = document.getElementById("fisicoGifImg");
+    const gifPlaceholder = document.getElementById("fisicoGifPlaceholder");
+    const gifResultado = buscarGif(ex);
+    if(gifResultado){
+      iniciarAnimacionGif(gifImg, gifResultado.urls);
+      gifImg.style.display = "";
+      gifPlaceholder.style.display = "none";
+    } else {
+      detenerAnimacionGif();
+      gifImg.style.display = "none";
+      gifPlaceholder.style.display = "flex";
+    }
+    document.getElementById("fisicoAviso").style.display = (gifResultado && gifResultado.aproximado) ? "" : "none";
+
+    const cantidad = ex.duracionSegundos != null
+      ? formatTime(ex.duracionSegundos*1000, false)
+      : `${ex.repeticiones != null ? ex.repeticiones : "?"} rep${ex.porLado ? " / lado" : ""}`;
+    document.getElementById("fisicoInfo").textContent = `${ex.series} × ${cantidad}`;
+
+    const timerWrap = document.getElementById("fisicoTimerWrap");
+    if(ex.duracionSegundos != null){
+      timerWrap.style.display = "flex";
+      iniciarCronometroFisico(ex);
+    } else {
+      timerWrap.style.display = "none";
+      detenerCronometroFisico();
+    }
+
+    enterFullscreen();
+    requestWakeLock();
+    showScreen("fisico");
+  }
+
+  document.getElementById("cancelFisicoBtn").addEventListener("click", () => {
+    detenerCronometroFisico();
+    renderExerciseScreen();
+    showScreen("exercise");
+  });
+  document.getElementById("fisicoFinalizarBtn").addEventListener("click", () => {
+    detenerCronometroFisico();
+    completarEjercicioFisico();
+  });
+
+  // ====================================================================
+  // 🏋️ CRONÓMETRO CON BARRA DE PROGRESO (ejercicios físicos por tiempo,
+  // p. ej. "3 × 30s" de plancha). Cuenta atrás serie a serie, sin pausa
+  // entre ellas (igual que el resto del modo físico, sin descansos), y al
+  // terminar la última serie pasa solo al siguiente ejercicio. El botón
+  // "Finalizar" sigue disponible en todo momento para saltárselo.
+  // ====================================================================
+  let fisicoTimerHandle = null;
+  let fisicoSerieActual = 0;
+
+  function iniciarCronometroFisico(ex){
+    detenerCronometroFisico();
+    fisicoSerieActual = 1;
+    ejecutarSerieCronometroFisico(ex);
+  }
+
+  function ejecutarSerieCronometroFisico(ex){
+    const totalMs = ex.duracionSegundos * 1000;
+    const barra = document.getElementById("fisicoProgressBar");
+    const numEl = document.getElementById("fisicoCountdown");
+    const serieEl = document.getElementById("fisicoSerieLabel");
+
+    serieEl.textContent = ex.series > 1 ? `Serie ${fisicoSerieActual} de ${ex.series}` : "";
+    numEl.textContent = formatTime(totalMs, false);
+
+    barra.style.transition = "none";
+    barra.style.width = "0%";
+    void barra.offsetWidth; // fuerza reflow para que la siguiente transición sí anime
+    barra.style.transition = `width ${totalMs}ms linear`;
+    requestAnimationFrame(() => { barra.style.width = "100%"; });
+
+    const inicio = Date.now();
+    fisicoTimerHandle = setInterval(() => {
+      const restante = Math.max(0, totalMs - (Date.now() - inicio));
+      numEl.textContent = formatTime(restante, false);
+      if(restante <= 0){
+        clearInterval(fisicoTimerHandle);
+        fisicoTimerHandle = null;
+        if(fisicoSerieActual < ex.series){
+          fisicoSerieActual++;
+          ejecutarSerieCronometroFisico(ex);
+        } else {
+          completarEjercicioFisico();
+        }
+      }
+    }, 100);
+  }
+
+  function detenerCronometroFisico(){
+    if(fisicoTimerHandle){ clearInterval(fisicoTimerHandle); fisicoTimerHandle = null; }
+  }
+
+  // ====================================================================
+  // 🏋️ COMPLETAR EJERCICIO (rutinas físicas — sin cronómetro ni descanso:
+  // se marca hecho y se pasa directamente al siguiente, o al resumen si
+  // era el último)
+  // ====================================================================
+  function completarEjercicioFisico(){
+    const idx = currentIdx;
+    detenerCronometroFisico();
+    completedSet.add(idx);
+    exerciseResults[idx] = { ex: flat[idx].ex, completed: true };
+    if(idx < flat.length - 1){
+      openExercise(idx + 1);
+    } else {
+      detenerAnimacionGif();
+      renderSummaryScreen();
+      showScreen("summary");
+    }
+  }
 
   // ====================================================================
   // ⏱ CUENTA ATRÁS (3 segundos, pantalla completa)
@@ -1263,6 +1689,11 @@
   // 📊 RESUMEN GENERAL DEL ENTRENAMIENTO
   // ====================================================================
   function computeSummaryStats(){
+    if(modoFisico){
+      let totalSeries = 0;
+      Object.keys(exerciseResults).forEach(k => { totalSeries += (exerciseResults[k].ex.series || 1); });
+      return { totalEjercicios: Object.keys(exerciseResults).length, totalPosibles: flat.length, totalSeries };
+    }
     let totalMetros = 0, totalTimeMs = 0;
     Object.keys(exerciseResults).forEach(k => {
       const r = exerciseResults[k];
@@ -1276,9 +1707,26 @@
   function renderSummaryScreen(){
     const stats = computeSummaryStats();
     document.getElementById("sumNombre").textContent = session ? (session.nombre || "Entrenamiento") : "";
-    document.getElementById("sumMetros").textContent = stats.totalMetros + "m";
-    document.getElementById("sumTiempo").textContent = formatTime(stats.totalTimeMs, false);
-    document.getElementById("sumRitmo").textContent = stats.totalMetros > 0 ? formatTime(stats.paceMs, false) + " /100m" : "—";
+
+    const pngRow = document.getElementById("downloadFullPngBtn").closest("div");
+
+    if(modoFisico){
+      document.getElementById("sumMetrosLabel").textContent = "Ejercicios";
+      document.getElementById("sumMetros").textContent = `${stats.totalEjercicios}/${stats.totalPosibles}`;
+      document.getElementById("sumTiempoLabel").textContent = "Series totales";
+      document.getElementById("sumTiempo").textContent = stats.totalSeries;
+      document.getElementById("sumRitmoLabel").textContent = "Estado";
+      document.getElementById("sumRitmo").textContent = stats.totalEjercicios === stats.totalPosibles && stats.totalPosibles > 0 ? "✅ Completo" : "En curso";
+      if(pngRow) pngRow.style.display = "none"; // exportación a imagen pendiente para rutinas físicas
+    } else {
+      document.getElementById("sumMetrosLabel").textContent = "Metros totales";
+      document.getElementById("sumMetros").textContent = stats.totalMetros + "m";
+      document.getElementById("sumTiempoLabel").textContent = "Tiempo total";
+      document.getElementById("sumTiempo").textContent = formatTime(stats.totalTimeMs, false);
+      document.getElementById("sumRitmoLabel").textContent = "Ritmo /100m";
+      document.getElementById("sumRitmo").textContent = stats.totalMetros > 0 ? formatTime(stats.paceMs, false) + " /100m" : "—";
+      if(pngRow) pngRow.style.display = "";
+    }
 
     const listEl = document.getElementById("sumList");
     listEl.innerHTML = "";
@@ -1287,15 +1735,23 @@
       const r = exerciseResults[idx];
       if(!r) return;
       any = true;
-      const objetivoTotal = item.ex.tiempoObjetivo ? item.ex.tiempoObjetivo * item.ex.series : null;
-      const cls = claseResultado(r.elapsedMs / 1000, objetivoTotal);
       const row = document.createElement("div");
-      row.className = "rp-lap-row " + cls;
-      row.innerHTML = `<span class="lap-label">${item.ex.nombre}</span><span class="lap-time">${formatTime(r.elapsedMs, false)}</span>`;
+      if(modoFisico){
+        row.className = "rp-lap-row res-green";
+        const cantidad = item.ex.duracionSegundos != null
+          ? formatTime(item.ex.duracionSegundos*1000, false)
+          : `${item.ex.repeticiones != null ? item.ex.repeticiones : "?"} rep${item.ex.porLado ? "/lado" : ""}`;
+        row.innerHTML = `<span class="lap-label">✓ ${item.ex.nombre}</span><span class="lap-time">${item.ex.series} × ${cantidad}</span>`;
+      } else {
+        const objetivoTotal = item.ex.tiempoObjetivo ? item.ex.tiempoObjetivo * item.ex.series : null;
+        const cls = claseResultado(r.elapsedMs / 1000, objetivoTotal);
+        row.className = "rp-lap-row " + cls;
+        row.innerHTML = `<span class="lap-label">${item.ex.nombre}</span><span class="lap-time">${formatTime(r.elapsedMs, false)}</span>`;
+      }
       listEl.appendChild(row);
     });
     if(!any){
-      listEl.innerHTML = `<div class="rp-empty"><div class="icon">🏊</div><p>Todavía no has completado ningún ejercicio.</p></div>`;
+      listEl.innerHTML = `<div class="rp-empty"><div class="icon">${modoFisico ? "🏋️" : "🏊"}</div><p>Todavía no has completado ningún ejercicio.</p></div>`;
     }
 
     const hasResults = Object.keys(exerciseResults).length > 0;
