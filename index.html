@@ -42,9 +42,9 @@
 
     body{
       background:
-        radial-gradient(circle at 15% 0%, rgba(52,211,153,.09) 0%, transparent 45%),
-        radial-gradient(circle at 100% 20%, rgba(20,184,166,.07) 0%, transparent 40%),
-        linear-gradient(180deg,#010409 0%, #08111c 55%, #0b1420 100%);
+        radial-gradient(circle at 15% 0%, rgba(59,130,246,.10) 0%, transparent 45%),
+        radial-gradient(circle at 100% 20%, rgba(37,99,235,.08) 0%, transparent 40%),
+        linear-gradient(180deg,#010409 0%, #060c18 55%, #081222 100%);
       background-attachment:fixed;
       font-family:'Sora',sans-serif;
       color:var(--text);
@@ -76,7 +76,13 @@
     }
     .panel::before{
       content:""; position:absolute; top:0; left:0; right:0; height:1px;
-      background:linear-gradient(90deg, transparent, rgba(52,211,153,.6), transparent);
+      background:linear-gradient(90deg, transparent, rgba(59,130,246,.6), transparent);
+      animation:reflejoAzul 6s ease-in-out infinite;
+    }
+    @keyframes reflejoAzul{
+      0%,100%{ background:linear-gradient(90deg, transparent, rgba(59,130,246,.6), transparent); }
+      33%{ background:linear-gradient(90deg, transparent, rgba(56,189,248,.6), transparent); }
+      66%{ background:linear-gradient(90deg, transparent, rgba(99,102,241,.6), transparent); }
     }
 
     .action-btn{
@@ -165,8 +171,8 @@
       transition:transform .15s ease, border-color .2s ease, background .2s ease, box-shadow .2s ease;
     }
     .rp-ex-row:hover{
-      border-color:rgba(52,211,153,.5); transform:translateY(-2px); background:rgba(30,41,59,.85);
-      box-shadow:0 10px 24px -14px rgba(52,211,153,.4);
+      border-color:rgba(59,130,246,.5); transform:translateY(-2px); background:rgba(30,41,59,.85);
+      box-shadow:0 10px 24px -14px rgba(59,130,246,.4);
     }
     .rp-ex-row .num{
       width:32px; height:32px; border-radius:50%; background:rgba(15,23,42,.8); border:1px solid var(--border);
@@ -194,33 +200,63 @@
     .rp-meta-item .label{ font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; margin-bottom:5px; }
     .rp-meta-item .value{ font-size:17.5px; font-weight:700; }
 
-    /* ---------- Rutinas físicas: hueco del GIF/animación del ejercicio ---------- */
+    /* ---------- Rutinas físicas: hueco del GIF/animación del ejercicio ----------
+       Tamaño SIEMPRE fijo (flex:none + overflow:hidden), exista o no el
+       aviso de "orientativa" y sea cual sea el tamaño real de la imagen:
+       el aviso vive en su propio slot fuera de este bloque, así nunca
+       empuja ni reduce el hueco de la imagen. */
     .rp-gif-wrap{
       background:rgba(30,41,59,.55); border:1px solid rgba(148,163,184,.12); border-radius:18px;
       display:flex; flex-direction:column; align-items:center; justify-content:center;
-      gap:10px; padding:22px 16px; margin-bottom:20px; min-height:180px; text-align:center;
+      gap:10px; padding:16px; margin-bottom:14px; flex:none; height:220px; overflow:hidden; text-align:center;
     }
     .rp-gif-placeholder{ color:var(--muted); opacity:.6; display:flex; flex-direction:column; align-items:center; gap:10px; }
     .rp-gif-placeholder::after{ content:"Animación no disponible todavía"; font-size:12.5px; }
-    .rp-gif-wrap img{ max-width:100%; max-height:220px; border-radius:12px; }
+    .rp-gif-wrap img{ max-width:100%; max-height:100%; width:auto; height:auto; border-radius:12px; object-fit:contain; }
     .rp-gif-wrap a{ color:var(--primary); font-size:13px; font-weight:600; text-decoration:none; }
     .rp-gif-wrap a:hover{ text-decoration:underline; }
+    /* Slot del aviso "animación orientativa": altura fija SIEMPRE reservada
+       (con visibility, no display), así el bloque de la imagen y todo lo
+       de debajo no se desplaza según si el ejercicio actual lo lleva. */
+    .rp-gif-aviso-slot{ flex:none; min-height:34px; display:flex; align-items:center; justify-content:center; margin-bottom:10px; }
 
-    .rp-nav-row{ display:flex; gap:10px; margin-top:18px; }
-
-    /* rp-split y rp-split-info siguen siendo "invisibles" para el layout en
-       vertical (sus hijos fluyen normales); rp-split-actions, en cambio, SÍ
-       es una columna real que crece para ocupar todo el alto sobrante del
-       panel, y reparte ese alto entre sus botones — así son grandes y fáciles
-       de pulsar con las manos mojadas, en el borde de la piscina. En
-       horizontal, la media query de más abajo la convierte además en una
-       columna lateral de ancho fijo (en vez de ancho completo). */
-    .rp-split, .rp-split-info{ display:contents; }
-    .rp-split-actions{ display:flex; flex-direction:column; gap:14px; flex:1; min-height:0; margin-top:18px; }
-    .rp-split-actions > .action-btn{ flex:1; display:flex; }
-    .rp-split-actions > .rp-nav-row{ flex:1; margin-top:0; min-height:0; }
-    .rp-split-actions > .rp-result-actions{ flex:1; display:flex; flex-direction:column; min-height:0; }
+    /* Proporción FIJA de la pantalla de ejercicio: 2/3 para el contenido
+       (imagen + nombre + avisos) y 1/3 para los botones — siempre la
+       misma división, exista o no el aviso, sea corta o larga la imagen.
+       flex-basis fijo en % (no flex:1 "que se ajusta al contenido") es lo
+       que garantiza que ambos bloques midan siempre lo mismo. Dentro del
+       tercio de contenido, todo se centra verticalmente para que la
+       posición del texto/imagen sea también constante. */
+    .rp-split{ display:flex; flex-direction:column; min-height:0; flex:1; }
+    .rp-split-info{
+      flex:0 0 66%; min-height:0; display:flex; flex-direction:column; align-items:stretch;
+      justify-content:center;
+    }
+    /* En rutinas físicas, la imagen/animación vive en su propio bloque de
+       altura FIJA, siempre en la misma posición (arriba del texto) — así
+       el título, la explicación o el aviso nunca la desplazan. En
+       natación no hay imagen, así que este bloque no debe reservar
+       ningún espacio: el texto (nombre + meta-grid) simplemente se
+       centra en su tercio, como en el diseño original. */
+    .rp-split-media{ display:none; }
+    body.modo-fisico .rp-split-media{ flex:none; display:flex; flex-direction:column; }
+    .rp-split-text{ flex:1; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch; display:flex; flex-direction:column; justify-content:center; }
+    .rp-split-actions{
+      display:flex; flex-direction:column; gap:10px;
+      flex:0 0 34%; min-height:0;
+      margin-top:0; padding-top:14px; border-top:1px solid rgba(148,163,184,.12);
+    }
+    .rp-split-actions > .action-btn{ flex:2 1 0; display:flex; }
+    .rp-split-actions > .rp-nav-row{ flex:1 1 0; margin-top:0; min-height:0; }
+    .rp-split-actions > .rp-result-actions{ flex:2 1 0; display:flex; flex-direction:column; min-height:0; }
+    .rp-nav-row{ display:flex; gap:8px; }
     .rp-nav-row .action-btn{ flex:1; justify-content:center; }
+
+    /* Botones más compactos en rutinas físicas (sesion-fisica), donde el
+       hueco de la foto/GIF es más alto y hay menos beneficio en botones
+       enormes; en natación se mantienen al tamaño normal (btn-block). */
+    body.modo-fisico .rp-split-actions .btn-block{ padding:13px 16px; font-size:15px; border-radius:14px; }
+    body.modo-fisico .rp-split-actions .rp-nav-row .action-btn{ padding:11px 10px; font-size:13px; }
     .rp-result-actions .action-btn{ flex:1; justify-content:center; font-size:16px; padding:14px 18px; }
 
     /* ---------- Countdown & Timer (pantalla completa, negro puro) ---------- */
@@ -237,18 +273,30 @@
     .rp-countdown-inner{ display:flex; flex-direction:column; align-items:center; }
     .rp-timer-info{ display:flex; flex-direction:column; align-items:center; }
 
-    /* ---------- Ejercicio físico activo (pantalla completa) ---------- */
+    /* ---------- Ejercicio físico activo (pantalla completa) ----------
+       El bloque de la animación tiene un tamaño FIJO (no depende del
+       aspect-ratio ni del contenido del GIF/placeholder), para que el
+       layout de la pantalla —y la posición/tamaño de los botones de
+       abajo— nunca varíe según el ejercicio. La imagen se ajusta DENTRO
+       de este hueco fijo con object-fit:contain, sin alterar el hueco. */
     .rp-fisico-gif-wrap{
-      width:min(86vw,420px); aspect-ratio:1/1; max-height:46vh;
+      flex:none; width:min(78vw,360px); height:min(38vh,360px);
       background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.1); border-radius:24px;
-      display:flex; align-items:center; justify-content:center; overflow:hidden; margin-top:44px;
+      display:flex; align-items:center; justify-content:center; overflow:hidden; margin-top:28px;
     }
     .rp-fisico-gif-placeholder{ color:rgba(255,255,255,.4); display:flex; flex-direction:column; align-items:center; gap:14px; text-align:center; padding:20px; font-size:13px; }
-    .rp-fisico-gif-wrap img{ width:100%; height:100%; object-fit:contain; }
+    .rp-fisico-gif-wrap img{ max-width:100%; max-height:100%; width:auto; height:auto; object-fit:contain; }
     .rp-fisico-info{ color:#fff; font-size:19px; font-weight:700; margin:22px 0; text-align:center; }
 
+    /* Espacio del aviso "animación orientativa": SIEMPRE reservado con
+       la misma altura fija, tanto si el texto se muestra como si no
+       (solo cambia la visibility), para que el resto de la pantalla
+       —incluidos los botones— no se desplace ni cambie de tamaño según
+       si el ejercicio actual lleva o no ese aviso. */
+    .rp-fisico-aviso-slot{ flex:none; min-height:38px; display:flex; align-items:center; justify-content:center; }
+
     /* ---------- Cronómetro + barra de progreso (ejercicios por tiempo) ---------- */
-    .rp-fisico-timer-wrap{ width:min(86vw,420px); margin:4px 0 28px; display:flex; flex-direction:column; align-items:center; gap:8px; }
+    .rp-fisico-timer-wrap{ width:min(78vw,360px); margin:4px 0 20px; display:flex; flex-direction:column; align-items:center; gap:6px; }
     .rp-fisico-serie-label{ color:rgba(255,255,255,.6); font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; }
     .rp-fisico-countdown{ color:#fff; font-size:44px; font-weight:800; font-variant-numeric:tabular-nums; }
     .rp-fisico-progress-track{ width:100%; height:10px; border-radius:999px; background:rgba(255,255,255,.12); overflow:hidden; }
@@ -262,10 +310,16 @@
 
     #countdownNum{
       font-size:min(38vw, 220px); font-weight:800; color:#fff; font-variant-numeric:tabular-nums;
-      text-shadow:0 0 40px rgba(52,211,153,.5);
+      text-shadow:0 0 40px rgba(59,130,246,.5);
+      animation:glowAzul 6s ease-in-out infinite;
     }
     #countdownNum.pulse{ animation:countdownPulse .9s cubic-bezier(.34,1.56,.64,1); }
-    #countdownNum.go{ color:#4ade80; text-shadow:0 0 60px rgba(74,222,128,.8); }
+    #countdownNum.go{ color:#4ade80; text-shadow:0 0 60px rgba(74,222,128,.8); animation:none; }
+    @keyframes glowAzul{
+      0%,100%{ text-shadow:0 0 40px rgba(59,130,246,.5); }
+      33%{ text-shadow:0 0 40px rgba(56,189,248,.5); }
+      66%{ text-shadow:0 0 40px rgba(99,102,241,.5); }
+    }
     @keyframes countdownPulse{
       0%{ transform:scale(.3); opacity:0; }
       45%{ transform:scale(1.2); opacity:1; }
@@ -275,14 +329,26 @@
     .rp-countdown-ring{
       position:relative; width:min(50vw,280px); height:min(50vw,280px); border-radius:50%;
       display:flex; align-items:center; justify-content:center;
-      border:4px solid rgba(52,211,153,.25);
+      border:4px solid rgba(59,130,246,.25);
+      animation:anilloAzul 6s ease-in-out infinite;
     }
     .rp-countdown-ring::before{
       content:""; position:absolute; inset:-4px; border-radius:50%;
-      border:4px solid rgba(52,211,153,.7); border-top-color:transparent; border-right-color:transparent;
-      animation:ringSpin 1s linear infinite;
+      border:4px solid rgba(59,130,246,.7); border-top-color:transparent; border-right-color:transparent;
+      animation:ringSpin 1s linear infinite, anilloAzul2 6s ease-in-out infinite;
     }
-    .rp-countdown-ring.go::before{ border-color:rgba(74,222,128,.8); border-top-color:transparent; border-right-color:transparent; }
+    .rp-countdown-ring.go{ animation:none; }
+    .rp-countdown-ring.go::before{ border-color:rgba(74,222,128,.8); border-top-color:transparent; border-right-color:transparent; animation:ringSpin 1s linear infinite; }
+    @keyframes anilloAzul{
+      0%,100%{ border-color:rgba(59,130,246,.25); }
+      33%{ border-color:rgba(56,189,248,.25); }
+      66%{ border-color:rgba(99,102,241,.25); }
+    }
+    @keyframes anilloAzul2{
+      0%,100%{ border-color:rgba(59,130,246,.7); border-top-color:transparent; border-right-color:transparent; }
+      33%{ border-color:rgba(56,189,248,.7); border-top-color:transparent; border-right-color:transparent; }
+      66%{ border-color:rgba(99,102,241,.7); border-top-color:transparent; border-right-color:transparent; }
+    }
     @keyframes ringSpin{ from{ transform:rotate(0deg);} to{ transform:rotate(360deg);} }
     #countdownLabel{ color:var(--muted); font-size:15px; margin-top:14px; letter-spacing:.05em; }
 
@@ -337,9 +403,21 @@
     }
     .rp-ctrl-btn:active{ transform:scale(.93); }
     .rp-ctrl-btn .icon{ font-size:34px; }
-    .rp-ctrl-btn.lap{ border-color:rgba(52,211,153,.6); box-shadow:0 0 8px -3px rgba(52,211,153,.5); }
+    .rp-ctrl-btn .icon svg{ width:1em; height:1em; display:block; }
+    .rp-ctrl-btn.lap{ border-color:rgba(59,130,246,.6); box-shadow:0 0 8px -3px rgba(59,130,246,.5); animation:reflejoBotonAzul 6s ease-in-out infinite; }
+    @keyframes reflejoBotonAzul{
+      0%,100%{ border-color:rgba(59,130,246,.6); box-shadow:0 0 8px -3px rgba(59,130,246,.5); }
+      33%{ border-color:rgba(56,189,248,.6); box-shadow:0 0 8px -3px rgba(56,189,248,.5); }
+      66%{ border-color:rgba(99,102,241,.6); box-shadow:0 0 8px -3px rgba(99,102,241,.5); }
+    }
     .rp-ctrl-btn.stop{ border-color:rgba(239,68,68,.65); background:rgba(239,68,68,.16); box-shadow:0 0 8px -3px rgba(239,68,68,.5); }
     .rp-ctrl-btn:disabled{ opacity:.3; cursor:not-allowed; transform:none; box-shadow:none; }
+    /* En la pantalla de ejercicio físico en marcha, el botón Finalizar se
+       reduce un poco (respecto al tamaño usado en el cronómetro de
+       natación) para dejar más hueco vertical a apartados de texto
+       (nombre, aviso, series) sin que ninguno desplace la animación. */
+    #screenFisicoActivo .rp-ctrl-btn{ width:88px; height:88px; border-radius:18px; font-size:12px; gap:4px; }
+    #screenFisicoActivo .rp-ctrl-btn .icon{ font-size:26px; }
 
     /* ---------- Result screen ---------- */
     .rp-result-time{
@@ -398,14 +476,19 @@
       background:linear-gradient(135deg, rgba(52,211,153,.16), rgba(20,184,166,.10));
       border:1px solid rgba(52,211,153,.45); color:#6ee7b7; font-weight:700; font-size:13.5px;
       font-family:'Sora',sans-serif; padding:11px 18px; border-radius:999px; cursor:pointer;
-      margin-bottom:18px; animation:descPulse 2.6s ease-in-out infinite; transition:border-color .2s, transform .15s;
+      margin-bottom:18px; animation:descPulse 7.8s ease-in-out infinite; transition:border-color .2s, transform .15s;
     }
     .rp-desc-btn .icon{ font-size:16px; }
     .rp-desc-btn:hover{ border-color:#6ee7b7; }
     .rp-desc-btn:active{ transform:scale(.97); }
     @keyframes descPulse{
-      0%,100%{ box-shadow:0 0 0 0 rgba(52,211,153,.35); }
-      50%{ box-shadow:0 0 0 9px rgba(52,211,153,0); }
+      0%,16.6%{ box-shadow:0 0 0 0 rgba(59,130,246,.35); }
+      8.3%{ box-shadow:0 0 0 9px rgba(59,130,246,0); }
+      33.3%,50%{ box-shadow:0 0 0 0 rgba(56,189,248,.35); }
+      41.6%{ box-shadow:0 0 0 9px rgba(56,189,248,0); }
+      66.6%,83.3%{ box-shadow:0 0 0 0 rgba(99,102,241,.35); }
+      75%{ box-shadow:0 0 0 9px rgba(99,102,241,0); }
+      100%{ box-shadow:0 0 0 0 rgba(59,130,246,.35); }
     }
     /* Rutinas físicas: la explicación no va escondida detrás de un botón/
        modal (como en natación), se muestra directamente en la pantalla. */
@@ -422,12 +505,16 @@
     .rp-gif-aviso{
       width:100%; text-align:center; color:#fb923c; background:rgba(251,146,60,.12);
       border:1px solid rgba(251,146,60,.4); border-radius:10px; padding:7px 10px;
-      font-size:12px; font-weight:700; margin-bottom:10px;
+      font-size:12px; font-weight:700;
     }
+    /* La copia del aviso para horizontal solo se muestra en la media query
+       min-width:700px (ver más abajo); en vertical se mantiene oculta y se
+       usa la original, superpuesta sobre la imagen. */
+    .rp-gif-aviso-horiz{ display:none; }
     .rp-fisico-aviso{
       color:#fb923c; background:rgba(251,146,60,.12); border:1px solid rgba(251,146,60,.4);
       border-radius:10px; padding:8px 14px; font-size:12.5px; font-weight:700;
-      margin-top:14px; text-align:center;
+      text-align:center;
     }
 
     .rp-modal-backdrop{
@@ -478,12 +565,12 @@
     body[data-screen="exercise"] #screenExercise,
     body[data-screen="result"]   #screenResult{ flex:1; display:flex; min-height:0; }
     body[data-screen="exercise"] #screenExercise > .panel,
-    body[data-screen="result"]   #screenResult > .panel{ flex:1; display:flex; flex-direction:column; min-height:0; overflow-y:auto; }
+    body[data-screen="result"]   #screenResult > .panel{ flex:1; display:flex; flex-direction:column; min-height:0; overflow:hidden; }
 
-    @media (orientation:landscape) and (max-height:600px){
+    @media (min-width:700px){
       html, body{ height:100%; }
       body{ padding-left:env(safe-area-inset-left); padding-right:env(safe-area-inset-right); display:flex; }
-      .container{ max-width:none; width:100%; margin:0; height:100%; padding:14px calc(20px + env(safe-area-inset-right)) 14px calc(20px + env(safe-area-inset-left)); }
+      .container{ max-width:none; width:100%; flex:1; min-width:0; margin:0; height:100%; padding:14px calc(20px + env(safe-area-inset-right)) 14px calc(20px + env(safe-area-inset-left)); }
 
       .header{ margin-bottom:14px; }
       .header h1{ font-size:22px; }
@@ -491,24 +578,45 @@
       .badge-beta{ font-size:10px; }
       .panel{ padding:18px 22px; border-radius:22px; }
 
-      /* ---- Detalle de ejercicio y Resultado: contenido a un lado,
-         botones grandes al otro que ocupan todo el alto disponible. ---- */
-      .rp-split{ display:flex; align-items:stretch; gap:28px; flex:1; min-height:0; }
-      .rp-split-info{ display:flex; flex-direction:column; justify-content:center; flex:1; min-width:0; }
-      .rp-split-actions{ display:flex; flex-direction:column; gap:14px; flex:0 0 320px; margin-top:0; }
+      /* ---- Detalle de ejercicio y Resultado: contenido a un lado
+         (2/3), botones al otro (1/3) — misma proporción fija que en
+         vertical, para que ningún bloque cambie de tamaño según su
+         contenido. Dentro del contenido, imagen y texto van LADO A LADO
+         (no apilados) para que quepan a la vez sin necesidad de scroll. ---- */
+      .rp-split{ display:flex; flex-direction:row; align-items:stretch; gap:28px; flex:1; min-height:0; }
+      .rp-split-info{ display:flex; flex-direction:column; align-items:stretch; justify-content:center; flex:0 0 calc(66% - 14px); min-width:0; }
+      .rp-split-actions{ display:flex; flex-direction:column; gap:14px; flex:0 0 calc(34% - 14px); min-height:0; margin-top:0; justify-content:stretch; }
+
+      /* En rutinas físicas, imagen y texto van lado a lado dentro del
+         tercio de contenido. En natación, sin imagen, el texto ocupa
+         todo el tercio y se centra solo — igual que en vertical. */
+      body.modo-fisico .rp-split-info{ flex-direction:row; gap:18px; }
+      body.modo-fisico .rp-split-media{ flex:0 0 40%; min-width:0; min-height:0; display:flex; flex-direction:column; align-items:stretch; justify-content:center; position:relative; }
+      .rp-split-text{ flex:1; min-width:0; overflow-y:auto; display:flex; flex-direction:column; justify-content:center; }
+
+      .rp-gif-wrap{ flex:none; width:100%; height:min(100%,320px); max-height:none; margin-bottom:0; }
+      /* En horizontal el aviso ya no se superpone a la imagen: el slot
+         superpuesto se oculta y en su lugar se muestra la copia colocada
+         debajo del meta-grid (exGifAvisoHoriz), controlada por JS igual
+         que la original. Solo aplica en modo físico (natación no tiene
+         imagen ni aviso de este tipo). */
+      body.modo-fisico .rp-gif-aviso-slot{ display:none; }
+      body.modo-fisico .rp-gif-aviso-horiz{ display:block; margin:10px 0 0; }
 
       .rp-meta-grid{ grid-template-columns:repeat(2,1fr); gap:8px; margin-bottom:0; }
       .rp-meta-item{ padding:9px 10px; }
       .rp-meta-item .label{ font-size:10px; margin-bottom:2px; }
       .rp-meta-item .value{ font-size:15px; }
-      .rp-ex-name{ font-size:22px; margin-bottom:6px; }
-      .rp-desc-btn{ font-size:12.5px; padding:9px 15px; margin-bottom:12px; }
+      .rp-ex-name{ font-size:20px; margin-bottom:4px; }
+      .rp-desc-btn{ font-size:12px; padding:7px 13px; margin-bottom:8px; }
       .rp-progress{ margin-bottom:2px; }
-      .rp-block-label{ margin-bottom:5px; }
+      .rp-block-label{ margin-bottom:4px; }
 
       .rp-split-actions .btn-block{ padding:0 22px; font-size:19px; border-radius:20px; }
-      .rp-nav-row{ flex-direction:column; margin-top:0; }
-      .rp-nav-row .action-btn{ padding:0 14px; font-size:15px; border-radius:16px; }
+      .rp-split-actions > .action-btn.btn-block{ flex:2 1 0; }
+      .rp-split-actions > .rp-nav-row{ flex:1 1 0; min-height:0; }
+      .rp-nav-row{ flex-direction:row; margin-top:0; }
+      .rp-nav-row .action-btn{ padding:0 10px; font-size:13px; border-radius:16px; flex:1; }
 
       .rp-result-time{ padding:20px 10px; font-size:min(9vh,52px); margin-bottom:4px; }
       .rp-result-sub{ margin-bottom:10px; }
@@ -595,7 +703,7 @@
 
       <div style="display:flex; flex-direction:column; align-items:center; gap:8px; margin-top:24px; padding-top:20px; border-top:1px solid rgba(148,163,184,.15);">
         <button class="action-btn" id="goToGeneratorBtn" title="Abrir el Generador de sesiones" style="width:100%; max-width:420px; justify-content:center; gap:8px; font-size:13.5px; background:rgba(52,211,153,.08); border:1px solid rgba(52,211,153,.35); color:#34d399; font-weight:700;">
-          <span style="font-size:15px;">✍️</span>Crea tu entrenamiento aquí
+          Crea tu entrenamiento aquí
         </button>
         <p style="max-width:420px; text-align:center; color:var(--muted); font-size:12.5px; line-height:1.5; margin:0;">
           Crea tu entrenamiento en el Generador de sesiones y pégalo en esta página web para comenzar.
@@ -634,40 +742,53 @@
     <div class="panel">
       <div class="rp-split">
         <div class="rp-split-info">
-          <div class="rp-progress" id="exProgress"></div>
-          <div class="rp-block-label" id="exBlockLabel"></div>
-          <div class="rp-ex-name" id="exNombre"></div>
-          <button class="rp-desc-btn" id="exDescBtn" type="button">
-            <span class="icon">💬</span> Explicación disponible
-          </button>
-          <div class="rp-ex-desc-inline" id="exDescInline" style="display:none;"></div>
-
-          <div class="rp-gif-wrap" id="exGifWrap" style="display:none;">
-            <div class="rp-gif-aviso" id="exGifAviso" style="display:none;">⚠️ Animación orientativa — ejercicio parecido, no exacto</div>
-            <div class="rp-gif-placeholder" id="exGifPlaceholder">
-              <svg viewBox="0 0 24 24" width="46" height="46" fill="currentColor" aria-hidden="true"><path d="M20.57 14.86 22 13.43 20.57 12 17 15.57 8.43 7 12 3.43 10.57 2 9.14 3.43 7.71 2 5.57 4.14 4.14 2.71 2.71 4.14l1.43 1.43L2 7.71l1.43 1.43L2 10.57 3.43 12 7 8.43 15.57 17 12 20.57 13.43 22l1.43-1.43L16.29 22l2.14-2.14 1.43 1.43 1.43-1.43-1.43-1.43L22 16.29l-1.43-1.43z"/></svg>
+          <div class="rp-split-media">
+            <div class="rp-gif-aviso-slot">
+              <div class="rp-gif-aviso" id="exGifAviso" style="visibility:hidden;">⚠️ Animación orientativa — ejercicio parecido, no exacto</div>
             </div>
-            <img id="exGifImg" alt="" style="display:none;">
-            <a id="exGifInfoLink" href="#" target="_blank" rel="noopener" style="display:none;">Ver ejercicio ↗</a>
+            <div class="rp-gif-wrap" id="exGifWrap" style="display:none;">
+              <div class="rp-gif-placeholder" id="exGifPlaceholder">
+                <svg viewBox="0 0 24 24" width="46" height="46" fill="currentColor" aria-hidden="true"><path d="M20.57 14.86 22 13.43 20.57 12 17 15.57 8.43 7 12 3.43 10.57 2 9.14 3.43 7.71 2 5.57 4.14 4.14 2.71 2.71 4.14l1.43 1.43L2 7.71l1.43 1.43L2 10.57 3.43 12 7 8.43 15.57 17 12 20.57 13.43 22l1.43-1.43L16.29 22l2.14-2.14 1.43 1.43 1.43-1.43-1.43-1.43L22 16.29l-1.43-1.43z"/></svg>
+              </div>
+              <img id="exGifImg" alt="" style="display:none;">
+              <a id="exGifInfoLink" href="#" target="_blank" rel="noopener" style="display:none;">Ver ejercicio ↗</a>
+            </div>
           </div>
 
-          <div class="rp-meta-grid" id="exMetaGrid">
-            <div class="rp-meta-item" id="exDistanciaItem">
-              <div class="label" id="exDistanciaLabel">Distancia</div>
-              <div class="value" id="exDistancia"></div>
+          <div class="rp-split-text">
+            <div class="rp-progress" id="exProgress"></div>
+            <div class="rp-block-label" id="exBlockLabel"></div>
+            <div class="rp-ex-name" id="exNombre"></div>
+            <button class="rp-desc-btn" id="exDescBtn" type="button">
+              <span class="icon">💬</span> Explicación disponible
+            </button>
+            <div class="rp-ex-desc-inline" id="exDescInline" style="display:none;"></div>
+
+            <div class="rp-meta-grid" id="exMetaGrid">
+              <div class="rp-meta-item" id="exDistanciaItem">
+                <div class="label" id="exDistanciaLabel">Distancia</div>
+                <div class="value" id="exDistancia"></div>
+              </div>
+              <div class="rp-meta-item">
+                <div class="label" id="exSeriesLabel">Series</div>
+                <div class="value" id="exSeries"></div>
+              </div>
+              <div class="rp-meta-item">
+                <div class="label" id="exIntensidadLabel">Intensidad</div>
+                <div class="value" id="exIntensidad"></div>
+              </div>
+              <div class="rp-meta-item">
+                <div class="label" id="exObjetivoLabel">Objetivo / serie</div>
+                <div class="value" id="exObjetivo"></div>
+              </div>
             </div>
-            <div class="rp-meta-item">
-              <div class="label" id="exSeriesLabel">Series</div>
-              <div class="value" id="exSeries"></div>
-            </div>
-            <div class="rp-meta-item">
-              <div class="label" id="exIntensidadLabel">Intensidad</div>
-              <div class="value" id="exIntensidad"></div>
-            </div>
-            <div class="rp-meta-item">
-              <div class="label" id="exObjetivoLabel">Objetivo / serie</div>
-              <div class="value" id="exObjetivo"></div>
-            </div>
+
+            <!-- Copia del aviso "animación orientativa" que solo se ve en
+                 horizontal (ver CSS de la media query min-width:700px),
+                 colocada debajo del meta-grid para no superponerse a la
+                 imagen. En vertical se mantiene oculta y se ve la de
+                 arriba (exGifAviso), superpuesta sobre la imagen. -->
+            <div class="rp-gif-aviso rp-gif-aviso-horiz" id="exGifAvisoHoriz" style="visibility:hidden;">⚠️ Animación orientativa — ejercicio parecido, no exacto</div>
           </div>
         </div>
 
@@ -784,9 +905,9 @@
     </div>
 
     <div class="rp-timer-controls">
-      <button class="rp-ctrl-btn lap" id="lapBtn"><span class="icon">🚩</span>Vuelta</button>
-      <button class="rp-ctrl-btn" id="pauseBtn"><span class="icon">⏸</span>Pausa</button>
-      <button class="rp-ctrl-btn stop" id="stopBtn"><span class="icon">🏁</span>Finalizar</button>
+      <button class="rp-ctrl-btn lap" id="lapBtn"><span class="icon"></span>Vuelta</button>
+      <button class="rp-ctrl-btn" id="pauseBtn"><span class="icon"></span>Pausa</button>
+      <button class="rp-ctrl-btn stop" id="stopBtn"><span class="icon"></span>Finalizar</button>
     </div>
   </div>
 </div>
@@ -811,7 +932,9 @@
       </div>
       <img id="fisicoGifImg" alt="" style="display:none;">
     </div>
-    <div class="rp-fisico-aviso" id="fisicoAviso" style="display:none;">⚠️ Animación orientativa — ejercicio parecido, no exacto</div>
+    <div class="rp-fisico-aviso-slot">
+      <div class="rp-fisico-aviso" id="fisicoAviso" style="visibility:hidden;">⚠️ Animación orientativa — ejercicio parecido, no exacto</div>
+    </div>
 
     <div class="rp-fisico-info" id="fisicoInfo"></div>
 
@@ -823,7 +946,7 @@
       </div>
     </div>
 
-    <button class="rp-ctrl-btn stop" id="fisicoFinalizarBtn"><span class="icon">🏁</span>Finalizar</button>
+    <button class="rp-ctrl-btn stop" id="fisicoFinalizarBtn"><span class="icon"></span>Finalizar</button>
   </div>
 </div>
 
@@ -930,6 +1053,15 @@
   // volver a entrar si el navegador la cerró, p. ej. al pulsar Esc).
   const ICON_EXPAND = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>';
   const ICON_COMPRESS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3"/><path d="M21 8h-3a2 2 0 0 1-2-2V3"/><path d="M3 16h3a2 2 0 0 1 2 2v3"/><path d="M16 21v-3a2 2 0 0 1 2-2h3"/></svg>';
+  const ICON_LAP   = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 3a1 1 0 0 1 1 1v16a1 1 0 1 1-2 0V4a1 1 0 0 1 1-1z"/><path d="M6 4c2-1.5 4-1.5 6 0s4 1.5 6 0v9c-2 1.5-4 1.5-6 0s-4-1.5-6 0V4z"/></svg>';
+  const ICON_PAUSE = '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>';
+  const ICON_PLAY  = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15a1 1 0 0 0 1.53.85l12-7.5a1 1 0 0 0 0-1.7l-12-7.5A1 1 0 0 0 7 4.5z"/></svg>';
+  const ICON_STOP  = '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="5" width="14" height="14" rx="3"/></svg>';
+
+  document.querySelector("#lapBtn .icon").innerHTML = ICON_LAP;
+  document.querySelector("#stopBtn .icon").innerHTML = ICON_STOP;
+  const fisicoFinBtnIcon = document.querySelector("#fisicoFinalizarBtn .icon");
+  if(fisicoFinBtnIcon) fisicoFinBtnIcon.innerHTML = ICON_STOP;
   function updateFsBodyClass(){
     const active = !!document.fullscreenElement;
     document.body.classList.toggle("is-fullscreen", active);
@@ -1230,11 +1362,13 @@
       // Si la animación es solo orientativa (ejercicio parecido, no exacto),
       // se resalta la explicación para dejarlo claro y evitar confusiones.
       descInline.classList.toggle("rp-desc-aproximado", !!(gifResultado && gifResultado.aproximado));
-      document.getElementById("exGifAviso").style.display = (gifResultado && gifResultado.aproximado) ? "" : "none";
+      document.getElementById("exGifAviso").style.visibility = (gifResultado && gifResultado.aproximado) ? "visible" : "hidden";
+      document.getElementById("exGifAvisoHoriz").style.visibility = (gifResultado && gifResultado.aproximado) ? "visible" : "hidden";
     } else {
       descInline.style.display = "none";
       descInline.classList.remove("rp-desc-aproximado");
-      document.getElementById("exGifAviso").style.display = "none";
+      document.getElementById("exGifAviso").style.visibility = "hidden";
+      document.getElementById("exGifAvisoHoriz").style.visibility = "hidden";
       document.getElementById("exDescBtn").style.display = ex.desc ? "" : "none";
     }
 
@@ -1328,7 +1462,7 @@
       gifImg.style.display = "none";
       gifPlaceholder.style.display = "flex";
     }
-    document.getElementById("fisicoAviso").style.display = (gifResultado && gifResultado.aproximado) ? "" : "none";
+    document.getElementById("fisicoAviso").style.visibility = (gifResultado && gifResultado.aproximado) ? "visible" : "hidden";
 
     const cantidad = ex.duracionSegundos != null
       ? formatTime(ex.duracionSegundos*1000, false)
@@ -1509,7 +1643,7 @@
       ? `🎯 Objetivo: ${formatTime(ex.tiempoObjetivo*1000,false)} / serie`
       : "";
     document.getElementById("lapBtn").disabled = false;
-    document.getElementById("pauseBtn").innerHTML = `<span class="icon">⏸</span>Pausa`;
+    document.getElementById("pauseBtn").innerHTML = `<span class="icon">${ICON_PAUSE}</span>Pausa`;
     document.getElementById("timerDisplay").classList.remove("paused");
     updateLapCounter();
     document.getElementById("lapsMini").innerHTML = "";
@@ -1581,13 +1715,13 @@
       timerState = "paused";
       pauseStartedAt = Date.now();
       clearInterval(tickHandle);
-      document.getElementById("pauseBtn").innerHTML = `<span class="icon">▶</span>Reanudar`;
+      document.getElementById("pauseBtn").innerHTML = `<span class="icon">${ICON_PLAY}</span>Reanudar`;
       document.getElementById("timerDisplay").classList.add("paused");
     } else if(timerState === "paused"){
       pausedAccum += Date.now() - pauseStartedAt;
       timerState = "running";
       tickHandle = setInterval(updateTimerDisplay, 100);
-      document.getElementById("pauseBtn").innerHTML = `<span class="icon">⏸</span>Pausa`;
+      document.getElementById("pauseBtn").innerHTML = `<span class="icon">${ICON_PAUSE}</span>Pausa`;
       document.getElementById("timerDisplay").classList.remove("paused");
     }
   });
