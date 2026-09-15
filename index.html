@@ -11,7 +11,7 @@
   <title>Reproductor de entrenamientos</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
   <style>
     /* © Kevin — github.com/LightSwan
@@ -25,8 +25,8 @@
       --border:#334155;
       --text:#f8fafc;
       --muted:#94a3b8;
-      --primary:#34d399;
-      --primary2:#10b981;
+      --primary:#38bdf8;
+      --primary2:#0ea5e9;
       --danger:#ef4444;
       --success:#22c55e;
       --warning:#f59e0b;
@@ -50,6 +50,20 @@
       color:var(--text);
       min-height:100vh;
       min-height:100dvh;
+      /* La app se usa sobre todo con toques rápidos/mantenidos (long-press
+         en botones, deslizar dedos mojados) — sin esto, un toque un poco
+         largo en cualquier texto dispara el menú nativo de selección
+         ("copiar", "buscar en Google"), que tapa la interfaz y rompe la
+         interacción. Los campos de formulario (input, textarea) siguen
+         siendo seleccionables igualmente pese a esto, ya que el propio
+         navegador les da ese comportamiento independientemente del
+         user-select heredado. */
+      -webkit-user-select:none; user-select:none;
+      -webkit-touch-callout:none; /* iOS: evita el menú de "copiar/buscar" en long-press */
+    }
+    input, textarea{
+      -webkit-user-select:text; user-select:text;
+      -webkit-touch-callout:default;
     }
 
     .container{ max-width:720px; margin:auto; padding:24px; }
@@ -66,6 +80,17 @@
       box-shadow:0 2px 10px rgba(245,158,11,.35);
     }
     .header p{ color:var(--muted); margin-top:7px; font-size:14px; line-height:1.5; max-width:520px; }
+
+    /* ---------- Cabecera de la pantalla de entrada (logo en vez de texto) ---------- */
+    /* Por defecto se muestra la cabecera normal (texto) y se oculta la de
+       logo; en data-screen="import" es al revés. Así cualquier pantalla
+       nueva que se añada en el futuro sigue usando la cabecera de texto
+       sin tener que tocar este bloque. */
+    #headerImport{ display:none; }
+    body[data-screen="import"] #headerNormal{ display:none; }
+    body[data-screen="import"] #headerImport{ display:block; }
+    .header-import-logo{ display:flex; justify-content:center; margin-bottom:4px; }
+    .header-import-logo svg{ width:64px; height:64px; display:block; }
 
     /* ---------- Componentes genéricos ---------- */
     .panel{
@@ -96,7 +121,7 @@
     .action-btn:disabled{ opacity:.4; cursor:not-allowed; transform:none; }
 
     .btn-primary{
-      background:linear-gradient(135deg,#10b981,#0d9488); color:#fff; border:none; font-weight:700;
+      background:linear-gradient(135deg,#38bdf8,#0ea5e9); color:#fff; border:none; font-weight:700;
       box-shadow:0 6px 20px -6px rgba(14,165,233,.5);
     }
     .btn-success{
@@ -108,6 +133,22 @@
       box-shadow:0 6px 20px -6px rgba(239,68,68,.5);
     }
     .btn-ghost-light{ background:transparent; border:1px solid rgba(255,255,255,.25); color:#fff; }
+
+    /* ---- Acciones secundarias destacadas: violeta para navegar entre
+       entrenamientos/resúmenes, rosa/magenta para exportar imagen y para
+       volver al listado de ejercicios. Mismo lenguaje visual (gradiente
+       sólido + sombra + negrita) que btn-primary/btn-success, para que
+       destaquen igual sobre el fondo oscuro. ---- */
+    .btn-violet{
+      background:linear-gradient(135deg,#a78bfa,#7c3aed); color:#fff; border:none; font-weight:700;
+      box-shadow:0 6px 20px -6px rgba(124,58,237,.55);
+    }
+    .btn-violet:hover{ filter:brightness(1.1); }
+    .btn-magenta{
+      background:linear-gradient(135deg,#f472b6,#db2777); color:#fff; border:none; font-weight:700;
+      box-shadow:0 6px 20px -6px rgba(219,39,119,.55);
+    }
+    .btn-magenta:hover{ filter:brightness(1.1); }
 
     /* ---- Navegación dentro del ejercicio: un color propio para cada acción ---- */
     .btn-nav-prev{ background:linear-gradient(135deg, rgba(96,165,250,.18), rgba(59,130,246,.08)); border:1px solid rgba(96,165,250,.4); color:#93c5fd; }
@@ -121,6 +162,10 @@
       width:100%; min-height:220px; background:var(--card2); border:1px solid var(--border);
       border-radius:14px; padding:14px; color:var(--text); font-family:monospace; font-size:13px; resize:vertical;
     }
+    /* Caja de pegado compacta en la pantalla de entrada: no hace falta ver
+       todo el JSON pegado, solo confirmar que hay contenido. Sigue siendo
+       redimensionable (resize:vertical) por si se quiere revisar algo. */
+    #screenImport textarea.rp-input{ min-height:64px; }
 
     /* ============================================================
        PANTALLAS — solo una visible a la vez, controladas por JS
@@ -142,7 +187,8 @@
        respecto al viewport, provocando que el contenido se desajuste y se solape. */
     body[data-screen="countdown"] #screenCountdown,
     body[data-screen="timer"]    #screenTimer,
-    body[data-screen="fisico"]   #screenFisicoActivo{ display:block; }
+    body[data-screen="fisico"]   #screenFisicoActivo,
+    body[data-screen="series-completas"] #screenSeriesCompletas{ display:block; }
 
     /* ---------- Import ---------- */
     #importError{ color:#f87171; font-size:13px; margin-top:10px; display:none; }
@@ -156,7 +202,7 @@
     .rp-total-card .fecha{ color:var(--muted); font-size:12px; margin-top:3px; }
     .rp-total-card .metros{
       font-size:23px; font-weight:800; text-align:right;
-      background:linear-gradient(135deg,#6ee7b7,#34d399); -webkit-background-clip:text; background-clip:text; color:transparent;
+      background:linear-gradient(135deg,#7dd3fc,#38bdf8); -webkit-background-clip:text; background-clip:text; color:transparent;
     }
 
     .rp-block-title{
@@ -198,7 +244,62 @@
       transition:.2s;
     }
     .rp-meta-item .label{ font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; margin-bottom:5px; }
-    .rp-meta-item .value{ font-size:17.5px; font-weight:700; }
+    .rp-meta-item .value{ font-size:17.5px; font-weight:700; display:flex; align-items:center; gap:8px; }
+
+    /* Punto de color en gradiente continuo (verde->amarillo->naranja->rojo)
+       que sustituye al emoji de intensidad: su tono se calcula en JS según
+       el % exacto, así que refleja cualquier valor, no solo unos pocos
+       escalones fijos. */
+    .rp-intensidad-dot{
+      width:13px; height:13px; border-radius:50%; flex-shrink:0;
+      box-shadow:0 0 8px -1px currentColor, inset 0 0 0 1px rgba(255,255,255,.25);
+    }
+    /* Chip de intensidad con franja de gradiente (mismo criterio visual
+       que en el Generador de sesiones), para usar en listas y resúmenes
+       donde conviene un bloque más visible que el punto. */
+    .intensidad-chip{
+      display:inline-flex; align-items:center; padding:2px 8px; border-radius:999px;
+      color:#0b1120; font-weight:800; font-size:11.5px; letter-spacing:.01em;
+      text-shadow:0 1px 1px rgba(255,255,255,.15);
+    }
+
+    /* ---------- Interruptor de descansos entre series ---------- */
+    .rp-descanso-toggle{
+      display:flex; align-items:center; justify-content:space-between; gap:14px;
+      background:rgba(30,41,59,.55); border:1px solid rgba(148,163,184,.12); border-radius:15px;
+      padding:13px 16px; margin-bottom:16px; cursor:pointer; user-select:none;
+    }
+    .rp-descanso-toggle-text{ display:flex; flex-direction:column; gap:2px; font-weight:700; font-size:14.5px; }
+    .rp-descanso-toggle-sub{ font-weight:500; font-size:12px; color:var(--muted); }
+    .rp-toggle-switch{ position:relative; flex-shrink:0; }
+    .rp-toggle-switch input{ position:absolute; opacity:0; width:100%; height:100%; margin:0; cursor:pointer; }
+    .rp-toggle-track{
+      display:block; width:46px; height:27px; border-radius:14px; background:rgba(148,163,184,.25);
+      border:1px solid rgba(148,163,184,.2); transition:background .2s ease, border-color .2s ease; position:relative;
+    }
+    .rp-toggle-thumb{
+      position:absolute; top:2px; left:2px; width:21px; height:21px; border-radius:50%; background:#fff;
+      transition:transform .2s cubic-bezier(.4,0,.2,1); box-shadow:0 1px 3px rgba(0,0,0,.4);
+    }
+    .rp-toggle-switch input:checked + .rp-toggle-track{ background:rgba(59,130,246,.85); border-color:rgba(59,130,246,.9); }
+    .rp-toggle-switch input:checked + .rp-toggle-track .rp-toggle-thumb{ transform:translateX(19px); }
+
+    /* Editor de la duración del descanso por defecto para el ejercicio
+       activo (independiente del ±5s durante el propio descanso). */
+    .rp-descanso-editor{
+      display:flex; align-items:center; justify-content:space-between; gap:14px;
+      background:rgba(30,41,59,.4); border:1px solid rgba(148,163,184,.1); border-radius:13px;
+      padding:11px 16px; margin:0 0 16px; font-size:13.5px; color:var(--muted); font-weight:600;
+      position:relative; z-index:1;
+    }
+    .rp-descanso-editor-controls{ display:flex; align-items:center; gap:12px; }
+    .rp-descanso-editor-controls button{
+      width:32px; height:32px; border-radius:10px; border:1px solid rgba(59,130,246,.35);
+      background:rgba(59,130,246,.12); color:#93c5fd; font-size:17px; font-weight:800; cursor:pointer;
+      display:flex; align-items:center; justify-content:center; line-height:1; transition:transform .15s ease;
+    }
+    .rp-descanso-editor-controls button:active{ transform:scale(.9); }
+    .rp-descanso-editor-controls span{ min-width:38px; text-align:center; color:#fff; font-weight:700; font-size:15px; }
 
     /* ---------- Rutinas físicas: hueco del GIF/animación del ejercicio ----------
        Tamaño SIEMPRE fijo (flex:none + overflow:hidden), exista o no el
@@ -268,7 +369,8 @@
     @keyframes fullblackFadeIn{ from{ opacity:0; } to{ opacity:1; } }
     body[data-screen="countdown"] .rp-fullblack,
     body[data-screen="timer"] .rp-fullblack,
-    body[data-screen="fisico"] .rp-fullblack{ display:flex; }
+    body[data-screen="fisico"] .rp-fullblack,
+    body[data-screen="series-completas"] .rp-fullblack{ display:flex; }
 
     .rp-countdown-inner{ display:flex; flex-direction:column; align-items:center; }
     .rp-timer-info{ display:flex; flex-direction:column; align-items:center; }
@@ -300,7 +402,9 @@
     .rp-fisico-serie-label{ color:rgba(255,255,255,.6); font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; }
     .rp-fisico-countdown{ color:#fff; font-size:44px; font-weight:800; font-variant-numeric:tabular-nums; }
     .rp-fisico-progress-track{ width:100%; height:10px; border-radius:999px; background:rgba(255,255,255,.12); overflow:hidden; }
-    .rp-fisico-progress-bar{ height:100%; width:0%; border-radius:999px; background:linear-gradient(90deg,#10b981,#34d399); }
+    .rp-fisico-progress-bar{ height:100%; width:0%; border-radius:999px; background:linear-gradient(90deg,#0ea5e9,#38bdf8); }
+    .rp-fisico-serie-rep-wrap{ margin:4px 0 20px; text-align:center; }
+    .rp-fisico-serie-rep-wrap .rp-fisico-serie-label{ font-size:15px; }
 
     .rp-cancel-x{
       position:absolute; top:calc(18px + env(safe-area-inset-top)); right:calc(18px + env(safe-area-inset-right));
@@ -356,6 +460,11 @@
     .rp-timer-top .ex-name{ font-size:14px; color:var(--muted); font-weight:600; }
     .rp-timer-top .ex-progress{ font-size:11px; color:#4b5563; margin-top:2px; }
 
+    .rp-timer-controls{
+      position:absolute; bottom:calc(28px + env(safe-area-inset-bottom)); left:0; right:0;
+      display:flex; justify-content:center; align-items:center; gap:22px; padding:0 20px; flex-wrap:wrap;
+    }
+
     #timerDisplay{
       font-size:min(20vw, 96px); font-weight:800; font-variant-numeric:tabular-nums; color:#fff; letter-spacing:.01em;
     }
@@ -377,6 +486,13 @@
       font-size:17px; font-weight:800; color:#4ade80; margin-top:10px; min-height:24px; opacity:0;
     }
     #lapFlash.show{ animation:lapFlashAnim 1.8s ease; }
+
+    /* Botón "Vuelta" suelto: solo aparece en ejercicios de varias series,
+       centrado bajo "Ver detalles" junto al resto de info del cronómetro
+       (no en la barra lateral, que queda reservada para "Serie"). Más
+       pequeño que los tres controles principales. */
+    .rp-lap-only-btn{ width:84px; height:84px; border-radius:18px; font-size:12px; gap:4px; }
+    .rp-lap-only-btn .icon{ font-size:26px; }
     @keyframes lapFlashAnim{
       0%{ opacity:0; transform:translateY(8px) scale(.9); }
       12%{ opacity:1; transform:translateY(0) scale(1.08); }
@@ -391,10 +507,47 @@
     }
     .rp-laps-mini div{ padding:2px 0; }
 
-    .rp-timer-controls{
-      position:absolute; bottom:calc(28px + env(safe-area-inset-bottom)); left:0; right:0;
-      display:flex; justify-content:center; gap:22px; padding:0 20px; flex-wrap:wrap;
+    /* ---------- Overlay de descanso entre series ----------
+       Cubre toda la pantalla del cronómetro (mismo contenedor
+       .rp-fullblack, position:relative) mientras dura la cuenta atrás
+       del descanso, dejando claro que el cronómetro de la serie está en
+       pausa y cuánto queda para que se reanude solo. */
+    .rp-rest-overlay{
+      position:absolute; inset:0; z-index:5;
+      background:rgba(5,8,15,.92); backdrop-filter:blur(4px);
+      display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px;
+      padding:24px calc(min(20vw,110px) + 26px); text-align:center;
+      animation:restFadeIn .25s ease;
     }
+    @keyframes restFadeIn{ from{ opacity:0; } to{ opacity:1; } }
+    .rp-rest-label{ font-size:16px; font-weight:700; color:rgba(255,255,255,.75); letter-spacing:.02em; }
+    .rp-rest-num{
+      font-size:min(16vw,90px); font-weight:800; font-variant-numeric:tabular-nums;
+      color:#60a5fa; text-shadow:0 0 40px rgba(96,165,250,.5); line-height:1; white-space:nowrap;
+    }
+    .rp-rest-sub{ color:rgba(255,255,255,.55); font-size:14px; margin-bottom:6px; }
+    /* Botones +5s/-5s grandes, fijos a cada lateral de la pantalla (no en
+       fila bajo el número), para que sean fáciles de pulsar con una sola
+       mano sin apuntar con precisión. Su ancho deja siempre hueco (ver
+       padding lateral de .rp-rest-overlay) para que el número central,
+       por grande que sea, nunca se solape con ellos. */
+    .rp-rest-adjust-btn{
+      position:absolute; top:50%; transform:translateY(-50%);
+      width:min(18vw,90px); height:min(28vh,190px); border-radius:24px;
+      border:2px solid rgba(96,165,250,.4); background:rgba(96,165,250,.1);
+      color:#93c5fd; font-size:19px; font-weight:800; cursor:pointer;
+      display:flex; align-items:center; justify-content:center;
+      transition:transform .15s ease, background .2s ease;
+      z-index:1; /* por encima del número si alguna vez llegan a tocarse */
+    }
+    .rp-rest-adjust-btn:active{ transform:translateY(-50%) scale(.94); background:rgba(96,165,250,.2); }
+    #restMinus5Btn, #fisicoRestMinus5Btn{ left:calc(10px + env(safe-area-inset-left)); }
+    #restPlus5Btn, #fisicoRestPlus5Btn{ right:calc(10px + env(safe-area-inset-right)); }
+    .rp-rest-skip-btn{
+      margin-top:22px; padding:11px 20px; border-radius:14px; border:1px solid rgba(255,255,255,.18);
+      background:none; color:rgba(255,255,255,.6); font-size:14px; cursor:pointer;
+    }
+
     .rp-ctrl-btn{
       display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
       width:112px; height:112px; border-radius:22px; border:2px solid rgba(255,255,255,.18);
@@ -445,10 +598,27 @@
     .rp-lap-row .lap-time{ font-weight:700; }
     .rp-lap-row.rp-lap-total{
       margin-top:10px; border-top:1px solid var(--border); border-radius:13px;
-      background:linear-gradient(135deg, rgba(52,211,153,.14), rgba(20,184,166,.08)); border-color:rgba(52,211,153,.4);
+      background:linear-gradient(135deg, rgba(56,189,248,.14), rgba(14,165,233,.08)); border-color:rgba(56,189,248,.4);
     }
-    .rp-lap-row.rp-lap-total .lap-label{ color:#6ee7b7; font-weight:700; font-size:13px; }
+    .rp-lap-row.rp-lap-total .lap-label{ color:#7dd3fc; font-weight:700; font-size:13px; }
     .rp-lap-row.rp-lap-total .lap-time{ font-size:16px; }
+
+    /* Bloque de resultado por serie: agrupa la fila de "Serie N" (tiempo
+       total de esa serie) junto con las vueltas sueltas marcadas dentro
+       de ella, indentadas y en tono más discreto. */
+    .rp-serie-group{ margin-bottom:14px; }
+    .rp-lap-row.rp-serie-row{
+      font-size:15px; border-width:1.5px;
+    }
+    .rp-lap-row.rp-serie-row .lap-label{ color:var(--text); font-weight:700; font-size:14px; }
+    .rp-lap-row.rp-serie-row .lap-time{ font-size:17px; }
+    .rp-vueltas-sueltas-list{ margin:6px 0 0 22px; }
+    .rp-lap-row.rp-vuelta-suelta-row{
+      padding:8px 14px; margin-bottom:6px; font-size:12.5px;
+      border-style:dashed; opacity:.88;
+    }
+    .rp-lap-row.rp-vuelta-suelta-row .lap-label{ font-size:11.5px; }
+    .rp-lap-row.rp-vuelta-suelta-row .lap-time{ font-weight:600; font-size:13px; }
 
     .rp-result-actions{ display:flex; flex-direction:column; gap:10px; }
     .rp-result-actions .action-btn{ width:100%; }
@@ -468,18 +638,19 @@
     .rp-fs-toggle:hover{ color:var(--text); border-color:var(--primary); }
     .rp-fs-toggle svg{ width:20px; height:20px; display:block; }
     body[data-screen="countdown"] .rp-fs-toggle,
-    body[data-screen="timer"]    .rp-fs-toggle{ display:none; }
+    body[data-screen="timer"]    .rp-fs-toggle,
+    body[data-screen="series-completas"] .rp-fs-toggle{ display:none; }
 
     /* ---------- Botón "Explicación disponible" + modal ---------- */
     .rp-desc-btn{
       align-self:flex-start; display:inline-flex; align-items:center; gap:8px;
-      background:linear-gradient(135deg, rgba(52,211,153,.16), rgba(20,184,166,.10));
-      border:1px solid rgba(52,211,153,.45); color:#6ee7b7; font-weight:700; font-size:13.5px;
+      background:linear-gradient(135deg, rgba(56,189,248,.16), rgba(14,165,233,.10));
+      border:1px solid rgba(56,189,248,.45); color:#7dd3fc; font-weight:700; font-size:13.5px;
       font-family:'Sora',sans-serif; padding:11px 18px; border-radius:999px; cursor:pointer;
       margin-bottom:18px; animation:descPulse 7.8s ease-in-out infinite; transition:border-color .2s, transform .15s;
     }
     .rp-desc-btn .icon{ font-size:16px; }
-    .rp-desc-btn:hover{ border-color:#6ee7b7; }
+    .rp-desc-btn:hover{ border-color:#7dd3fc; }
     .rp-desc-btn:active{ transform:scale(.97); }
     @keyframes descPulse{
       0%,16.6%{ box-shadow:0 0 0 0 rgba(59,130,246,.35); }
@@ -567,7 +738,7 @@
     body[data-screen="exercise"] #screenExercise > .panel,
     body[data-screen="result"]   #screenResult > .panel{ flex:1; display:flex; flex-direction:column; min-height:0; overflow:hidden; }
 
-    @media (min-width:700px){
+    @media (min-width:700px) and (min-aspect-ratio:1/1){
       html, body{ height:100%; }
       body{ padding-left:env(safe-area-inset-left); padding-right:env(safe-area-inset-right); display:flex; }
       .container{ max-width:none; width:100%; flex:1; min-width:0; margin:0; height:100%; padding:14px calc(20px + env(safe-area-inset-right)) 14px calc(20px + env(safe-area-inset-left)); }
@@ -607,10 +778,24 @@
       .rp-meta-item{ padding:9px 10px; }
       .rp-meta-item .label{ font-size:10px; margin-bottom:2px; }
       .rp-meta-item .value{ font-size:15px; }
-      .rp-ex-name{ font-size:20px; margin-bottom:4px; }
+      .rp-ex-name{ font-size:16.5px; line-height:1.15; margin-bottom:4px; }
       .rp-desc-btn{ font-size:12px; padding:7px 13px; margin-bottom:8px; }
       .rp-progress{ margin-bottom:2px; }
       .rp-block-label{ margin-bottom:4px; }
+
+      /* Interruptor y editor de descansos: mismo contenido, más compactos
+         (menos padding/gap/margen) para que quepan sin forzar scroll,
+         sobre todo cuando el nombre del ejercicio ocupa 2 líneas. */
+      .rp-descanso-toggle{ padding:8px 12px; margin-bottom:8px; gap:10px; }
+      .rp-descanso-toggle-text{ font-size:12.5px; gap:1px; }
+      .rp-descanso-toggle-sub{ font-size:10.5px; }
+      .rp-toggle-track{ width:38px; height:22px; }
+      .rp-toggle-thumb{ width:16px; height:16px; }
+      .rp-toggle-switch input:checked + .rp-toggle-track .rp-toggle-thumb{ transform:translateX(16px); }
+      .rp-descanso-editor{ padding:7px 12px; margin-bottom:8px; font-size:12px; gap:10px; }
+      .rp-descanso-editor-controls{ gap:8px; }
+      .rp-descanso-editor-controls button{ width:26px; height:26px; font-size:14px; }
+      .rp-descanso-editor-controls span{ font-size:13px; min-width:30px; }
 
       .rp-split-actions .btn-block{ padding:0 22px; font-size:19px; border-radius:20px; }
       .rp-split-actions > .action-btn.btn-block{ flex:2 1 0; }
@@ -636,10 +821,12 @@
 
       .rp-cancel-x{ top:calc(10px + env(safe-area-inset-top)); right:calc(10px + env(safe-area-inset-right)); width:42px; height:42px; font-size:17px; }
 
-      /* ---- Cronómetro: Vuelta pegada al borde izquierdo, Finalizar al
+      /* ---- Cronómetro: Vuelta/Serie pegado al borde izquierdo, Finalizar al
          borde derecho —ambas ocupando todo el alto de la pantalla, de
          arriba a abajo, para ser fáciles de golpear con el dedo mojado—
-         y el tiempo centrado ocupando todo el espacio que queda en medio. ---- */
+         y el tiempo centrado ocupando todo el espacio que queda en medio.
+         Este reposicionamiento en barras laterales SOLO aplica aquí
+         (pantalla realmente más ancha que alta), no en vertical. ---- */
       #screenTimer .rp-fullblack{
         flex-direction:row; align-items:center; justify-content:space-between; gap:18px;
         padding-top:env(safe-area-inset-top); padding-bottom:env(safe-area-inset-bottom);
@@ -648,24 +835,48 @@
       .rp-timer-top .ex-name{ font-size:12.5px; }
       .rp-timer-top .ex-progress{ font-size:10px; }
 
-      /* .rp-timer-controls pasa a ser "invisible" para el layout: sus tres
-         botones (Vuelta, Pausa, Finalizar) se convierten en hijos directos
-         de la fila junto con el bloque central del tiempo, y así podemos
-         colocar cada uno donde queremos con `order`. */
+      /* .rp-timer-controls pasa a ser "invisible" para el layout: sus
+         cuatro botones (Serie, Vuelta, Pausa, Finalizar) se convierten en
+         hijos directos de la fila junto con el bloque central del tiempo,
+         y así podemos colocar cada uno donde queremos con `order`.
+         "Vuelta" se sitúa simétrica a "Pausa" a ambos lados del bloque
+         central, para que el cronómetro se mantenga centrado en medio. */
       .rp-timer-controls{ display:contents; }
       #lapBtn{ order:1; }
-      .rp-timer-info{ order:2; flex:1; min-width:0; }
-      #pauseBtn{ order:3; }
-      #stopBtn{ order:4; }
+      #lapOnlyBtn{ order:2; }
+      .rp-timer-info{ order:3; flex:1; min-width:0; }
+      #pauseBtn{ order:4; }
+      #stopBtn{ order:5; }
 
       #lapBtn, #stopBtn{ align-self:stretch; width:min(20vw,150px); height:auto; border-radius:28px; flex-shrink:0; }
       #lapBtn .icon, #stopBtn .icon{ font-size:34px; }
       #lapBtn{ margin-left:calc(4px + env(safe-area-inset-left)); }
       #stopBtn{ margin-right:calc(4px + env(safe-area-inset-right)); }
-      #pauseBtn{ width:min(9vw,74px); height:min(9vw,74px); flex-shrink:0; font-size:10px; }
-      #pauseBtn .icon{ font-size:20px; }
+      /* "Vuelta" y "Pausa" se anclan a la parte inferior de la pantalla
+         (en vez de centradas a la altura del cronómetro) y con un tamaño
+         mayor, como un segundo par de controles bajo el bloque central. */
+      #pauseBtn{
+        align-self:flex-end; width:min(11vw,110px); height:min(11vw,110px);
+        flex-shrink:0; font-size:14px; margin-left:22px;
+        margin-bottom:calc(30px + env(safe-area-inset-bottom));
+      }
+      #pauseBtn .icon{ font-size:30px; }
+
+      /* Botón "Vuelta" suelto (varias series): mismo tamaño y altura que
+         "Pausa", anclado igual a la parte inferior de la pantalla,
+         simétrico a "Pausa" al otro lado del bloque central. */
+      .rp-lap-only-btn{
+        align-self:flex-end; width:min(11vw,110px); height:min(11vw,110px);
+        flex-shrink:0; font-size:14px; margin:0 22px 0 0;
+        margin-bottom:calc(30px + env(safe-area-inset-bottom));
+      }
+      .rp-lap-only-btn .icon{ font-size:30px; }
 
       #timerDisplay{ font-size:min(11vw,130px); white-space:nowrap; }
+      /* Con "Vuelta" visible (varias series) hay un botón más compitiendo
+         por el ancho disponible: se reduce el cronómetro para garantizar
+         separación con "Vuelta"/"Pausa" incluso en pantallas estrechas. */
+      body.rp-lap-extra #timerDisplay{ font-size:min(8.5vw,130px); }
       .rp-detail-toggle{ margin-top:6px; font-size:11.5px; padding:6px 14px; }
       .rp-timer-detail{ margin-top:2px; }
       #totalTimeDisplay{ font-size:12px; margin-top:2px; }
@@ -674,13 +885,49 @@
       #lapFlash{ font-size:13px; margin-top:2px; min-height:18px; }
       .rp-laps-mini{ max-height:8vh; margin-top:2px; }
     }
+    /* ---------- Splash inicial: logo grande que se encoge al entrar ---------- */
+    /* Pantalla completa con el mismo fondo que el body, para que la
+       transición no se note como "otra capa" sino como una continuación
+       natural. Se retira sola tras la animación (ver JS) y respeta
+       prefers-reduced-motion. */
+    #splashOverlay{
+      position:fixed; inset:0; z-index:5000;
+      display:flex; align-items:center; justify-content:center;
+      background:
+        radial-gradient(circle at 15% 0%, rgba(59,130,246,.10) 0%, transparent 45%),
+        radial-gradient(circle at 100% 20%, rgba(37,99,235,.08) 0%, transparent 40%),
+        linear-gradient(180deg,#010409 0%, #060c18 55%, #081222 100%);
+      transition:opacity .5s ease;
+    }
+    #splashOverlay svg{
+      width:min(42vw,180px); height:min(42vw,180px);
+      animation:splashPop .6s cubic-bezier(.2,.9,.3,1.3) both;
+    }
+    #splashOverlay.splash-out{ opacity:0; pointer-events:none; }
+    #splashOverlay.splash-out svg{ transform:scale(.42); opacity:0; transition:transform .55s cubic-bezier(.5,0,.3,1), opacity .4s ease; }
+    @keyframes splashPop{
+      0%{ transform:scale(.7); opacity:0; }
+      100%{ transform:scale(1); opacity:1; }
+    }
+    /* El contenido real aparece con un fundido suave por debajo del splash,
+       en vez de aparecer todo de golpe en cuanto el HTML termina de cargar. */
+    .container{ animation:containerFadeIn .6s ease both; animation-delay:.35s; }
+    @keyframes containerFadeIn{
+      0%{ opacity:0; transform:translateY(6px); }
+      100%{ opacity:1; transform:translateY(0); }
+    }
+    @media (prefers-reduced-motion: reduce){
+      #splashOverlay, #splashOverlay svg, .container{ animation:none !important; transition:none !important; }
+    }
   </style>
 </head>
 <body data-screen="import">
+<div id="splashOverlay"><svg id="splashLogo" viewBox="0 0 2551 2551" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Biblioteca de la Natación"></svg></div>
 <button class="rp-fs-toggle" id="fsToggleBtn" title="Pantalla completa"></button>
 <div class="container">
 
-  <div class="header">
+
+  <div class="header" id="headerNormal">
     <div class="header-top">
       <h1>Reproductor de sesiones</h1>
       <span class="badge-beta">BETA</span>
@@ -688,12 +935,38 @@
     <p>Pega el entrenamiento copiado desde el Generador de sesiones y hazlo ejercicio por ejercicio, con cronómetro.</p>
   </div>
 
+  <!-- Cabecera específica de la pantalla de entrada: logo en vez de bloque
+       de texto, para dar más protagonismo a la marca antes de pegar/cargar
+       un entrenamiento. Solo se muestra en data-screen="import" (ver CSS).
+       El SVG del logo se inyecta desde JS (reutiliza LOGO_SVG_EMPTY) para
+       no duplicar el path del logo en dos sitios distintos del archivo. -->
+  <div class="header header-import" id="headerImport">
+    <div class="header-import-logo" id="headerImportLogo"></div>
+  </div>
+
   <!-- ============================================================
     PANTALLA: IMPORTAR
   ============================================================ -->
   <div class="screen" id="screenImport">
+    <!-- Aviso de entrenamiento guardado: solo se muestra si hay progreso
+         pendiente en localStorage (algún ejercicio ya completado en una
+         sesión que no se terminó). Se rellena y se muestra/oculta desde
+         JS en autoCargarSesionPendiente(). -->
+    <div class="panel" id="progresoGuardadoPanel" style="display:none; margin-bottom:16px; border-color:rgba(56,189,248,.35);">
+      <div style="display:flex; align-items:center; gap:10px; margin-bottom:4px;">
+        <span style="font-size:20px;">⏸️</span>
+        <div class="rp-block-label" style="margin-bottom:0;">Entrenamiento en curso</div>
+      </div>
+      <div id="progresoGuardadoNombre" style="font-weight:800; font-size:18px; margin-bottom:4px;"></div>
+      <div id="progresoGuardadoSub" style="color:var(--muted); font-size:13px; margin-bottom:16px;"></div>
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <button class="action-btn btn-success" id="continuarProgresoBtn" style="justify-content:center; padding:15px 18px;">▶ Continuar entrenamiento</button>
+        <button class="action-btn" id="descartarProgresoBtn" style="justify-content:center; color:#f87171; border-color:rgba(248,113,113,.3);">Descartar y empezar de nuevo</button>
+      </div>
+    </div>
+
     <div class="panel">
-      <p style="color:var(--muted); font-size:14px; margin-bottom:14px;">Pega aquí el JSON que copiaste con el botón "📋 Copiar entrenamiento (JSON)" del generador.</p>
+      <p style="color:var(--muted); font-size:14px; margin-bottom:14px;">Pega aquí tu entrenamiento JSON del generador.</p>
       <textarea class="rp-input" id="importTextarea" placeholder='{"tipo":"sesion-natacion", ...}'></textarea>
       <p id="importError"></p>
       <div style="display:flex; flex-direction:column; gap:10px; margin-top:16px;">
@@ -702,7 +975,7 @@
       </div>
 
       <div style="display:flex; flex-direction:column; align-items:center; gap:8px; margin-top:24px; padding-top:20px; border-top:1px solid rgba(148,163,184,.15);">
-        <button class="action-btn" id="goToGeneratorBtn" title="Abrir el Generador de sesiones" style="width:100%; max-width:420px; justify-content:center; gap:8px; font-size:13.5px; background:rgba(52,211,153,.08); border:1px solid rgba(52,211,153,.35); color:#34d399; font-weight:700;">
+        <button class="action-btn" id="goToGeneratorBtn" title="Abrir el Generador de sesiones" style="width:100%; max-width:420px; justify-content:center; gap:8px; font-size:13.5px; background:rgba(56,189,248,.08); border:1px solid rgba(56,189,248,.35); color:#38bdf8; font-weight:700;">
           Crea tu entrenamiento aquí
         </button>
         <p style="max-width:420px; text-align:center; color:var(--muted); font-size:12.5px; line-height:1.5; margin:0;">
@@ -730,8 +1003,8 @@
       <div id="ovList"></div>
     </div>
     <div style="display:flex; justify-content:center; gap:10px; margin-top:16px; flex-wrap:wrap;">
-      <button class="action-btn" id="viewSummaryBtn">📊 Ver resumen general</button>
-      <button class="action-btn" id="loadOtherBtn">🔄 Cargar otro entrenamiento</button>
+      <button class="action-btn btn-violet" id="viewSummaryBtn" style="font-size:15px; padding:14px 20px;">Ver resumen general</button>
+      <button class="action-btn btn-violet" id="loadOtherBtn" style="font-size:15px; padding:14px 20px;">Cargar otro entrenamiento</button>
     </div>
   </div>
 
@@ -763,6 +1036,36 @@
               <span class="icon">💬</span> Explicación disponible
             </button>
             <div class="rp-ex-desc-inline" id="exDescInline" style="display:none;"></div>
+
+            <!-- Interruptor de descansos entre series: solo tiene sentido
+                 si el ejercicio tiene más de 1 serie. Su estado se
+                 recuerda entre ejercicios (variable global descansosActivos),
+                 pero se puede cambiar en cualquier momento antes de pulsar
+                 "Empezar". -->
+            <label class="rp-descanso-toggle" id="exDescansoToggleWrap" style="display:none;">
+              <span class="rp-descanso-toggle-text">
+                <span>Descansos entre series</span>
+                <span class="rp-descanso-toggle-sub" id="exDescansoToggleSub"></span>
+              </span>
+              <span class="rp-toggle-switch">
+                <input type="checkbox" id="exDescansoToggle">
+                <span class="rp-toggle-track"><span class="rp-toggle-thumb"></span></span>
+              </span>
+            </label>
+
+            <!-- Editor del descanso por defecto para este ejercicio: solo
+                 visible cuando el interruptor está activo. Modifica
+                 descansoOverride (por ejercicio), que tiene prioridad
+                 sobre el valor que traiga el JSON (descansoSerie) o el
+                 valor por defecto de 30s. -->
+            <div class="rp-descanso-editor" id="exDescansoEditor" style="display:none;">
+              <span>Duración del descanso</span>
+              <div class="rp-descanso-editor-controls">
+                <button type="button" id="exDescansoMinusBtn" aria-label="Restar 5 segundos">−</button>
+                <span id="exDescansoValor">30s</span>
+                <button type="button" id="exDescansoPlusBtn" aria-label="Sumar 5 segundos">+</button>
+              </div>
+            </div>
 
             <div class="rp-meta-grid" id="exMetaGrid">
               <div class="rp-meta-item" id="exDistanciaItem">
@@ -797,7 +1100,7 @@
 
           <div class="rp-nav-row">
             <button class="action-btn btn-nav-prev" id="prevExBtn">← Anterior</button>
-            <button class="action-btn btn-nav-back" id="backToOverviewBtn">☰ Volver</button>
+            <button class="action-btn btn-nav-back" id="backToOverviewBtn">☰ Ver ejercicios</button>
             <button class="action-btn btn-nav-next" id="nextExBtn">Siguiente →</button>
           </div>
         </div>
@@ -825,7 +1128,7 @@
           <div class="rp-result-actions">
             <button class="action-btn btn-primary" id="repeatExBtn">🔁 Repetir ejercicio</button>
             <button class="action-btn btn-success" id="nextFromResultBtn">⏭ Siguiente ejercicio</button>
-            <button class="action-btn" id="overviewFromResultBtn">☰ Volver</button>
+            <button class="action-btn btn-violet" id="overviewFromResultBtn" style="font-size:15px;">☰ Ver ejercicios</button>
           </div>
         </div>
       </div>
@@ -837,7 +1140,7 @@
   ============================================================ -->
   <div class="screen" id="screenSummary">
     <div class="panel">
-      <div class="rp-block-label">🏁 Resumen del entrenamiento</div>
+      <div class="rp-block-label">Resumen del entrenamiento</div>
       <div class="rp-ex-name" style="margin-bottom:18px;" id="sumNombre"></div>
 
       <div class="rp-meta-grid" style="grid-template-columns:repeat(3,1fr); margin-bottom:24px;">
@@ -857,11 +1160,58 @@
 
       <div id="sumList"></div>
 
-      <div style="display:flex; gap:10px; margin-top:22px; flex-wrap:wrap;">
-        <button class="action-btn" id="downloadFullPngBtn" style="flex:1; min-width:140px; justify-content:center;">🖼️ PNG completo</button>
-        <button class="action-btn" id="downloadReducedPngBtn" style="flex:1; min-width:140px; justify-content:center;">🖼️ PNG reducido</button>
+      <!-- Fondo transparente para el PNG exportado: pensado para pegar el
+           resumen sobre vídeos o fotos en redes sociales (estilo tarjeta
+           de Strava), en vez de la tarjeta oscura opaca por defecto. -->
+      <label class="rp-descanso-toggle" style="margin-top:18px;">
+        <span class="rp-descanso-toggle-text">
+          <span>Fondo transparente</span>
+          <span class="rp-descanso-toggle-sub">Para superponer sobre fotos o vídeos</span>
+        </span>
+        <span class="rp-toggle-switch">
+          <input type="checkbox" id="pngTransparenteToggle">
+          <span class="rp-toggle-track"><span class="rp-toggle-thumb"></span></span>
+        </span>
+      </label>
+
+      <button class="action-btn" id="ajustesImagenBtn" style="width:100%; justify-content:center; margin-top:10px;">⚙️ Ajustes de imagen</button>
+
+      <div style="display:flex; gap:10px; margin-top:14px;">
+        <button class="action-btn btn-magenta" id="downloadFullPngBtn" style="flex:1 1 0; min-width:0; font-size:15px; flex-direction:column; justify-content:center; gap:2px; line-height:1.15;">
+          <span style="display:flex; align-items:center; gap:6px; font-size:16px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="M6 11l6 6 6-6"/><path d="M4 21h16"/></svg>
+            PNG
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="M6 11l6 6 6-6"/><path d="M4 21h16"/></svg>
+          </span>
+          <span style="font-size:12px; font-weight:500; opacity:.85;">completo</span>
+        </button>
+        <button class="action-btn btn-magenta" id="downloadReducedPngBtn" style="flex:1 1 0; min-width:0; font-size:15px; flex-direction:column; justify-content:center; gap:2px; line-height:1.15;">
+          <span style="display:flex; align-items:center; gap:6px; font-size:16px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="M6 11l6 6 6-6"/><path d="M4 21h16"/></svg>
+            PNG
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="M6 11l6 6 6-6"/><path d="M4 21h16"/></svg>
+          </span>
+          <span style="font-size:12px; font-weight:500; opacity:.85;">reducido</span>
+        </button>
       </div>
-      <button class="action-btn btn-block" id="summaryBackBtn" style="margin-top:14px;">☰ Volver</button>
+      <button class="action-btn btn-violet btn-block" id="summaryBackBtn" style="margin-top:14px; font-size:15px; padding:14px 18px;">☰ Ver ejercicios</button>
+    </div>
+  </div>
+
+  <!-- ============================================================
+    MODAL: AJUSTES DE IMAGEN
+    Qué campos incluir en el PNG exportado (completo y reducido).
+    Las preferencias se guardan en localStorage y se mantienen entre
+    visitas.
+  ============================================================ -->
+  <div class="rp-modal-backdrop" id="ajustesImagenBackdrop">
+    <div class="rp-modal" role="dialog" aria-modal="true" aria-labelledby="ajustesImagenTitle">
+      <button class="rp-modal-close" id="ajustesImagenClose" type="button" aria-label="Cerrar">✕</button>
+      <div class="rp-modal-header" id="ajustesImagenTitle">Ajustes de imagen</div>
+      <div class="rp-modal-body" style="white-space:normal;">
+        <p style="margin:0 0 16px; font-size:13.5px; color:var(--muted);">Elige qué mostrar en las imágenes descargadas. Se aplica tanto al PNG completo como al reducido.</p>
+        <div id="ajustesImagenLista" style="display:flex; flex-direction:column; gap:4px;"></div>
+      </div>
     </div>
   </div>
 
@@ -892,11 +1242,11 @@
       <div class="ex-progress" id="timerExProgress"></div>
     </div>
 
-    <div class="rp-timer-info">
+    <div class="rp-timer-info" id="timerInfoWrap">
       <div id="timerDisplay">00:00.0</div>
       <div id="totalTimeDisplay">Total: 00:00.0</div>
       <div id="lapFlash"></div>
-      <button class="rp-detail-toggle" id="detailToggleBtn">👁 Ver detalles</button>
+      <button class="rp-detail-toggle" id="detailToggleBtn">Ver detalles</button>
       <div class="rp-timer-detail" id="timerDetail">
         <div id="targetRef"></div>
         <div id="lapCounter"></div>
@@ -904,10 +1254,45 @@
       </div>
     </div>
 
-    <div class="rp-timer-controls">
+    <!-- Overlay de descanso entre series: sustituye visualmente al resto
+         del cronómetro mientras restState === "running". El cronómetro de
+         la serie en sí está parado durante este tiempo; al acabar la
+         cuenta atrás se reanuda solo. -->
+    <div class="rp-rest-overlay" id="restOverlay" style="display:none;">
+      <button class="rp-rest-adjust-btn" id="restMinus5Btn">−5s</button>
+      <button class="rp-rest-adjust-btn" id="restPlus5Btn">+5s</button>
+      <div class="rp-rest-label">Descanso</div>
+      <div class="rp-rest-num" id="restNum">00:30</div>
+      <div class="rp-rest-sub" id="restSub"></div>
+      <button class="rp-rest-skip-btn" id="restSkipBtn">Saltar descanso →</button>
+    </div>
+
+    <div class="rp-timer-controls" id="timerControlsWrap">
       <button class="rp-ctrl-btn lap" id="lapBtn"><span class="icon"></span>Vuelta</button>
+      <!-- Solo visible cuando el ejercicio tiene varias series: marca una
+           vuelta (split) suelta, sin disparar fin-de-serie ni descanso —
+           misma función que "Vuelta" en un ejercicio de 1 sola serie.
+           Se coloca simétrico a "Pausa" respecto al bloque central del
+           cronómetro (Vuelta a la izquierda, Pausa a la derecha). -->
+      <button class="rp-ctrl-btn lap rp-lap-only-btn" id="lapOnlyBtn" style="display:none;"><span class="icon"></span>Vuelta</button>
       <button class="rp-ctrl-btn" id="pauseBtn"><span class="icon"></span>Pausa</button>
       <button class="rp-ctrl-btn stop" id="stopBtn"><span class="icon"></span>Finalizar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+  PANTALLA: SERIES COMPLETADAS (natación) — se muestra cuando se han
+  agotado todas las series de un ejercicio con descansos activados,
+  ofreciendo continuar con una vuelta extra o finalizar el ejercicio.
+============================================================ -->
+<div class="screen" id="screenSeriesCompletas">
+  <div class="rp-fullblack" style="justify-content:center; align-items:center; gap:22px;">
+    <div style="font-size:23px; font-weight:800; text-align:center; padding:0 24px;">¡Series completadas!</div>
+    <div id="seriesCompletasSub" style="color:rgba(255,255,255,.65); font-size:15px; text-align:center; padding:0 30px;"></div>
+    <div style="display:flex; flex-direction:column; gap:14px; width:min(86vw,380px); margin-top:10px;">
+      <button class="action-btn btn-primary btn-block" id="seguirSerieBtn" style="justify-content:center;">Seguir con una serie más</button>
+      <button class="action-btn btn-block" id="finalizarSeriesBtn" style="justify-content:center; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.15); color:#fff;">✓ Finalizar ejercicio</button>
     </div>
   </div>
 </div>
@@ -946,7 +1331,30 @@
       </div>
     </div>
 
-    <button class="rp-ctrl-btn stop" id="fisicoFinalizarBtn"><span class="icon"></span>Finalizar</button>
+    <!-- Ejercicios por repeticiones con descansos activados: no hay
+         cronómetro automático (la app no sabe cuánto tarda el usuario en
+         hacer las repeticiones), así que aquí el usuario marca cada serie
+         a mano y se dispara el descanso, igual que "Vuelta" en natación. -->
+    <div class="rp-fisico-serie-rep-wrap" id="fisicoSerieRepWrap" style="display:none;">
+      <div class="rp-fisico-serie-label" id="fisicoSerieRepLabel"></div>
+    </div>
+
+    <!-- Overlay de descanso entre series (modo físico), equivalente al de
+         natación (mismos estilos .rp-rest-overlay), con su propio id para
+         no mezclar el estado con la pantalla del cronómetro. -->
+    <div class="rp-rest-overlay" id="fisicoRestOverlay" style="display:none;">
+      <button class="rp-rest-adjust-btn" id="fisicoRestMinus5Btn">−5s</button>
+      <button class="rp-rest-adjust-btn" id="fisicoRestPlus5Btn">+5s</button>
+      <div class="rp-rest-label">Descanso</div>
+      <div class="rp-rest-num" id="fisicoRestNum">00:30</div>
+      <div class="rp-rest-sub" id="fisicoRestSub"></div>
+      <button class="rp-rest-skip-btn" id="fisicoRestSkipBtn">Saltar descanso →</button>
+    </div>
+
+    <div style="display:flex; gap:22px; flex-wrap:wrap; justify-content:center;">
+      <button class="rp-ctrl-btn lap" id="fisicoSerieHechaBtn" style="display:none;"><span class="icon"></span>Serie hecha</button>
+      <button class="rp-ctrl-btn stop" id="fisicoFinalizarBtn"><span class="icon"></span>Finalizar</button>
+    </div>
   </div>
 </div>
 
@@ -977,18 +1385,403 @@
 
   let timerState = "idle"; // idle | running | paused | stopped
   let startTime = 0, pausedAccum = 0, pauseStartedAt = 0;
-  let laps = [];            // [{elapsedMs, splitMs}]
+  let laps = [];            // [{elapsedMs, splitMs}] — marca de cada SERIE completada
+  // Vueltas sueltas marcadas con el botón "Vuelta" en ejercicios de varias
+  // series: independientes de `laps`, no cuentan como serie y nunca
+  // disparan descanso ni "series completadas". Solo sirven para reiniciar
+  // el cronómetro pequeño y quedar listadas en el detalle.
+  let vueltasSueltas = [];  // [{elapsedMs, splitMs}]
   let tickHandle = null;
   let countdownActive = false, countdownHandle = null;
   let wakeLock = null;
 
+  // Descansos entre series: interruptor recordado durante toda la sesión
+  // (se puede cambiar en cualquier ejercicio antes de pulsar Empezar).
+  // Si está activo, al marcar una vuelta (o al completar una serie en modo
+  // físico) se inserta una cuenta atrás de descanso antes de continuar.
+  let descansosActivos = true;
+  let restState = "idle";   // idle | running — cuenta atrás de descanso en curso
+  let restTotalSec = 0;     // duración total del descanso actual (para el +/-5s)
+  let restRemainingMs = 0;
+  let restHandle = null;
+  let fisicoSerieRepActual = 1; // serie actual (1-indexado) en modo físico por repeticiones con descansos
+
   // ====================================================================
   // 🔧 UTILIDADES
   // ====================================================================
-  function showScreen(name){ document.body.setAttribute("data-screen", name); }
+  // ⬅️ NAVEGACIÓN CON EL GESTO/BOTÓN "ATRÁS" DEL MÓVIL
+  // En vez de dejar que "atrás" cierre la pestaña o la PWA, cada cambio de
+  // pantalla y cada apertura de modal empuja una entrada al historial del
+  // navegador. Al recibir "popstate" se interpreta como "atrás" dentro de
+  // la app: cierra el modal abierto, o si no hay modal, retrocede a la
+  // pantalla anterior. Solo cuando ya no queda historial propio (la pila
+  // interna está vacía) se deja que el navegador haga su "atrás" normal
+  // (salir de la app/pestaña).
+  const navStack = ["import"]; // pila de nombres de pantalla, la primera es la de entrada
+  let modalAbiertoId = null;   // id del backdrop de modal actualmente abierto, o null
+  let navegandoPorPopstate = false; // evita volver a hacer pushState al reaccionar a un popstate
+
+  function pushNavState(tipo, valor){
+    try{ history.pushState({ rpNav:true, tipo, valor }, ""); }catch(e){ /* entorno sin history API */ }
+  }
+
+  function showScreen(name){
+    document.body.setAttribute("data-screen", name);
+    if(navegandoPorPopstate) return;
+    navStack.push(name);
+    pushNavState("screen", name);
+  }
+
+  // Reinicia la navegación interna a partir de la pantalla indicada, para
+  // usar cuando los DATOS de la sesión activa cambian de raíz (se carga un
+  // entrenamiento nuevo, se descarta el progreso, se reanuda uno guardado).
+  // Sin esto, el histórico de "atrás" seguía apuntando a pantallas de la
+  // sesión anterior (p. ej. "resumen" o "entrenamiento en curso") que ya no
+  // tienen datos detrás (`session`/`flat` fueron reemplazados o vaciados),
+  // y volver a ellas con el gesto atrás dejaba la app bloqueada.
+  function resetNavStack(name){
+    navStack.length = 0;
+    navStack.push(name);
+    document.body.setAttribute("data-screen", name);
+    try{ history.replaceState({ rpNav:true, tipo:"screen", valor:name }, ""); }catch(e){ /* entorno sin history API */ }
+  }
+
+  function registrarAperturaModal(id){
+    modalAbiertoId = id;
+    if(navegandoPorPopstate) return;
+    pushNavState("modal", id);
+  }
+
+  function registrarCierreModal(){
+    modalAbiertoId = null;
+  }
+
+  window.addEventListener("popstate", () => {
+    if(modalAbiertoId){
+      // Hay un modal/pop-up abierto: "atrás" solo lo cierra, no cambia de pantalla.
+      const idCerrar = modalAbiertoId;
+      registrarCierreModal();
+      cerrarModalPorId(idCerrar);
+      return;
+    }
+    if(navStack.length > 1){
+      navegandoPorPopstate = true;
+      navStack.pop();
+      const anterior = navStack[navStack.length - 1];
+      document.body.setAttribute("data-screen", anterior);
+      navegandoPorPopstate = false;
+    }
+    // Si navStack ya solo tiene la pantalla inicial, no se hace pushState de
+    // vuelta: se deja que el siguiente "atrás" del usuario salga de la app,
+    // que es el comportamiento esperado en la pantalla de entrada.
+  });
+
+  function cerrarModalPorId(id){
+    if(id === "ajustesImagenBackdrop"){
+      document.getElementById("ajustesImagenBackdrop").classList.remove("show");
+    } else if(id === "descModalBackdrop"){
+      document.getElementById("descModalBackdrop").classList.remove("show");
+    }
+  }
 
   // URL del Generador de sesiones. Actualiza esta constante si la página
   // cambia de dirección.
+  // Logo de la Biblioteca de la Natación, usado en pantallas de
+  // estado vacío en lugar del emoji genérico 🏊.
+  const LOGO_SVG_EMPTY = `<svg viewBox="0 0 2551 2551" style="width:52px;height:52px;display:block;margin:0 auto;" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Biblioteca de la Natación">
+  <defs>
+    <linearGradient id="logoGradientEmpty" gradientUnits="userSpaceOnUse" x1="12755" y1="19570" x2="12755" y2="7200">
+      <stop offset="0%" stop-color="#00dfff"/>
+      <stop offset="30%" stop-color="#00aef3"/>
+      <stop offset="55%" stop-color="#0089e2"/>
+      <stop offset="80%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#a78bfa"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(0.000000,2551.000000) scale(0.100000,-0.100000)"
+fill="url(#logoGradientEmpty)" stroke="none">
+<path d="M6085 19564 c-369 -29 -842 -107 -943 -155 -66 -32 -89 -96 -58 -158
+18 -35 45 -46 163 -72 53 -11 172 -45 265 -75 229 -73 294 -83 623 -94 154 -6
+323 -15 375 -21 268 -30 495 -100 773 -240 225 -113 410 -234 897 -584 380
+-273 648 -445 1080 -693 421 -241 645 -384 905 -579 501 -376 877 -769 1202
+-1258 242 -365 602 -1035 803 -1495 74 -170 97 -198 143 -181 41 16 45 53 13
+146 -114 331 -198 529 -368 871 -430 863 -868 1422 -1530 1951 -298 238 -544
+401 -1043 690 -533 309 -711 423 -1190 768 -154 110 -320 228 -370 261 -410
+275 -771 439 -1108 503 -144 27 -292 40 -602 51 -161 6 -300 16 -345 25 -78
+16 -229 62 -243 75 -8 7 212 39 408 60 572 61 1077 12 1562 -150 336 -111 600
+-255 1223 -664 372 -244 494 -318 675 -406 225 -110 420 -167 652 -190 54 -5
+208 -14 343 -20 135 -6 288 -17 340 -25 373 -60 709 -244 1035 -570 219 -218
+441 -511 553 -731 l21 -42 -62 -6 c-133 -15 -277 -38 -387 -63 -63 -14 -127
+-28 -142 -31 -39 -6 -67 -42 -78 -101 -13 -68 0 -119 39 -154 16 -14 46 -56
+67 -94 75 -135 256 -406 559 -838 170 -242 317 -452 328 -467 25 -34 79 -60
+109 -53 13 4 33 14 45 24 26 22 640 896 762 1086 123 192 126 195 161 259 18
+32 46 70 61 84 37 33 48 74 38 147 -5 41 -15 65 -31 80 -36 34 -319 93 -576
+121 l-62 7 41 76 c214 393 603 817 940 1026 162 101 353 183 499 216 111 25
+252 40 475 49 132 6 285 15 340 21 367 38 640 150 1115 459 91 59 262 170 380
+247 482 314 738 449 1049 553 550 183 1097 219 1824 118 86 -12 154 -25 150
+-29 -14 -12 -167 -59 -243 -74 -45 -9 -184 -19 -345 -25 -428 -15 -593 -37
+-822 -106 -362 -110 -649 -272 -1268 -715 -492 -353 -654 -458 -1210 -779
+-466 -270 -702 -426 -995 -659 -566 -450 -959 -909 -1335 -1561 -93 -160 -269
+-506 -344 -675 -29 -66 -66 -147 -81 -181 -41 -89 -180 -480 -180 -507 0 -29
+18 -53 47 -61 32 -10 68 29 99 109 41 107 233 507 351 729 528 1002 897 1474
+1573 2011 290 230 478 354 1020 667 512 297 701 420 1215 789 540 388 810 540
+1146 648 213 67 364 87 759 101 334 11 398 20 628 94 93 30 213 64 267 76 109
+23 148 42 164 77 34 73 -11 139 -116 172 -140 43 -499 99 -818 127 -264 23
+-700 15 -900 -15 -290 -45 -575 -120 -810 -213 -294 -117 -530 -252 -1130
+-645 -435 -285 -596 -376 -790 -448 -209 -78 -347 -100 -718 -115 -368 -15
+-533 -41 -734 -116 -246 -92 -484 -241 -708 -443 -255 -231 -515 -563 -680
+-869 l-60 -112 -210 0 -210 0 -64 118 c-230 418 -576 816 -921 1058 -160 113
+-297 186 -463 248 -201 75 -363 101 -730 116 -462 19 -646 60 -942 214 -160
+83 -221 121 -620 381 -375 245 -581 371 -755 463 -334 177 -714 298 -1135 363
+-117 18 -192 22 -460 24 -176 1 -342 1 -370 -1z m7245 -3192 c58 -6 157 -13
+220 -17 71 -4 117 -11 122 -18 21 -33 7 -71 -50 -136 -94 -107 -302 -389 -590
+-801 -148 -212 -273 -384 -278 -383 -5 0 -135 181 -289 401 -298 425 -483 676
+-577 783 -57 65 -71 103 -50 135 4 7 49 15 102 18 252 17 399 27 435 30 79 7
+852 -3 955 -12z"/>
+<path d="M4964 17561 c-52 -24 -74 -55 -74 -104 0 -59 23 -90 110 -151 217
+-153 382 -362 634 -806 193 -340 336 -639 606 -1270 142 -331 170 -415 270
+-795 84 -322 178 -515 357 -737 245 -302 887 -751 1660 -1161 237 -126 418
+-212 793 -377 485 -213 637 -292 877 -457 521 -357 795 -631 1124 -1125 68
+-102 143 -220 167 -262 45 -81 71 -99 117 -78 54 25 46 68 -52 292 -71 162
+-108 229 -206 375 -106 158 -174 241 -337 408 -151 156 -291 277 -491 425
+-350 259 -571 385 -1004 572 -825 358 -1391 668 -1960 1073 -328 234 -479 375
+-611 573 -116 174 -168 305 -253 634 -53 205 -102 359 -169 525 -70 175 -347
+805 -431 978 l-79 167 56 -46 c31 -26 161 -136 287 -244 221 -190 588 -502
+799 -679 56 -47 279 -226 496 -399 626 -499 686 -548 845 -687 83 -72 222
+-191 310 -265 256 -214 385 -334 821 -767 480 -477 1040 -1057 1152 -1194 107
+-130 220 -293 472 -679 672 -1027 666 -1013 896 -1818 57 -199 111 -374 121
+-388 41 -62 151 -56 181 11 17 36 15 70 -8 145 -29 96 -68 282 -95 464 -65
+437 -93 569 -186 881 -120 405 -376 1079 -591 1555 -144 317 -512 1034 -686
+1335 -138 239 -295 454 -473 651 -365 400 -735 782 -914 942 -122 110 -364
+331 -375 342 -22 22 -201 180 -270 237 -338 280 -1068 756 -1635 1065 -889
+485 -1568 764 -2056 843 -120 19 -145 19 -195 -4z m524 -296 c260 -80 436
+-149 782 -307 610 -280 1164 -589 1811 -1014 393 -256 594 -411 890 -680 102
+-93 275 -250 384 -349 109 -99 293 -281 409 -405 115 -124 272 -290 347 -370
+409 -434 525 -613 970 -1485 262 -513 374 -763 571 -1270 124 -317 252 -675
+244 -682 -2 -2 -16 18 -32 44 -68 117 -691 1064 -784 1190 -135 187 -231 295
+-549 623 -147 151 -349 362 -450 468 -102 106 -192 199 -202 205 -9 7 -149
+143 -311 302 -162 160 -376 360 -477 445 -101 85 -284 241 -405 345 -269 231
+-357 304 -506 420 -331 257 -855 680 -1040 840 -58 50 -186 159 -285 242 -99
+83 -241 203 -315 268 -74 64 -227 193 -340 287 -277 232 -434 391 -602 613
+-76 100 -162 209 -193 243 -31 34 -51 62 -43 62 7 0 64 -16 126 -35z"/>
+<path d="M20325 17560 c-218 -38 -489 -119 -755 -225 -348 -138 -856 -381
+-1255 -601 -300 -165 -431 -243 -860 -514 -402 -254 -746 -510 -1007 -747 -53
+-48 -179 -162 -280 -253 -248 -223 -401 -373 -656 -645 -119 -126 -246 -261
+-283 -300 -414 -437 -581 -699 -1073 -1683 -242 -481 -353 -739 -578 -1332
+-225 -594 -316 -923 -393 -1412 -54 -346 -67 -418 -106 -561 -33 -122 -35
+-147 -14 -186 30 -58 130 -67 172 -15 11 15 38 86 58 158 294 1041 280 1011
+919 1987 329 502 425 639 551 787 130 152 638 677 1119 1155 422 420 564 552
+816 763 80 67 224 190 320 274 96 83 234 198 305 255 72 57 310 248 530 423
+220 175 448 359 506 408 290 244 574 485 758 643 232 200 365 311 369 307 1
+-2 -32 -74 -74 -162 -111 -230 -386 -861 -459 -1054 -35 -91 -79 -223 -98
+-295 -19 -71 -49 -184 -67 -250 -56 -212 -97 -316 -176 -452 -153 -261 -346
+-439 -844 -778 -440 -300 -1034 -620 -1660 -894 -562 -246 -692 -317 -1025
+-554 -496 -354 -839 -715 -1044 -1097 -66 -123 -171 -378 -171 -414 0 -38 25
+-66 61 -66 38 0 53 16 115 125 73 127 246 383 338 500 224 286 428 484 716
+696 386 284 528 364 1095 612 641 280 1142 548 1635 873 439 289 695 505 854
+719 175 234 234 368 340 770 85 326 113 400 339 921 184 422 270 607 383 819
+323 606 527 881 771 1047 40 26 80 62 88 78 34 66 9 140 -58 171 -51 23 -92
+23 -222 -1z m-220 -322 c-31 -35 -105 -126 -163 -203 -206 -272 -328 -401
+-538 -572 -54 -44 -173 -144 -264 -223 -158 -136 -565 -482 -864 -734 -159
+-134 -701 -570 -936 -753 -169 -131 -276 -221 -571 -474 -107 -92 -275 -236
+-374 -320 -99 -84 -299 -271 -445 -415 -146 -144 -289 -284 -319 -311 -29 -26
+-130 -129 -224 -228 -94 -99 -294 -306 -443 -460 -288 -296 -379 -398 -501
+-560 -71 -94 -287 -414 -432 -640 -36 -55 -136 -209 -222 -342 -87 -133 -165
+-255 -173 -272 -82 -158 55 232 297 849 151 382 348 800 635 1345 244 464 370
+673 524 867 92 117 101 127 368 413 403 432 512 544 651 670 79 72 220 200
+314 285 274 250 334 302 443 389 345 273 1038 717 1582 1014 154 83 672 347
+683 347 3 0 51 22 108 49 237 111 510 220 714 285 66 21 131 42 145 46 61 21
+62 11 5 -52z"/>
+<path d="M9745 10469 c-115 -4 -298 -10 -405 -13 -364 -12 -769 -34 -1280 -70
+-561 -41 -793 -59 -985 -77 -115 -11 -262 -24 -325 -29 -101 -9 -457 -50 -680
+-80 -41 -5 -133 -17 -205 -25 -218 -27 -632 -85 -785 -110 -538 -89 -707 -120
+-955 -179 -99 -24 -225 -53 -280 -66 -55 -12 -127 -30 -160 -40 -33 -10 -125
+-37 -205 -60 -326 -94 -636 -215 -790 -309 -19 -11 -42 -24 -50 -28 -25 -11
+-131 -92 -196 -150 -79 -69 -136 -175 -142 -262 -5 -67 16 -142 56 -206 52
+-81 205 -215 312 -272 30 -16 80 -43 110 -61 54 -30 290 -136 340 -152 14 -5
+50 -18 80 -30 97 -37 394 -130 560 -175 36 -9 85 -23 110 -31 152 -45 597
+-147 825 -189 44 -8 112 -22 150 -30 39 -9 154 -29 257 -45 102 -16 206 -34
+230 -39 42 -10 252 -42 398 -62 41 -5 140 -21 220 -34 80 -13 276 -40 435 -60
+160 -20 315 -40 345 -45 30 -5 172 -21 315 -35 143 -14 316 -32 385 -40 69 -8
+188 -20 265 -25 131 -10 200 -16 605 -55 85 -8 259 -21 385 -30 127 -9 289
+-20 360 -25 274 -20 620 -40 860 -50 138 -5 315 -15 395 -20 581 -40 2029 -71
+3170 -68 969 3 1631 13 2115 33 61 3 178 7 260 10 212 8 1289 64 1355 70 30 3
+134 10 230 16 200 11 687 52 895 74 77 8 239 24 359 35 228 21 594 60 801 85
+66 8 159 19 207 25 87 10 276 39 560 85 84 14 198 32 253 40 263 40 760 138
+1045 205 180 43 580 156 635 180 11 5 94 36 185 70 91 34 176 68 190 75 14 8
+70 36 125 63 221 110 377 243 440 375 12 27 18 62 18 125 0 79 -3 92 -32 145
+-17 32 -43 70 -57 85 -96 101 -130 130 -219 186 -257 162 -609 307 -1045 430
+-69 20 -138 40 -155 45 -80 24 -436 107 -675 158 -261 55 -327 68 -450 88 -52
+8 -151 26 -220 40 -69 13 -213 38 -320 55 -107 17 -235 37 -285 45 -141 23
+-364 54 -472 65 -54 6 -138 17 -188 25 -88 14 -257 34 -480 55 -60 6 -159 18
+-220 26 -132 17 -425 47 -665 69 -96 8 -213 19 -260 25 -116 13 -301 28 -575
+45 -126 8 -284 19 -350 24 -66 6 -205 15 -310 21 -104 5 -320 17 -480 26 -159
+9 -365 14 -458 12 l-167 -4 -35 -34 c-19 -19 -35 -37 -35 -41 0 -3 28 -12 63
+-20 l62 -14 -84 -7 c-79 -6 -87 -9 -119 -41 l-34 -35 88 -15 c49 -9 253 -28
+454 -41 201 -14 448 -32 550 -41 102 -8 275 -22 385 -31 110 -8 261 -22 335
+-30 235 -25 320 -34 530 -54 113 -12 252 -27 310 -35 58 -8 220 -28 360 -45
+448 -55 788 -106 1115 -170 235 -46 470 -93 520 -105 33 -7 132 -30 220 -50
+88 -20 171 -40 185 -45 14 -5 39 -11 55 -15 45 -9 151 -41 325 -97 158 -51
+167 -54 232 -82 21 -9 66 -27 100 -40 53 -20 111 -49 223 -110 89 -49 204
+-152 238 -213 24 -44 25 -141 1 -180 -28 -44 -119 -130 -182 -170 -167 -107
+-478 -220 -897 -327 -146 -37 -470 -108 -565 -124 -30 -5 -135 -24 -232 -41
+-360 -64 -638 -105 -958 -141 -531 -59 -783 -84 -995 -100 -82 -6 -159 -13
+-170 -15 -78 -17 -918 -69 -1530 -95 -132 -5 -350 -15 -485 -20 -478 -21
+-1005 -29 -1785 -29 -1026 -1 -1821 19 -2805 69 -107 6 -283 15 -390 20 -408
+21 -1368 100 -2010 166 -337 34 -1052 128 -1315 173 -60 11 -132 22 -160 25
+-77 10 -364 62 -645 117 -448 89 -823 190 -1163 313 -105 38 -127 47 -257 109
+-234 110 -374 252 -357 360 9 55 12 61 46 109 59 82 211 182 401 263 80 34
+349 127 450 155 25 7 65 18 90 26 72 21 405 101 535 128 224 47 666 117 1100
+176 160 21 308 41 330 44 22 3 105 13 185 21 80 8 253 26 385 40 325 34 321
+34 565 50 118 8 305 21 415 30 110 8 364 24 565 35 201 11 374 22 385 25 11 3
+162 9 335 15 324 10 481 22 537 41 l33 10 -28 35 c-16 20 -36 34 -49 34 -12 0
+-29 3 -38 7 -15 5 -15 7 4 17 21 12 21 12 -7 45 -25 31 -34 34 -107 42 -92 9
+-291 9 -590 -2z m6648 -236 c-7 -2 -19 -2 -25 0 -7 3 -2 5 12 5 14 0 19 -2 13
+-5z m135 -10 c-16 -2 -40 -2 -55 0 -16 2 -3 4 27 4 30 0 43 -2 28 -4z m115
+-10 c-13 -2 -35 -2 -50 0 -16 2 -5 4 22 4 28 0 40 -2 28 -4z m110 -10 c-7 -2
+-21 -2 -30 0 -10 3 -4 5 12 5 17 0 24 -2 18 -5z m130 -10 c-7 -2 -21 -2 -30 0
+-10 3 -4 5 12 5 17 0 24 -2 18 -5z m120 -10 c-13 -2 -33 -2 -45 0 -13 2 -3 4
+22 4 25 0 35 -2 23 -4z m267 -18 c174 -14 255 -21 475 -45 50 -5 196 -19 325
+-30 129 -11 285 -27 345 -35 61 -8 209 -26 330 -40 121 -14 297 -37 390 -50
+94 -14 224 -32 290 -41 245 -32 817 -123 939 -148 39 -8 114 -22 166 -31 212
+-38 620 -126 770 -167 41 -11 120 -31 175 -44 178 -44 542 -157 725 -226 204
+-77 425 -189 510 -257 25 -20 54 -43 65 -51 35 -27 91 -89 103 -115 7 -14 17
+-36 24 -50 23 -49 8 -167 -27 -214 -14 -19 -75 -81 -116 -116 -106 -94 -417
+-243 -684 -328 -174 -56 -466 -138 -575 -162 -123 -28 -225 -52 -385 -90 -156
+-37 -837 -155 -1126 -195 -85 -11 -201 -27 -259 -35 -104 -15 -333 -42 -585
+-70 -71 -8 -202 -23 -290 -35 -192 -24 -504 -54 -710 -69 -82 -6 -262 -20
+-400 -31 -137 -10 -295 -22 -350 -25 -55 -3 -163 -10 -240 -15 -370 -25 -1064
+-60 -1460 -74 -1117 -39 -1214 -41 -2435 -39 -1141 2 -1482 8 -2125 33 -137 6
+-389 15 -560 20 -170 6 -386 14 -480 20 -93 5 -251 14 -350 20 -587 35 -911
+57 -949 65 -12 3 -136 12 -276 20 -423 25 -1262 108 -1920 189 -284 35 -668
+86 -752 100 -51 8 -142 23 -203 32 -232 34 -794 135 -945 169 -36 8 -143 31
+-238 50 -96 19 -177 37 -181 39 -3 3 -60 16 -126 31 -66 14 -183 45 -260 67
+-77 22 -171 48 -210 58 -83 21 -408 131 -451 153 -16 8 -60 27 -99 42 -110 43
+-262 122 -354 184 -46 31 -93 62 -105 70 -27 17 -91 98 -117 146 -11 20 -23
+59 -26 85 -11 90 71 217 188 294 24 16 63 42 86 58 48 33 180 99 256 129 46
+18 71 29 142 60 46 20 424 140 513 163 321 83 625 149 1012 221 41 7 138 25
+215 39 426 79 1465 213 1860 240 44 3 -55 -15 -220 -39 -436 -64 -443 -65
+-530 -80 -189 -34 -515 -97 -570 -110 -497 -117 -677 -170 -935 -271 -334
+-130 -533 -283 -566 -434 -13 -61 -12 -78 1 -124 21 -70 30 -83 113 -169 194
+-201 668 -399 1337 -558 44 -11 136 -33 205 -49 298 -71 783 -162 1140 -215
+96 -14 218 -32 270 -40 52 -8 156 -22 230 -30 74 -9 142 -18 150 -20 8 -2 85
+-11 170 -20 85 -9 241 -27 345 -40 255 -32 919 -96 1185 -115 74 -5 200 -14
+280 -20 240 -17 911 -59 1130 -70 529 -26 654 -31 1075 -40 248 -6 628 -15
+845 -20 387 -9 603 -8 1695 5 712 8 1649 42 2055 74 69 6 184 13 255 16 250
+12 963 68 1195 94 47 6 112 13 145 16 96 9 311 34 430 50 61 8 166 21 235 30
+569 72 979 142 1386 234 119 27 216 52 430 110 292 79 647 225 793 327 142 99
+227 222 225 324 -2 88 -39 157 -134 246 -268 251 -1040 507 -2090 693 -63 12
+-164 30 -225 41 -383 69 -1155 175 -1605 221 -304 30 -292 39 20 14z m-10233
+-11 c-3 -3 -12 -4 -19 -1 -8 3 -5 6 6 6 11 1 17 -2 13 -5z m-89 -11 c-10 -2
+-28 -2 -40 0 -13 2 -5 4 17 4 22 1 32 -1 23 -4z"/>
+<path d="M10275 10095 c-11 -2 -148 -9 -305 -15 -277 -10 -605 -30 -840 -50
+-63 -5 -176 -14 -250 -20 -197 -16 -577 -56 -795 -85 -104 -14 -246 -32 -315
+-40 -237 -28 -788 -115 -830 -131 -8 -3 -49 -12 -90 -19 -108 -20 -403 -91
+-505 -122 -142 -43 -182 -55 -200 -63 -11 -4 -49 -18 -85 -30 -61 -21 -135
+-51 -170 -69 -117 -60 -160 -85 -160 -93 0 -4 -6 -8 -13 -8 -19 0 -129 -109
+-149 -148 -28 -53 -24 -143 8 -195 104 -166 394 -313 889 -452 233 -65 556
+-136 800 -175 33 -5 112 -19 174 -30 63 -12 147 -25 185 -30 39 -5 132 -19
+206 -30 242 -37 263 -40 430 -60 294 -36 413 -50 525 -60 61 -5 155 -14 210
+-20 111 -11 514 -43 760 -60 88 -6 246 -17 350 -25 326 -25 851 -50 1250 -60
+121 -3 279 -8 350 -10 403 -14 1396 -17 1955 -6 594 11 1347 35 1455 46 28 3
+138 10 245 15 205 10 309 18 710 50 135 11 304 25 375 30 188 14 623 60 765
+81 36 5 99 14 140 19 330 41 736 109 1020 170 52 12 128 27 168 35 373 73 816
+237 985 366 111 85 158 161 150 246 -7 81 -51 142 -158 218 -53 38 -233 135
+-250 135 -4 0 -21 6 -38 14 -49 22 -283 101 -367 125 -371 104 -903 213 -1360
+280 -280 42 -569 80 -670 90 -58 6 -163 17 -235 25 -71 9 -184 20 -250 26 -66
+6 -165 15 -220 20 -482 47 -921 75 -1186 75 l-246 0 -36 -32 -36 -31 87 -16
+c48 -9 152 -20 232 -26 80 -6 199 -15 265 -21 180 -14 336 -26 580 -44 270
+-20 577 -48 801 -75 339 -39 740 -90 794 -100 81 -14 304 -49 390 -61 41 -5
+109 -16 150 -24 41 -8 122 -24 180 -35 58 -11 134 -27 170 -35 36 -8 88 -20
+115 -25 163 -33 533 -141 673 -196 116 -46 265 -124 328 -172 207 -157 154
+-298 -170 -451 -152 -71 -569 -195 -793 -236 -43 -8 -163 -30 -268 -49 -104
+-19 -235 -42 -290 -51 -55 -8 -127 -20 -160 -25 -71 -12 -483 -69 -540 -75
+-22 -2 -78 -9 -125 -14 -276 -33 -592 -63 -850 -81 -162 -11 -353 -25 -425
+-30 -479 -36 -1202 -70 -1692 -79 -554 -11 -2065 -7 -2498 7 -586 18 -1520 66
+-1790 92 -94 8 -152 13 -480 40 -332 27 -942 92 -1180 125 -60 9 -171 24 -245
+35 -194 27 -499 81 -905 161 -77 15 -448 107 -500 124 -22 7 -83 27 -135 43
+-274 88 -450 181 -535 280 -25 30 -30 45 -32 96 -1 54 2 65 30 99 17 22 49 52
+71 68 23 16 46 32 51 37 19 15 171 90 240 117 116 47 414 134 600 175 44 10
+122 27 174 39 51 12 119 26 150 30 31 5 103 18 161 29 136 27 400 69 515 82
+50 6 135 17 190 25 114 17 300 38 525 60 85 8 196 20 245 25 100 11 167 16
+300 25 50 4 124 10 165 16 41 5 183 16 315 24 132 9 305 20 385 25 80 5 237
+14 350 20 328 17 491 30 549 43 l55 12 -44 35 -44 35 -230 1 c-127 2 -240 1
+-251 -1z"/>
+<path d="M10535 9940 c-76 -8 -234 -20 -535 -40 -74 -5 -171 -14 -215 -19 -44
+-6 -132 -15 -195 -21 -382 -37 -911 -127 -1235 -211 -388 -101 -584 -183 -715
+-298 -19 -17 -38 -31 -42 -31 -5 0 -8 -7 -8 -15 0 -9 -7 -18 -15 -21 -24 -10
+-35 -82 -22 -154 18 -108 249 -260 557 -366 98 -34 350 -107 430 -124 47 -10
+139 -31 205 -45 66 -15 171 -35 234 -45 62 -11 121 -22 130 -25 16 -5 197 -32
+406 -61 230 -31 795 -95 1000 -113 385 -33 421 -35 930 -61 931 -46 1734 -51
+2835 -15 536 18 1219 71 1670 130 63 9 185 25 270 36 399 52 678 104 935 172
+218 58 249 67 270 76 11 6 49 19 85 31 80 27 222 97 293 144 77 51 135 117
+153 175 15 46 15 52 -2 97 -25 64 -102 139 -203 197 -46 26 -86 47 -90 47 -3
+0 -19 7 -34 15 -92 48 -381 141 -592 190 -60 14 -150 35 -200 46 -113 27 -165
+37 -560 103 -374 63 -662 101 -1006 132 -569 50 -740 54 -799 17 -18 -11 -28
+-23 -22 -27 6 -3 52 -13 104 -20 96 -15 166 -22 548 -57 380 -34 977 -107
+1230 -149 208 -35 504 -96 708 -145 426 -105 745 -253 807 -377 19 -39 20
+-105 0 -124 -8 -8 -20 -23 -27 -32 -39 -53 -176 -132 -318 -183 -47 -17 -94
+-34 -105 -39 -61 -25 -366 -100 -570 -140 -303 -59 -403 -76 -510 -86 -27 -3
+-84 -9 -125 -15 -80 -11 -301 -35 -620 -68 -423 -43 -1058 -81 -1535 -91 -440
+-9 -1667 -8 -1880 2 -447 19 -987 50 -1205 68 -69 5 -210 17 -315 25 -394 32
+-1006 105 -1250 150 -44 8 -114 19 -155 25 -41 5 -104 16 -140 24 -36 8 -108
+22 -160 32 -146 26 -477 108 -616 153 -309 99 -486 204 -514 305 -7 25 -9 53
+-5 63 5 10 8 21 7 25 -1 3 25 31 58 61 137 124 457 239 917 327 87 17 190 37
+228 46 71 15 181 32 380 59 61 9 157 22 215 30 124 18 447 52 610 65 63 5 158
+14 210 19 52 6 142 13 200 16 134 8 335 33 378 46 l34 11 -37 25 c-20 14 -49
+27 -63 29 -60 9 -322 11 -397 4z"/>
+</g>
+</svg>`;
+
+  // Rellena el logo de la cabecera de la pantalla de entrada reutilizando
+  // el mismo SVG que ya se usaba en los estados vacíos, quitando el estilo
+  // inline de tamaño (el tamaño lo controla ahora el CSS .header-import-logo svg).
+  document.getElementById("headerImportLogo").innerHTML =
+    LOGO_SVG_EMPTY.replace(/style="[^"]*"\s*/, "");
+
+  // Rellena el SVG grande del splash inicial con el contenido interno
+  // (defs + <g>) del mismo logo, ya que #splashLogo ya trae su propio
+  // <svg> con el viewBox correcto. Se renombra el id del gradiente para
+  // no duplicar "logoGradientEmpty" en el mismo documento (headerImportLogo
+  // y los estados vacíos ya usan ese id).
+  (function rellenarSplashLogo(){
+    const tmp = document.createElement("div");
+    tmp.innerHTML = LOGO_SVG_EMPTY;
+    const svgOriginal = tmp.querySelector("svg");
+    if(!svgOriginal) return;
+    const contenido = svgOriginal.innerHTML
+      .replace(/logoGradientEmpty/g, "logoGradientSplash");
+    document.getElementById("splashLogo").innerHTML = contenido;
+  })();
+
+  // Retira el splash inicial: espera a que la animación de "pop" del logo
+  // termine, encoge y desvanece el overlay, y lo quita del DOM del todo
+  // para que no interfiera con toques posteriores en la pantalla real.
+  (function retirarSplash(){
+    const overlay = document.getElementById("splashOverlay");
+    if(!overlay) return;
+    const prefiereMenosMovimiento = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const espera = prefiereMenosMovimiento ? 120 : 700;
+    setTimeout(() => {
+      overlay.classList.add("splash-out");
+      setTimeout(() => overlay.remove(), prefiereMenosMovimiento ? 150 : 650);
+    }, espera);
+  })();
+
+  // Data URI del logo de la Biblioteca de la Natación, para dibujarlo
+  // en el canvas del PNG exportado (sustituye al emoji 🏊 del pie).
+  const LOGO_DATA_URI = "data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgMjU1MSAyNTUxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHJvbGU9ImltZyIgYXJpYS1sYWJlbD0iQmlibGlvdGVjYSBkZSBsYSBOYXRhY2nDs24iPgogIDxkZWZzPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJsb2dvR3JhZGllbnQiIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIiB4MT0iMTI3NTUiIHkxPSIxOTU3MCIgeDI9IjEyNzU1IiB5Mj0iNzIwMCI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiMwMGRmZmYiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIzMCUiIHN0b3AtY29sb3I9IiMwMGFlZjMiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSI1NSUiIHN0b3AtY29sb3I9IiMwMDg5ZTIiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSI4MCUiIHN0b3AtY29sb3I9IiMzYjgyZjYiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjYTc4YmZhIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogIDwvZGVmcz4KICA8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgwLjAwMDAwMCwyNTUxLjAwMDAwMCkgc2NhbGUoMC4xMDAwMDAsLTAuMTAwMDAwKSIKZmlsbD0idXJsKCNsb2dvR3JhZGllbnQpIiBzdHJva2U9Im5vbmUiPgo8cGF0aCBkPSJNNjA4NSAxOTU2NCBjLTM2OSAtMjkgLTg0MiAtMTA3IC05NDMgLTE1NSAtNjYgLTMyIC04OSAtOTYgLTU4IC0xNTgKMTggLTM1IDQ1IC00NiAxNjMgLTcyIDUzIC0xMSAxNzIgLTQ1IDI2NSAtNzUgMjI5IC03MyAyOTQgLTgzIDYyMyAtOTQgMTU0IC02CjMyMyAtMTUgMzc1IC0yMSAyNjggLTMwIDQ5NSAtMTAwIDc3MyAtMjQwIDIyNSAtMTEzIDQxMCAtMjM0IDg5NyAtNTg0IDM4MAotMjczIDY0OCAtNDQ1IDEwODAgLTY5MyA0MjEgLTI0MSA2NDUgLTM4NCA5MDUgLTU3OSA1MDEgLTM3NiA4NzcgLTc2OSAxMjAyCi0xMjU4IDI0MiAtMzY1IDYwMiAtMTAzNSA4MDMgLTE0OTUgNzQgLTE3MCA5NyAtMTk4IDE0MyAtMTgxIDQxIDE2IDQ1IDUzIDEzCjE0NiAtMTE0IDMzMSAtMTk4IDUyOSAtMzY4IDg3MSAtNDMwIDg2MyAtODY4IDE0MjIgLTE1MzAgMTk1MSAtMjk4IDIzOCAtNTQ0CjQwMSAtMTA0MyA2OTAgLTUzMyAzMDkgLTcxMSA0MjMgLTExOTAgNzY4IC0xNTQgMTEwIC0zMjAgMjI4IC0zNzAgMjYxIC00MTAKMjc1IC03NzEgNDM5IC0xMTA4IDUwMyAtMTQ0IDI3IC0yOTIgNDAgLTYwMiA1MSAtMTYxIDYgLTMwMCAxNiAtMzQ1IDI1IC03OAoxNiAtMjI5IDYyIC0yNDMgNzUgLTggNyAyMTIgMzkgNDA4IDYwIDU3MiA2MSAxMDc3IDEyIDE1NjIgLTE1MCAzMzYgLTExMSA2MDAKLTI1NSAxMjIzIC02NjQgMzcyIC0yNDQgNDk0IC0zMTggNjc1IC00MDYgMjI1IC0xMTAgNDIwIC0xNjcgNjUyIC0xOTAgNTQgLTUKMjA4IC0xNCAzNDMgLTIwIDEzNSAtNiAyODggLTE3IDM0MCAtMjUgMzczIC02MCA3MDkgLTI0NCAxMDM1IC01NzAgMjE5IC0yMTgKNDQxIC01MTEgNTUzIC03MzEgbDIxIC00MiAtNjIgLTYgYy0xMzMgLTE1IC0yNzcgLTM4IC0zODcgLTYzIC02MyAtMTQgLTEyNwotMjggLTE0MiAtMzEgLTM5IC02IC02NyAtNDIgLTc4IC0xMDEgLTEzIC02OCAwIC0xMTkgMzkgLTE1NCAxNiAtMTQgNDYgLTU2CjY3IC05NCA3NSAtMTM1IDI1NiAtNDA2IDU1OSAtODM4IDE3MCAtMjQyIDMxNyAtNDUyIDMyOCAtNDY3IDI1IC0zNCA3OSAtNjAKMTA5IC01MyAxMyA0IDMzIDE0IDQ1IDI0IDI2IDIyIDY0MCA4OTYgNzYyIDEwODYgMTIzIDE5MiAxMjYgMTk1IDE2MSAyNTkgMTgKMzIgNDYgNzAgNjEgODQgMzcgMzMgNDggNzQgMzggMTQ3IC01IDQxIC0xNSA2NSAtMzEgODAgLTM2IDM0IC0zMTkgOTMgLTU3NgoxMjEgbC02MiA3IDQxIDc2IGMyMTQgMzkzIDYwMyA4MTcgOTQwIDEwMjYgMTYyIDEwMSAzNTMgMTgzIDQ5OSAyMTYgMTExIDI1CjI1MiA0MCA0NzUgNDkgMTMyIDYgMjg1IDE1IDM0MCAyMSAzNjcgMzggNjQwIDE1MCAxMTE1IDQ1OSA5MSA1OSAyNjIgMTcwIDM4MAoyNDcgNDgyIDMxNCA3MzggNDQ5IDEwNDkgNTUzIDU1MCAxODMgMTA5NyAyMTkgMTgyNCAxMTggODYgLTEyIDE1NCAtMjUgMTUwCi0yOSAtMTQgLTEyIC0xNjcgLTU5IC0yNDMgLTc0IC00NSAtOSAtMTg0IC0xOSAtMzQ1IC0yNSAtNDI4IC0xNSAtNTkzIC0zNwotODIyIC0xMDYgLTM2MiAtMTEwIC02NDkgLTI3MiAtMTI2OCAtNzE1IC00OTIgLTM1MyAtNjU0IC00NTggLTEyMTAgLTc3OQotNDY2IC0yNzAgLTcwMiAtNDI2IC05OTUgLTY1OSAtNTY2IC00NTAgLTk1OSAtOTA5IC0xMzM1IC0xNTYxIC05MyAtMTYwIC0yNjkKLTUwNiAtMzQ0IC02NzUgLTI5IC02NiAtNjYgLTE0NyAtODEgLTE4MSAtNDEgLTg5IC0xODAgLTQ4MCAtMTgwIC01MDcgMCAtMjkKMTggLTUzIDQ3IC02MSAzMiAtMTAgNjggMjkgOTkgMTA5IDQxIDEwNyAyMzMgNTA3IDM1MSA3MjkgNTI4IDEwMDIgODk3IDE0NzQKMTU3MyAyMDExIDI5MCAyMzAgNDc4IDM1NCAxMDIwIDY2NyA1MTIgMjk3IDcwMSA0MjAgMTIxNSA3ODkgNTQwIDM4OCA4MTAgNTQwCjExNDYgNjQ4IDIxMyA2NyAzNjQgODcgNzU5IDEwMSAzMzQgMTEgMzk4IDIwIDYyOCA5NCA5MyAzMCAyMTMgNjQgMjY3IDc2IDEwOQoyMyAxNDggNDIgMTY0IDc3IDM0IDczIC0xMSAxMzkgLTExNiAxNzIgLTE0MCA0MyAtNDk5IDk5IC04MTggMTI3IC0yNjQgMjMKLTcwMCAxNSAtOTAwIC0xNSAtMjkwIC00NSAtNTc1IC0xMjAgLTgxMCAtMjEzIC0yOTQgLTExNyAtNTMwIC0yNTIgLTExMzAKLTY0NSAtNDM1IC0yODUgLTU5NiAtMzc2IC03OTAgLTQ0OCAtMjA5IC03OCAtMzQ3IC0xMDAgLTcxOCAtMTE1IC0zNjggLTE1Ci01MzMgLTQxIC03MzQgLTExNiAtMjQ2IC05MiAtNDg0IC0yNDEgLTcwOCAtNDQzIC0yNTUgLTIzMSAtNTE1IC01NjMgLTY4MAotODY5IGwtNjAgLTExMiAtMjEwIDAgLTIxMCAwIC02NCAxMTggYy0yMzAgNDE4IC01NzYgODE2IC05MjEgMTA1OCAtMTYwIDExMwotMjk3IDE4NiAtNDYzIDI0OCAtMjAxIDc1IC0zNjMgMTAxIC03MzAgMTE2IC00NjIgMTkgLTY0NiA2MCAtOTQyIDIxNCAtMTYwCjgzIC0yMjEgMTIxIC02MjAgMzgxIC0zNzUgMjQ1IC01ODEgMzcxIC03NTUgNDYzIC0zMzQgMTc3IC03MTQgMjk4IC0xMTM1IDM2MwotMTE3IDE4IC0xOTIgMjIgLTQ2MCAyNCAtMTc2IDEgLTM0MiAxIC0zNzAgLTF6IG03MjQ1IC0zMTkyIGM1OCAtNiAxNTcgLTEzCjIyMCAtMTcgNzEgLTQgMTE3IC0xMSAxMjIgLTE4IDIxIC0zMyA3IC03MSAtNTAgLTEzNiAtOTQgLTEwNyAtMzAyIC0zODkgLTU5MAotODAxIC0xNDggLTIxMiAtMjczIC0zODQgLTI3OCAtMzgzIC01IDAgLTEzNSAxODEgLTI4OSA0MDEgLTI5OCA0MjUgLTQ4MyA2NzYKLTU3NyA3ODMgLTU3IDY1IC03MSAxMDMgLTUwIDEzNSA0IDcgNDkgMTUgMTAyIDE4IDI1MiAxNyAzOTkgMjcgNDM1IDMwIDc5IDcKODUyIC0zIDk1NSAtMTJ6Ii8+CjxwYXRoIGQ9Ik00OTY0IDE3NTYxIGMtNTIgLTI0IC03NCAtNTUgLTc0IC0xMDQgMCAtNTkgMjMgLTkwIDExMCAtMTUxIDIxNwotMTUzIDM4MiAtMzYyIDYzNCAtODA2IDE5MyAtMzQwIDMzNiAtNjM5IDYwNiAtMTI3MCAxNDIgLTMzMSAxNzAgLTQxNSAyNzAKLTc5NSA4NCAtMzIyIDE3OCAtNTE1IDM1NyAtNzM3IDI0NSAtMzAyIDg4NyAtNzUxIDE2NjAgLTExNjEgMjM3IC0xMjYgNDE4Ci0yMTIgNzkzIC0zNzcgNDg1IC0yMTMgNjM3IC0yOTIgODc3IC00NTcgNTIxIC0zNTcgNzk1IC02MzEgMTEyNCAtMTEyNSA2OAotMTAyIDE0MyAtMjIwIDE2NyAtMjYyIDQ1IC04MSA3MSAtOTkgMTE3IC03OCA1NCAyNSA0NiA2OCAtNTIgMjkyIC03MSAxNjIKLTEwOCAyMjkgLTIwNiAzNzUgLTEwNiAxNTggLTE3NCAyNDEgLTMzNyA0MDggLTE1MSAxNTYgLTI5MSAyNzcgLTQ5MSA0MjUKLTM1MCAyNTkgLTU3MSAzODUgLTEwMDQgNTcyIC04MjUgMzU4IC0xMzkxIDY2OCAtMTk2MCAxMDczIC0zMjggMjM0IC00NzkgMzc1Ci02MTEgNTczIC0xMTYgMTc0IC0xNjggMzA1IC0yNTMgNjM0IC01MyAyMDUgLTEwMiAzNTkgLTE2OSA1MjUgLTcwIDE3NSAtMzQ3CjgwNSAtNDMxIDk3OCBsLTc5IDE2NyA1NiAtNDYgYzMxIC0yNiAxNjEgLTEzNiAyODcgLTI0NCAyMjEgLTE5MCA1ODggLTUwMgo3OTkgLTY3OSA1NiAtNDcgMjc5IC0yMjYgNDk2IC0zOTkgNjI2IC00OTkgNjg2IC01NDggODQ1IC02ODcgODMgLTcyIDIyMgotMTkxIDMxMCAtMjY1IDI1NiAtMjE0IDM4NSAtMzM0IDgyMSAtNzY3IDQ4MCAtNDc3IDEwNDAgLTEwNTcgMTE1MiAtMTE5NCAxMDcKLTEzMCAyMjAgLTI5MyA0NzIgLTY3OSA2NzIgLTEwMjcgNjY2IC0xMDEzIDg5NiAtMTgxOCA1NyAtMTk5IDExMSAtMzc0IDEyMQotMzg4IDQxIC02MiAxNTEgLTU2IDE4MSAxMSAxNyAzNiAxNSA3MCAtOCAxNDUgLTI5IDk2IC02OCAyODIgLTk1IDQ2NCAtNjUKNDM3IC05MyA1NjkgLTE4NiA4ODEgLTEyMCA0MDUgLTM3NiAxMDc5IC01OTEgMTU1NSAtMTQ0IDMxNyAtNTEyIDEwMzQgLTY4NgoxMzM1IC0xMzggMjM5IC0yOTUgNDU0IC00NzMgNjUxIC0zNjUgNDAwIC03MzUgNzgyIC05MTQgOTQyIC0xMjIgMTEwIC0zNjQKMzMxIC0zNzUgMzQyIC0yMiAyMiAtMjAxIDE4MCAtMjcwIDIzNyAtMzM4IDI4MCAtMTA2OCA3NTYgLTE2MzUgMTA2NSAtODg5CjQ4NSAtMTU2OCA3NjQgLTIwNTYgODQzIC0xMjAgMTkgLTE0NSAxOSAtMTk1IC00eiBtNTI0IC0yOTYgYzI2MCAtODAgNDM2Ci0xNDkgNzgyIC0zMDcgNjEwIC0yODAgMTE2NCAtNTg5IDE4MTEgLTEwMTQgMzkzIC0yNTYgNTk0IC00MTEgODkwIC02ODAgMTAyCi05MyAyNzUgLTI1MCAzODQgLTM0OSAxMDkgLTk5IDI5MyAtMjgxIDQwOSAtNDA1IDExNSAtMTI0IDI3MiAtMjkwIDM0NyAtMzcwCjQwOSAtNDM0IDUyNSAtNjEzIDk3MCAtMTQ4NSAyNjIgLTUxMyAzNzQgLTc2MyA1NzEgLTEyNzAgMTI0IC0zMTcgMjUyIC02NzUKMjQ0IC02ODIgLTIgLTIgLTE2IDE4IC0zMiA0NCAtNjggMTE3IC02OTEgMTA2NCAtNzg0IDExOTAgLTEzNSAxODcgLTIzMSAyOTUKLTU0OSA2MjMgLTE0NyAxNTEgLTM0OSAzNjIgLTQ1MCA0NjggLTEwMiAxMDYgLTE5MiAxOTkgLTIwMiAyMDUgLTkgNyAtMTQ5CjE0MyAtMzExIDMwMiAtMTYyIDE2MCAtMzc2IDM2MCAtNDc3IDQ0NSAtMTAxIDg1IC0yODQgMjQxIC00MDUgMzQ1IC0yNjkgMjMxCi0zNTcgMzA0IC01MDYgNDIwIC0zMzEgMjU3IC04NTUgNjgwIC0xMDQwIDg0MCAtNTggNTAgLTE4NiAxNTkgLTI4NSAyNDIgLTk5CjgzIC0yNDEgMjAzIC0zMTUgMjY4IC03NCA2NCAtMjI3IDE5MyAtMzQwIDI4NyAtMjc3IDIzMiAtNDM0IDM5MSAtNjAyIDYxMwotNzYgMTAwIC0xNjIgMjA5IC0xOTMgMjQzIC0zMSAzNCAtNTEgNjIgLTQzIDYyIDcgMCA2NCAtMTYgMTI2IC0zNXoiLz4KPHBhdGggZD0iTTIwMzI1IDE3NTYwIGMtMjE4IC0zOCAtNDg5IC0xMTkgLTc1NSAtMjI1IC0zNDggLTEzOCAtODU2IC0zODEKLTEyNTUgLTYwMSAtMzAwIC0xNjUgLTQzMSAtMjQzIC04NjAgLTUxNCAtNDAyIC0yNTQgLTc0NiAtNTEwIC0xMDA3IC03NDcgLTUzCi00OCAtMTc5IC0xNjIgLTI4MCAtMjUzIC0yNDggLTIyMyAtNDAxIC0zNzMgLTY1NiAtNjQ1IC0xMTkgLTEyNiAtMjQ2IC0yNjEKLTI4MyAtMzAwIC00MTQgLTQzNyAtNTgxIC02OTkgLTEwNzMgLTE2ODMgLTI0MiAtNDgxIC0zNTMgLTczOSAtNTc4IC0xMzMyCi0yMjUgLTU5NCAtMzE2IC05MjMgLTM5MyAtMTQxMiAtNTQgLTM0NiAtNjcgLTQxOCAtMTA2IC01NjEgLTMzIC0xMjIgLTM1Ci0xNDcgLTE0IC0xODYgMzAgLTU4IDEzMCAtNjcgMTcyIC0xNSAxMSAxNSAzOCA4NiA1OCAxNTggMjk0IDEwNDEgMjgwIDEwMTEKOTE5IDE5ODcgMzI5IDUwMiA0MjUgNjM5IDU1MSA3ODcgMTMwIDE1MiA2MzggNjc3IDExMTkgMTE1NSA0MjIgNDIwIDU2NCA1NTIKODE2IDc2MyA4MCA2NyAyMjQgMTkwIDMyMCAyNzQgOTYgODMgMjM0IDE5OCAzMDUgMjU1IDcyIDU3IDMxMCAyNDggNTMwIDQyMwoyMjAgMTc1IDQ0OCAzNTkgNTA2IDQwOCAyOTAgMjQ0IDU3NCA0ODUgNzU4IDY0MyAyMzIgMjAwIDM2NSAzMTEgMzY5IDMwNyAxCi0yIC0zMiAtNzQgLTc0IC0xNjIgLTExMSAtMjMwIC0zODYgLTg2MSAtNDU5IC0xMDU0IC0zNSAtOTEgLTc5IC0yMjMgLTk4Ci0yOTUgLTE5IC03MSAtNDkgLTE4NCAtNjcgLTI1MCAtNTYgLTIxMiAtOTcgLTMxNiAtMTc2IC00NTIgLTE1MyAtMjYxIC0zNDYKLTQzOSAtODQ0IC03NzggLTQ0MCAtMzAwIC0xMDM0IC02MjAgLTE2NjAgLTg5NCAtNTYyIC0yNDYgLTY5MiAtMzE3IC0xMDI1Ci01NTQgLTQ5NiAtMzU0IC04MzkgLTcxNSAtMTA0NCAtMTA5NyAtNjYgLTEyMyAtMTcxIC0zNzggLTE3MSAtNDE0IDAgLTM4IDI1Ci02NiA2MSAtNjYgMzggMCA1MyAxNiAxMTUgMTI1IDczIDEyNyAyNDYgMzgzIDMzOCA1MDAgMjI0IDI4NiA0MjggNDg0IDcxNgo2OTYgMzg2IDI4NCA1MjggMzY0IDEwOTUgNjEyIDY0MSAyODAgMTE0MiA1NDggMTYzNSA4NzMgNDM5IDI4OSA2OTUgNTA1IDg1NAo3MTkgMTc1IDIzNCAyMzQgMzY4IDM0MCA3NzAgODUgMzI2IDExMyA0MDAgMzM5IDkyMSAxODQgNDIyIDI3MCA2MDcgMzgzIDgxOQozMjMgNjA2IDUyNyA4ODEgNzcxIDEwNDcgNDAgMjYgODAgNjIgODggNzggMzQgNjYgOSAxNDAgLTU4IDE3MSAtNTEgMjMgLTkyCjIzIC0yMjIgLTF6IG0tMjIwIC0zMjIgYy0zMSAtMzUgLTEwNSAtMTI2IC0xNjMgLTIwMyAtMjA2IC0yNzIgLTMyOCAtNDAxCi01MzggLTU3MiAtNTQgLTQ0IC0xNzMgLTE0NCAtMjY0IC0yMjMgLTE1OCAtMTM2IC01NjUgLTQ4MiAtODY0IC03MzQgLTE1OQotMTM0IC03MDEgLTU3MCAtOTM2IC03NTMgLTE2OSAtMTMxIC0yNzYgLTIyMSAtNTcxIC00NzQgLTEwNyAtOTIgLTI3NSAtMjM2Ci0zNzQgLTMyMCAtOTkgLTg0IC0yOTkgLTI3MSAtNDQ1IC00MTUgLTE0NiAtMTQ0IC0yODkgLTI4NCAtMzE5IC0zMTEgLTI5IC0yNgotMTMwIC0xMjkgLTIyNCAtMjI4IC05NCAtOTkgLTI5NCAtMzA2IC00NDMgLTQ2MCAtMjg4IC0yOTYgLTM3OSAtMzk4IC01MDEKLTU2MCAtNzEgLTk0IC0yODcgLTQxNCAtNDMyIC02NDAgLTM2IC01NSAtMTM2IC0yMDkgLTIyMiAtMzQyIC04NyAtMTMzIC0xNjUKLTI1NSAtMTczIC0yNzIgLTgyIC0xNTggNTUgMjMyIDI5NyA4NDkgMTUxIDM4MiAzNDggODAwIDYzNSAxMzQ1IDI0NCA0NjQgMzcwCjY3MyA1MjQgODY3IDkyIDExNyAxMDEgMTI3IDM2OCA0MTMgNDAzIDQzMiA1MTIgNTQ0IDY1MSA2NzAgNzkgNzIgMjIwIDIwMAozMTQgMjg1IDI3NCAyNTAgMzM0IDMwMiA0NDMgMzg5IDM0NSAyNzMgMTAzOCA3MTcgMTU4MiAxMDE0IDE1NCA4MyA2NzIgMzQ3CjY4MyAzNDcgMyAwIDUxIDIyIDEwOCA0OSAyMzcgMTExIDUxMCAyMjAgNzE0IDI4NSA2NiAyMSAxMzEgNDIgMTQ1IDQ2IDYxIDIxCjYyIDExIDUgLTUyeiIvPgo8cGF0aCBkPSJNOTc0NSAxMDQ2OSBjLTExNSAtNCAtMjk4IC0xMCAtNDA1IC0xMyAtMzY0IC0xMiAtNzY5IC0zNCAtMTI4MCAtNzAKLTU2MSAtNDEgLTc5MyAtNTkgLTk4NSAtNzcgLTExNSAtMTEgLTI2MiAtMjQgLTMyNSAtMjkgLTEwMSAtOSAtNDU3IC01MCAtNjgwCi04MCAtNDEgLTUgLTEzMyAtMTcgLTIwNSAtMjUgLTIxOCAtMjcgLTYzMiAtODUgLTc4NSAtMTEwIC01MzggLTg5IC03MDcgLTEyMAotOTU1IC0xNzkgLTk5IC0yNCAtMjI1IC01MyAtMjgwIC02NiAtNTUgLTEyIC0xMjcgLTMwIC0xNjAgLTQwIC0zMyAtMTAgLTEyNQotMzcgLTIwNSAtNjAgLTMyNiAtOTQgLTYzNiAtMjE1IC03OTAgLTMwOSAtMTkgLTExIC00MiAtMjQgLTUwIC0yOCAtMjUgLTExCi0xMzEgLTkyIC0xOTYgLTE1MCAtNzkgLTY5IC0xMzYgLTE3NSAtMTQyIC0yNjIgLTUgLTY3IDE2IC0xNDIgNTYgLTIwNiA1MgotODEgMjA1IC0yMTUgMzEyIC0yNzIgMzAgLTE2IDgwIC00MyAxMTAgLTYxIDU0IC0zMCAyOTAgLTEzNiAzNDAgLTE1MiAxNCAtNQo1MCAtMTggODAgLTMwIDk3IC0zNyAzOTQgLTEzMCA1NjAgLTE3NSAzNiAtOSA4NSAtMjMgMTEwIC0zMSAxNTIgLTQ1IDU5NwotMTQ3IDgyNSAtMTg5IDQ0IC04IDExMiAtMjIgMTUwIC0zMCAzOSAtOSAxNTQgLTI5IDI1NyAtNDUgMTAyIC0xNiAyMDYgLTM0CjIzMCAtMzkgNDIgLTEwIDI1MiAtNDIgMzk4IC02MiA0MSAtNSAxNDAgLTIxIDIyMCAtMzQgODAgLTEzIDI3NiAtNDAgNDM1IC02MAoxNjAgLTIwIDMxNSAtNDAgMzQ1IC00NSAzMCAtNSAxNzIgLTIxIDMxNSAtMzUgMTQzIC0xNCAzMTYgLTMyIDM4NSAtNDAgNjkgLTgKMTg4IC0yMCAyNjUgLTI1IDEzMSAtMTAgMjAwIC0xNiA2MDUgLTU1IDg1IC04IDI1OSAtMjEgMzg1IC0zMCAxMjcgLTkgMjg5Ci0yMCAzNjAgLTI1IDI3NCAtMjAgNjIwIC00MCA4NjAgLTUwIDEzOCAtNSAzMTUgLTE1IDM5NSAtMjAgNTgxIC00MCAyMDI5IC03MQozMTcwIC02OCA5NjkgMyAxNjMxIDEzIDIxMTUgMzMgNjEgMyAxNzggNyAyNjAgMTAgMjEyIDggMTI4OSA2NCAxMzU1IDcwIDMwIDMKMTM0IDEwIDIzMCAxNiAyMDAgMTEgNjg3IDUyIDg5NSA3NCA3NyA4IDIzOSAyNCAzNTkgMzUgMjI4IDIxIDU5NCA2MCA4MDEgODUKNjYgOCAxNTkgMTkgMjA3IDI1IDg3IDEwIDI3NiAzOSA1NjAgODUgODQgMTQgMTk4IDMyIDI1MyA0MCAyNjMgNDAgNzYwIDEzOAoxMDQ1IDIwNSAxODAgNDMgNTgwIDE1NiA2MzUgMTgwIDExIDUgOTQgMzYgMTg1IDcwIDkxIDM0IDE3NiA2OCAxOTAgNzUgMTQgOAo3MCAzNiAxMjUgNjMgMjIxIDExMCAzNzcgMjQzIDQ0MCAzNzUgMTIgMjcgMTggNjIgMTggMTI1IDAgNzkgLTMgOTIgLTMyIDE0NQotMTcgMzIgLTQzIDcwIC01NyA4NSAtOTYgMTAxIC0xMzAgMTMwIC0yMTkgMTg2IC0yNTcgMTYyIC02MDkgMzA3IC0xMDQ1IDQzMAotNjkgMjAgLTEzOCA0MCAtMTU1IDQ1IC04MCAyNCAtNDM2IDEwNyAtNjc1IDE1OCAtMjYxIDU1IC0zMjcgNjggLTQ1MCA4OCAtNTIKOCAtMTUxIDI2IC0yMjAgNDAgLTY5IDEzIC0yMTMgMzggLTMyMCA1NSAtMTA3IDE3IC0yMzUgMzcgLTI4NSA0NSAtMTQxIDIzCi0zNjQgNTQgLTQ3MiA2NSAtNTQgNiAtMTM4IDE3IC0xODggMjUgLTg4IDE0IC0yNTcgMzQgLTQ4MCA1NSAtNjAgNiAtMTU5IDE4Ci0yMjAgMjYgLTEzMiAxNyAtNDI1IDQ3IC02NjUgNjkgLTk2IDggLTIxMyAxOSAtMjYwIDI1IC0xMTYgMTMgLTMwMSAyOCAtNTc1CjQ1IC0xMjYgOCAtMjg0IDE5IC0zNTAgMjQgLTY2IDYgLTIwNSAxNSAtMzEwIDIxIC0xMDQgNSAtMzIwIDE3IC00ODAgMjYgLTE1OQo5IC0zNjUgMTQgLTQ1OCAxMiBsLTE2NyAtNCAtMzUgLTM0IGMtMTkgLTE5IC0zNSAtMzcgLTM1IC00MSAwIC0zIDI4IC0xMiA2MwotMjAgbDYyIC0xNCAtODQgLTcgYy03OSAtNiAtODcgLTkgLTExOSAtNDEgbC0zNCAtMzUgODggLTE1IGM0OSAtOSAyNTMgLTI4CjQ1NCAtNDEgMjAxIC0xNCA0NDggLTMyIDU1MCAtNDEgMTAyIC04IDI3NSAtMjIgMzg1IC0zMSAxMTAgLTggMjYxIC0yMiAzMzUKLTMwIDIzNSAtMjUgMzIwIC0zNCA1MzAgLTU0IDExMyAtMTIgMjUyIC0yNyAzMTAgLTM1IDU4IC04IDIyMCAtMjggMzYwIC00NQo0NDggLTU1IDc4OCAtMTA2IDExMTUgLTE3MCAyMzUgLTQ2IDQ3MCAtOTMgNTIwIC0xMDUgMzMgLTcgMTMyIC0zMCAyMjAgLTUwCjg4IC0yMCAxNzEgLTQwIDE4NSAtNDUgMTQgLTUgMzkgLTExIDU1IC0xNSA0NSAtOSAxNTEgLTQxIDMyNSAtOTcgMTU4IC01MQoxNjcgLTU0IDIzMiAtODIgMjEgLTkgNjYgLTI3IDEwMCAtNDAgNTMgLTIwIDExMSAtNDkgMjIzIC0xMTAgODkgLTQ5IDIwNAotMTUyIDIzOCAtMjEzIDI0IC00NCAyNSAtMTQxIDEgLTE4MCAtMjggLTQ0IC0xMTkgLTEzMCAtMTgyIC0xNzAgLTE2NyAtMTA3Ci00NzggLTIyMCAtODk3IC0zMjcgLTE0NiAtMzcgLTQ3MCAtMTA4IC01NjUgLTEyNCAtMzAgLTUgLTEzNSAtMjQgLTIzMiAtNDEKLTM2MCAtNjQgLTYzOCAtMTA1IC05NTggLTE0MSAtNTMxIC01OSAtNzgzIC04NCAtOTk1IC0xMDAgLTgyIC02IC0xNTkgLTEzCi0xNzAgLTE1IC03OCAtMTcgLTkxOCAtNjkgLTE1MzAgLTk1IC0xMzIgLTUgLTM1MCAtMTUgLTQ4NSAtMjAgLTQ3OCAtMjEKLTEwMDUgLTI5IC0xNzg1IC0yOSAtMTAyNiAtMSAtMTgyMSAxOSAtMjgwNSA2OSAtMTA3IDYgLTI4MyAxNSAtMzkwIDIwIC00MDgKMjEgLTEzNjggMTAwIC0yMDEwIDE2NiAtMzM3IDM0IC0xMDUyIDEyOCAtMTMxNSAxNzMgLTYwIDExIC0xMzIgMjIgLTE2MCAyNQotNzcgMTAgLTM2NCA2MiAtNjQ1IDExNyAtNDQ4IDg5IC04MjMgMTkwIC0xMTYzIDMxMyAtMTA1IDM4IC0xMjcgNDcgLTI1NyAxMDkKLTIzNCAxMTAgLTM3NCAyNTIgLTM1NyAzNjAgOSA1NSAxMiA2MSA0NiAxMDkgNTkgODIgMjExIDE4MiA0MDEgMjYzIDgwIDM0CjM0OSAxMjcgNDUwIDE1NSAyNSA3IDY1IDE4IDkwIDI2IDcyIDIxIDQwNSAxMDEgNTM1IDEyOCAyMjQgNDcgNjY2IDExNyAxMTAwCjE3NiAxNjAgMjEgMzA4IDQxIDMzMCA0NCAyMiAzIDEwNSAxMyAxODUgMjEgODAgOCAyNTMgMjYgMzg1IDQwIDMyNSAzNCAzMjEKMzQgNTY1IDUwIDExOCA4IDMwNSAyMSA0MTUgMzAgMTEwIDggMzY0IDI0IDU2NSAzNSAyMDEgMTEgMzc0IDIyIDM4NSAyNSAxMSAzCjE2MiA5IDMzNSAxNSAzMjQgMTAgNDgxIDIyIDUzNyA0MSBsMzMgMTAgLTI4IDM1IGMtMTYgMjAgLTM2IDM0IC00OSAzNCAtMTIgMAotMjkgMyAtMzggNyAtMTUgNSAtMTUgNyA0IDE3IDIxIDEyIDIxIDEyIC03IDQ1IC0yNSAzMSAtMzQgMzQgLTEwNyA0MiAtOTIgOQotMjkxIDkgLTU5MCAtMnogbTY2NDggLTIzNiBjLTcgLTIgLTE5IC0yIC0yNSAwIC03IDMgLTIgNSAxMiA1IDE0IDAgMTkgLTIgMTMKLTV6IG0xMzUgLTEwIGMtMTYgLTIgLTQwIC0yIC01NSAwIC0xNiAyIC0zIDQgMjcgNCAzMCAwIDQzIC0yIDI4IC00eiBtMTE1Ci0xMCBjLTEzIC0yIC0zNSAtMiAtNTAgMCAtMTYgMiAtNSA0IDIyIDQgMjggMCA0MCAtMiAyOCAtNHogbTExMCAtMTAgYy03IC0yCi0yMSAtMiAtMzAgMCAtMTAgMyAtNCA1IDEyIDUgMTcgMCAyNCAtMiAxOCAtNXogbTEzMCAtMTAgYy03IC0yIC0yMSAtMiAtMzAgMAotMTAgMyAtNCA1IDEyIDUgMTcgMCAyNCAtMiAxOCAtNXogbTEyMCAtMTAgYy0xMyAtMiAtMzMgLTIgLTQ1IDAgLTEzIDIgLTMgNAoyMiA0IDI1IDAgMzUgLTIgMjMgLTR6IG0yNjcgLTE4IGMxNzQgLTE0IDI1NSAtMjEgNDc1IC00NSA1MCAtNSAxOTYgLTE5IDMyNQotMzAgMTI5IC0xMSAyODUgLTI3IDM0NSAtMzUgNjEgLTggMjA5IC0yNiAzMzAgLTQwIDEyMSAtMTQgMjk3IC0zNyAzOTAgLTUwCjk0IC0xNCAyMjQgLTMyIDI5MCAtNDEgMjQ1IC0zMiA4MTcgLTEyMyA5MzkgLTE0OCAzOSAtOCAxMTQgLTIyIDE2NiAtMzEgMjEyCi0zOCA2MjAgLTEyNiA3NzAgLTE2NyA0MSAtMTEgMTIwIC0zMSAxNzUgLTQ0IDE3OCAtNDQgNTQyIC0xNTcgNzI1IC0yMjYgMjA0Ci03NyA0MjUgLTE4OSA1MTAgLTI1NyAyNSAtMjAgNTQgLTQzIDY1IC01MSAzNSAtMjcgOTEgLTg5IDEwMyAtMTE1IDcgLTE0IDE3Ci0zNiAyNCAtNTAgMjMgLTQ5IDggLTE2NyAtMjcgLTIxNCAtMTQgLTE5IC03NSAtODEgLTExNiAtMTE2IC0xMDYgLTk0IC00MTcKLTI0MyAtNjg0IC0zMjggLTE3NCAtNTYgLTQ2NiAtMTM4IC01NzUgLTE2MiAtMTIzIC0yOCAtMjI1IC01MiAtMzg1IC05MCAtMTU2Ci0zNyAtODM3IC0xNTUgLTExMjYgLTE5NSAtODUgLTExIC0yMDEgLTI3IC0yNTkgLTM1IC0xMDQgLTE1IC0zMzMgLTQyIC01ODUKLTcwIC03MSAtOCAtMjAyIC0yMyAtMjkwIC0zNSAtMTkyIC0yNCAtNTA0IC01NCAtNzEwIC02OSAtODIgLTYgLTI2MiAtMjAKLTQwMCAtMzEgLTEzNyAtMTAgLTI5NSAtMjIgLTM1MCAtMjUgLTU1IC0zIC0xNjMgLTEwIC0yNDAgLTE1IC0zNzAgLTI1IC0xMDY0Ci02MCAtMTQ2MCAtNzQgLTExMTcgLTM5IC0xMjE0IC00MSAtMjQzNSAtMzkgLTExNDEgMiAtMTQ4MiA4IC0yMTI1IDMzIC0xMzcgNgotMzg5IDE1IC01NjAgMjAgLTE3MCA2IC0zODYgMTQgLTQ4MCAyMCAtOTMgNSAtMjUxIDE0IC0zNTAgMjAgLTU4NyAzNSAtOTExCjU3IC05NDkgNjUgLTEyIDMgLTEzNiAxMiAtMjc2IDIwIC00MjMgMjUgLTEyNjIgMTA4IC0xOTIwIDE4OSAtMjg0IDM1IC02NjgKODYgLTc1MiAxMDAgLTUxIDggLTE0MiAyMyAtMjAzIDMyIC0yMzIgMzQgLTc5NCAxMzUgLTk0NSAxNjkgLTM2IDggLTE0MyAzMQotMjM4IDUwIC05NiAxOSAtMTc3IDM3IC0xODEgMzkgLTMgMyAtNjAgMTYgLTEyNiAzMSAtNjYgMTQgLTE4MyA0NSAtMjYwIDY3Ci03NyAyMiAtMTcxIDQ4IC0yMTAgNTggLTgzIDIxIC00MDggMTMxIC00NTEgMTUzIC0xNiA4IC02MCAyNyAtOTkgNDIgLTExMCA0MwotMjYyIDEyMiAtMzU0IDE4NCAtNDYgMzEgLTkzIDYyIC0xMDUgNzAgLTI3IDE3IC05MSA5OCAtMTE3IDE0NiAtMTEgMjAgLTIzCjU5IC0yNiA4NSAtMTEgOTAgNzEgMjE3IDE4OCAyOTQgMjQgMTYgNjMgNDIgODYgNTggNDggMzMgMTgwIDk5IDI1NiAxMjkgNDYKMTggNzEgMjkgMTQyIDYwIDQ2IDIwIDQyNCAxNDAgNTEzIDE2MyAzMjEgODMgNjI1IDE0OSAxMDEyIDIyMSA0MSA3IDEzOCAyNQoyMTUgMzkgNDI2IDc5IDE0NjUgMjEzIDE4NjAgMjQwIDQ0IDMgLTU1IC0xNSAtMjIwIC0zOSAtNDM2IC02NCAtNDQzIC02NQotNTMwIC04MCAtMTg5IC0zNCAtNTE1IC05NyAtNTcwIC0xMTAgLTQ5NyAtMTE3IC02NzcgLTE3MCAtOTM1IC0yNzEgLTMzNAotMTMwIC01MzMgLTI4MyAtNTY2IC00MzQgLTEzIC02MSAtMTIgLTc4IDEgLTEyNCAyMSAtNzAgMzAgLTgzIDExMyAtMTY5IDE5NAotMjAxIDY2OCAtMzk5IDEzMzcgLTU1OCA0NCAtMTEgMTM2IC0zMyAyMDUgLTQ5IDI5OCAtNzEgNzgzIC0xNjIgMTE0MCAtMjE1Cjk2IC0xNCAyMTggLTMyIDI3MCAtNDAgNTIgLTggMTU2IC0yMiAyMzAgLTMwIDc0IC05IDE0MiAtMTggMTUwIC0yMCA4IC0yIDg1Ci0xMSAxNzAgLTIwIDg1IC05IDI0MSAtMjcgMzQ1IC00MCAyNTUgLTMyIDkxOSAtOTYgMTE4NSAtMTE1IDc0IC01IDIwMCAtMTQKMjgwIC0yMCAyNDAgLTE3IDkxMSAtNTkgMTEzMCAtNzAgNTI5IC0yNiA2NTQgLTMxIDEwNzUgLTQwIDI0OCAtNiA2MjggLTE1Cjg0NSAtMjAgMzg3IC05IDYwMyAtOCAxNjk1IDUgNzEyIDggMTY0OSA0MiAyMDU1IDc0IDY5IDYgMTg0IDEzIDI1NSAxNiAyNTAKMTIgOTYzIDY4IDExOTUgOTQgNDcgNiAxMTIgMTMgMTQ1IDE2IDk2IDkgMzExIDM0IDQzMCA1MCA2MSA4IDE2NiAyMSAyMzUgMzAKNTY5IDcyIDk3OSAxNDIgMTM4NiAyMzQgMTE5IDI3IDIxNiA1MiA0MzAgMTEwIDI5MiA3OSA2NDcgMjI1IDc5MyAzMjcgMTQyIDk5CjIyNyAyMjIgMjI1IDMyNCAtMiA4OCAtMzkgMTU3IC0xMzQgMjQ2IC0yNjggMjUxIC0xMDQwIDUwNyAtMjA5MCA2OTMgLTYzIDEyCi0xNjQgMzAgLTIyNSA0MSAtMzgzIDY5IC0xMTU1IDE3NSAtMTYwNSAyMjEgLTMwNCAzMCAtMjkyIDM5IDIwIDE0eiBtLTEwMjMzCi0xMSBjLTMgLTMgLTEyIC00IC0xOSAtMSAtOCAzIC01IDYgNiA2IDExIDEgMTcgLTIgMTMgLTV6IG0tODkgLTExIGMtMTAgLTIKLTI4IC0yIC00MCAwIC0xMyAyIC01IDQgMTcgNCAyMiAxIDMyIC0xIDIzIC00eiIvPgo8cGF0aCBkPSJNMTAyNzUgMTAwOTUgYy0xMSAtMiAtMTQ4IC05IC0zMDUgLTE1IC0yNzcgLTEwIC02MDUgLTMwIC04NDAgLTUwCi02MyAtNSAtMTc2IC0xNCAtMjUwIC0yMCAtMTk3IC0xNiAtNTc3IC01NiAtNzk1IC04NSAtMTA0IC0xNCAtMjQ2IC0zMiAtMzE1Ci00MCAtMjM3IC0yOCAtNzg4IC0xMTUgLTgzMCAtMTMxIC04IC0zIC00OSAtMTIgLTkwIC0xOSAtMTA4IC0yMCAtNDAzIC05MQotNTA1IC0xMjIgLTE0MiAtNDMgLTE4MiAtNTUgLTIwMCAtNjMgLTExIC00IC00OSAtMTggLTg1IC0zMCAtNjEgLTIxIC0xMzUKLTUxIC0xNzAgLTY5IC0xMTcgLTYwIC0xNjAgLTg1IC0xNjAgLTkzIDAgLTQgLTYgLTggLTEzIC04IC0xOSAwIC0xMjkgLTEwOQotMTQ5IC0xNDggLTI4IC01MyAtMjQgLTE0MyA4IC0xOTUgMTA0IC0xNjYgMzk0IC0zMTMgODg5IC00NTIgMjMzIC02NSA1NTYKLTEzNiA4MDAgLTE3NSAzMyAtNSAxMTIgLTE5IDE3NCAtMzAgNjMgLTEyIDE0NyAtMjUgMTg1IC0zMCAzOSAtNSAxMzIgLTE5CjIwNiAtMzAgMjQyIC0zNyAyNjMgLTQwIDQzMCAtNjAgMjk0IC0zNiA0MTMgLTUwIDUyNSAtNjAgNjEgLTUgMTU1IC0xNCAyMTAKLTIwIDExMSAtMTEgNTE0IC00MyA3NjAgLTYwIDg4IC02IDI0NiAtMTcgMzUwIC0yNSAzMjYgLTI1IDg1MSAtNTAgMTI1MCAtNjAKMTIxIC0zIDI3OSAtOCAzNTAgLTEwIDQwMyAtMTQgMTM5NiAtMTcgMTk1NSAtNiA1OTQgMTEgMTM0NyAzNSAxNDU1IDQ2IDI4IDMKMTM4IDEwIDI0NSAxNSAyMDUgMTAgMzA5IDE4IDcxMCA1MCAxMzUgMTEgMzA0IDI1IDM3NSAzMCAxODggMTQgNjIzIDYwIDc2NQo4MSAzNiA1IDk5IDE0IDE0MCAxOSAzMzAgNDEgNzM2IDEwOSAxMDIwIDE3MCA1MiAxMiAxMjggMjcgMTY4IDM1IDM3MyA3MyA4MTYKMjM3IDk4NSAzNjYgMTExIDg1IDE1OCAxNjEgMTUwIDI0NiAtNyA4MSAtNTEgMTQyIC0xNTggMjE4IC01MyAzOCAtMjMzIDEzNQotMjUwIDEzNSAtNCAwIC0yMSA2IC0zOCAxNCAtNDkgMjIgLTI4MyAxMDEgLTM2NyAxMjUgLTM3MSAxMDQgLTkwMyAyMTMgLTEzNjAKMjgwIC0yODAgNDIgLTU2OSA4MCAtNjcwIDkwIC01OCA2IC0xNjMgMTcgLTIzNSAyNSAtNzEgOSAtMTg0IDIwIC0yNTAgMjYgLTY2CjYgLTE2NSAxNSAtMjIwIDIwIC00ODIgNDcgLTkyMSA3NSAtMTE4NiA3NSBsLTI0NiAwIC0zNiAtMzIgLTM2IC0zMSA4NyAtMTYKYzQ4IC05IDE1MiAtMjAgMjMyIC0yNiA4MCAtNiAxOTkgLTE1IDI2NSAtMjEgMTgwIC0xNCAzMzYgLTI2IDU4MCAtNDQgMjcwCi0yMCA1NzcgLTQ4IDgwMSAtNzUgMzM5IC0zOSA3NDAgLTkwIDc5NCAtMTAwIDgxIC0xNCAzMDQgLTQ5IDM5MCAtNjEgNDEgLTUKMTA5IC0xNiAxNTAgLTI0IDQxIC04IDEyMiAtMjQgMTgwIC0zNSA1OCAtMTEgMTM0IC0yNyAxNzAgLTM1IDM2IC04IDg4IC0yMAoxMTUgLTI1IDE2MyAtMzMgNTMzIC0xNDEgNjczIC0xOTYgMTE2IC00NiAyNjUgLTEyNCAzMjggLTE3MiAyMDcgLTE1NyAxNTQKLTI5OCAtMTcwIC00NTEgLTE1MiAtNzEgLTU2OSAtMTk1IC03OTMgLTIzNiAtNDMgLTggLTE2MyAtMzAgLTI2OCAtNDkgLTEwNAotMTkgLTIzNSAtNDIgLTI5MCAtNTEgLTU1IC04IC0xMjcgLTIwIC0xNjAgLTI1IC03MSAtMTIgLTQ4MyAtNjkgLTU0MCAtNzUKLTIyIC0yIC03OCAtOSAtMTI1IC0xNCAtMjc2IC0zMyAtNTkyIC02MyAtODUwIC04MSAtMTYyIC0xMSAtMzUzIC0yNSAtNDI1Ci0zMCAtNDc5IC0zNiAtMTIwMiAtNzAgLTE2OTIgLTc5IC01NTQgLTExIC0yMDY1IC03IC0yNDk4IDcgLTU4NiAxOCAtMTUyMCA2NgotMTc5MCA5MiAtOTQgOCAtMTUyIDEzIC00ODAgNDAgLTMzMiAyNyAtOTQyIDkyIC0xMTgwIDEyNSAtNjAgOSAtMTcxIDI0IC0yNDUKMzUgLTE5NCAyNyAtNDk5IDgxIC05MDUgMTYxIC03NyAxNSAtNDQ4IDEwNyAtNTAwIDEyNCAtMjIgNyAtODMgMjcgLTEzNSA0MwotMjc0IDg4IC00NTAgMTgxIC01MzUgMjgwIC0yNSAzMCAtMzAgNDUgLTMyIDk2IC0xIDU0IDIgNjUgMzAgOTkgMTcgMjIgNDkgNTIKNzEgNjggMjMgMTYgNDYgMzIgNTEgMzcgMTkgMTUgMTcxIDkwIDI0MCAxMTcgMTE2IDQ3IDQxNCAxMzQgNjAwIDE3NSA0NCAxMAoxMjIgMjcgMTc0IDM5IDUxIDEyIDExOSAyNiAxNTAgMzAgMzEgNSAxMDMgMTggMTYxIDI5IDEzNiAyNyA0MDAgNjkgNTE1IDgyCjUwIDYgMTM1IDE3IDE5MCAyNSAxMTQgMTcgMzAwIDM4IDUyNSA2MCA4NSA4IDE5NiAyMCAyNDUgMjUgMTAwIDExIDE2NyAxNgozMDAgMjUgNTAgNCAxMjQgMTAgMTY1IDE2IDQxIDUgMTgzIDE2IDMxNSAyNCAxMzIgOSAzMDUgMjAgMzg1IDI1IDgwIDUgMjM3CjE0IDM1MCAyMCAzMjggMTcgNDkxIDMwIDU0OSA0MyBsNTUgMTIgLTQ0IDM1IC00NCAzNSAtMjMwIDEgYy0xMjcgMiAtMjQwIDEKLTI1MSAtMXoiLz4KPHBhdGggZD0iTTEwNTM1IDk5NDAgYy03NiAtOCAtMjM0IC0yMCAtNTM1IC00MCAtNzQgLTUgLTE3MSAtMTQgLTIxNSAtMTkgLTQ0Ci02IC0xMzIgLTE1IC0xOTUgLTIxIC0zODIgLTM3IC05MTEgLTEyNyAtMTIzNSAtMjExIC0zODggLTEwMSAtNTg0IC0xODMgLTcxNQotMjk4IC0xOSAtMTcgLTM4IC0zMSAtNDIgLTMxIC01IDAgLTggLTcgLTggLTE1IDAgLTkgLTcgLTE4IC0xNSAtMjEgLTI0IC0xMAotMzUgLTgyIC0yMiAtMTU0IDE4IC0xMDggMjQ5IC0yNjAgNTU3IC0zNjYgOTggLTM0IDM1MCAtMTA3IDQzMCAtMTI0IDQ3IC0xMAoxMzkgLTMxIDIwNSAtNDUgNjYgLTE1IDE3MSAtMzUgMjM0IC00NSA2MiAtMTEgMTIxIC0yMiAxMzAgLTI1IDE2IC01IDE5NyAtMzIKNDA2IC02MSAyMzAgLTMxIDc5NSAtOTUgMTAwMCAtMTEzIDM4NSAtMzMgNDIxIC0zNSA5MzAgLTYxIDkzMSAtNDYgMTczNCAtNTEKMjgzNSAtMTUgNTM2IDE4IDEyMTkgNzEgMTY3MCAxMzAgNjMgOSAxODUgMjUgMjcwIDM2IDM5OSA1MiA2NzggMTA0IDkzNSAxNzIKMjE4IDU4IDI0OSA2NyAyNzAgNzYgMTEgNiA0OSAxOSA4NSAzMSA4MCAyNyAyMjIgOTcgMjkzIDE0NCA3NyA1MSAxMzUgMTE3CjE1MyAxNzUgMTUgNDYgMTUgNTIgLTIgOTcgLTI1IDY0IC0xMDIgMTM5IC0yMDMgMTk3IC00NiAyNiAtODYgNDcgLTkwIDQ3IC0zCjAgLTE5IDcgLTM0IDE1IC05MiA0OCAtMzgxIDE0MSAtNTkyIDE5MCAtNjAgMTQgLTE1MCAzNSAtMjAwIDQ2IC0xMTMgMjcgLTE2NQozNyAtNTYwIDEwMyAtMzc0IDYzIC02NjIgMTAxIC0xMDA2IDEzMiAtNTY5IDUwIC03NDAgNTQgLTc5OSAxNyAtMTggLTExIC0yOAotMjMgLTIyIC0yNyA2IC0zIDUyIC0xMyAxMDQgLTIwIDk2IC0xNSAxNjYgLTIyIDU0OCAtNTcgMzgwIC0zNCA5NzcgLTEwNwoxMjMwIC0xNDkgMjA4IC0zNSA1MDQgLTk2IDcwOCAtMTQ1IDQyNiAtMTA1IDc0NSAtMjUzIDgwNyAtMzc3IDE5IC0zOSAyMAotMTA1IDAgLTEyNCAtOCAtOCAtMjAgLTIzIC0yNyAtMzIgLTM5IC01MyAtMTc2IC0xMzIgLTMxOCAtMTgzIC00NyAtMTcgLTk0Ci0zNCAtMTA1IC0zOSAtNjEgLTI1IC0zNjYgLTEwMCAtNTcwIC0xNDAgLTMwMyAtNTkgLTQwMyAtNzYgLTUxMCAtODYgLTI3IC0zCi04NCAtOSAtMTI1IC0xNSAtODAgLTExIC0zMDEgLTM1IC02MjAgLTY4IC00MjMgLTQzIC0xMDU4IC04MSAtMTUzNSAtOTEgLTQ0MAotOSAtMTY2NyAtOCAtMTg4MCAyIC00NDcgMTkgLTk4NyA1MCAtMTIwNSA2OCAtNjkgNSAtMjEwIDE3IC0zMTUgMjUgLTM5NCAzMgotMTAwNiAxMDUgLTEyNTAgMTUwIC00NCA4IC0xMTQgMTkgLTE1NSAyNSAtNDEgNSAtMTA0IDE2IC0xNDAgMjQgLTM2IDggLTEwOAoyMiAtMTYwIDMyIC0xNDYgMjYgLTQ3NyAxMDggLTYxNiAxNTMgLTMwOSA5OSAtNDg2IDIwNCAtNTE0IDMwNSAtNyAyNSAtOSA1MwotNSA2MyA1IDEwIDggMjEgNyAyNSAtMSAzIDI1IDMxIDU4IDYxIDEzNyAxMjQgNDU3IDIzOSA5MTcgMzI3IDg3IDE3IDE5MCAzNwoyMjggNDYgNzEgMTUgMTgxIDMyIDM4MCA1OSA2MSA5IDE1NyAyMiAyMTUgMzAgMTI0IDE4IDQ0NyA1MiA2MTAgNjUgNjMgNSAxNTgKMTQgMjEwIDE5IDUyIDYgMTQyIDEzIDIwMCAxNiAxMzQgOCAzMzUgMzMgMzc4IDQ2IGwzNCAxMSAtMzcgMjUgYy0yMCAxNCAtNDkKMjcgLTYzIDI5IC02MCA5IC0zMjIgMTEgLTM5NyA0eiIvPgo8L2c+Cjwvc3ZnPgo=";
+  let logoImgCache = null;
+  function cargarLogoImg(){
+    if(logoImgCache) return Promise.resolve(logoImgCache);
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => { logoImgCache = img; resolve(img); };
+      img.onerror = () => resolve(null); // si falla, se sigue sin logo
+      img.src = LOGO_DATA_URI;
+    });
+  }
+
   const GENERADOR_URL = "https://lightswan.github.io/Generador-de-sesiones/";
   document.getElementById("goToGeneratorBtn").addEventListener("click", () => {
     window.open(GENERADOR_URL, "_blank");
@@ -1019,14 +1812,47 @@
     return "res-red";
   }
 
-  function intensidadEmoji(pct){
-    if(pct === null || pct === undefined) return "";
-    if(pct === 0) return "⬜";
-    if(pct <= 30) return "🟢";
-    if(pct <= 55) return "🟡";
-    if(pct <= 75) return "🟠";
-    if(pct <= 90) return "🔴";
-    return "💀";
+  // Color en gradiente continuo según el % de intensidad, en vez de un
+  // emoji con 5 escalones fijos: verde (esfuerzo suave) -> amarillo ->
+  // naranja -> rojo (esfuerzo máximo), interpolado punto a punto para que
+  // cualquier porcentaje tenga un color propio, no solo unos pocos saltos.
+  function intensidadColor(pct){
+    if(pct === null || pct === undefined) return null;
+    const p = Math.max(0, Math.min(100, pct)) / 100;
+    // Paradas del gradiente en formato [posición, [h,s,l]]. HSL permite
+    // interpolar el matiz (h) de forma continua entre verde y rojo.
+    const stops = [
+      [0.00, [152, 60, 45]], // verde  (suave)
+      [0.30, [142, 65, 42]],
+      [0.55, [45,  90, 52]], // amarillo
+      [0.75, [28,  92, 52]], // naranja
+      [0.90, [4,   82, 52]], // rojo
+      [1.00, [0,   70, 38]], // rojo oscuro (máximo esfuerzo)
+    ];
+    let a = stops[0], b = stops[stops.length-1];
+    for(let i = 0; i < stops.length-1; i++){
+      if(p >= stops[i][0] && p <= stops[i+1][0]){ a = stops[i]; b = stops[i+1]; break; }
+    }
+    const span = b[0] - a[0];
+    const t = span > 0 ? (p - a[0]) / span : 0;
+    const lerp = (x,y) => x + (y-x)*t;
+    const h = lerp(a[1][0], b[1][0]);
+    const s = lerp(a[1][1], b[1][1]);
+    const l = lerp(a[1][2], b[1][2]);
+    return `hsl(${h.toFixed(0)}, ${s.toFixed(0)}%, ${l.toFixed(0)}%)`;
+  }
+
+  // Franja de gradiente para el chip de intensidad: una ventana móvil de
+  // ±18 puntos alrededor del % actual sobre la rueda verde→amarillo→
+  // naranja→rojo. Así el chip "avanza" por la rueda según la intensidad
+  // — a 0% se ve verde puro, a 50% verde→amarillo, a 100% se ve
+  // naranja→rojo (nunca vuelve a mostrar verde en la franja).
+  function intensidadGradiente(pct){
+    if(pct === null || pct === undefined) return null;
+    const p = Math.max(0, Math.min(100, pct));
+    const desde = Math.max(0, p - 18);
+    const hasta = Math.min(100, p + 2);
+    return `linear-gradient(90deg, ${intensidadColor(desde)}, ${intensidadColor(hasta)})`;
   }
 
   async function requestWakeLock(){
@@ -1054,6 +1880,10 @@
   const ICON_EXPAND = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>';
   const ICON_COMPRESS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3"/><path d="M21 8h-3a2 2 0 0 1-2-2V3"/><path d="M3 16h3a2 2 0 0 1 2 2v3"/><path d="M16 21v-3a2 2 0 0 1 2-2h3"/></svg>';
   const ICON_LAP   = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 3a1 1 0 0 1 1 1v16a1 1 0 1 1-2 0V4a1 1 0 0 1 1-1z"/><path d="M6 4c2-1.5 4-1.5 6 0s4 1.5 6 0v9c-2 1.5-4 1.5-6 0s-4-1.5-6 0V4z"/></svg>';
+  // Icono de "repetir" (flechas circulares) usado por el botón "Serie"
+  // cuando el ejercicio tiene varias series, para distinguirlo visualmente
+  // del botón "Vuelta" (que conserva el icono de bandera de siempre).
+  const ICON_REPEAT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2.1l4 4-4 4"/><path d="M3 12.6v-1.5a4 4 0 0 1 4-4h13"/><path d="M7 21.9l-4-4 4-4"/><path d="M21 11.4v1.5a4 4 0 0 1-4 4H4"/></svg>';
   const ICON_PAUSE = '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>';
   const ICON_PLAY  = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15a1 1 0 0 0 1.53.85l12-7.5a1 1 0 0 0 0-1.7l-12-7.5A1 1 0 0 0 7 4.5z"/></svg>';
   const ICON_STOP  = '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="5" width="14" height="14" rx="3"/></svg>';
@@ -1100,7 +1930,157 @@
   });
 
   // Carga una sesión a partir de un string JSON. La usan tanto el botón
-  // manual de "Cargar" como la carga automática desde la Biblioteca.
+  // ====================================================================
+  // 🖼️ AJUSTES DE IMAGEN (qué campos incluir en el PNG exportado)
+  // Preferencias guardadas en localStorage: se mantienen entre visitas,
+  // no solo durante el entrenamiento actual.
+  // ====================================================================
+  const AJUSTES_IMAGEN_KEY = "lightswan_reproductor_ajustes_imagen";
+  const TEXTO_RESUMEN_DEFAULT = "RESUMEN DE SESIÓN";
+  const AJUSTES_IMAGEN_DEFAULT = {
+    textoResumen: true,
+    textoResumenTexto: TEXTO_RESUMEN_DEFAULT,
+    titulo: true,
+    fecha: true,
+    metros: true,
+    tiempo: true,
+    ritmo: true,
+    ejercicios: true,
+    logo: true,
+    textoLogo: false,
+  };
+  const AJUSTES_IMAGEN_CAMPOS = [
+    { key:"textoResumen", label:"Texto \"RESUMEN DE SESIÓN\"", editable:true },
+    { key:"titulo",     label:"Título del entrenamiento" },
+    { key:"fecha",      label:"Fecha" },
+    { key:"metros",     label:"Metros totales" },
+    { key:"tiempo",     label:"Tiempo total" },
+    { key:"ritmo",      label:"Ritmo /100m" },
+    { key:"ejercicios", label:"Lista de ejercicios", sub:"Solo en el PNG completo" },
+    { key:"logo",       label:"Logo" },
+    { key:"textoLogo",  label:"Texto \"Biblioteca de la natación\"" },
+  ];
+
+  function leerAjustesImagen(){
+    try{
+      const raw = localStorage.getItem(AJUSTES_IMAGEN_KEY);
+      if(!raw) return { ...AJUSTES_IMAGEN_DEFAULT };
+      return { ...AJUSTES_IMAGEN_DEFAULT, ...JSON.parse(raw) };
+    }catch(e){ return { ...AJUSTES_IMAGEN_DEFAULT }; }
+  }
+
+  function guardarAjustesImagen(ajustes){
+    try{ localStorage.setItem(AJUSTES_IMAGEN_KEY, JSON.stringify(ajustes)); }catch(e){ /* no disponible */ }
+  }
+
+  function renderAjustesImagenModal(){
+    const lista = document.getElementById("ajustesImagenLista");
+    const ajustes = leerAjustesImagen();
+    lista.innerHTML = AJUSTES_IMAGEN_CAMPOS.map(campo => `
+      <div data-campo-wrap="${campo.key}">
+        <label class="rp-descanso-toggle" data-campo="${campo.key}">
+          <span class="rp-descanso-toggle-text">
+            <span>${campo.label}</span>
+            ${campo.sub ? `<span class="rp-descanso-toggle-sub">${campo.sub}</span>` : ""}
+          </span>
+          <span class="rp-toggle-switch">
+            <input type="checkbox" ${ajustes[campo.key] ? "checked" : ""}>
+            <span class="rp-toggle-track"><span class="rp-toggle-thumb"></span></span>
+          </span>
+        </label>
+        ${campo.editable ? `
+          <input type="text" class="rp-input" data-texto-campo="${campo.key}Texto"
+            value="${(ajustes[campo.key+"Texto"] || "").replace(/"/g,"&quot;")}"
+            placeholder="${TEXTO_RESUMEN_DEFAULT}"
+            style="width:100%; margin:6px 0 10px; padding:10px 12px; font-size:13px; font-family:'Sora',sans-serif; border-radius:10px; ${ajustes[campo.key] ? "" : "display:none;"}">
+        ` : ""}
+      </div>
+    `).join("");
+    lista.querySelectorAll("label[data-campo]").forEach(row => {
+      const key = row.dataset.campo;
+      row.querySelector("input[type=checkbox]").addEventListener("change", (e) => {
+        const actuales = leerAjustesImagen();
+        actuales[key] = e.target.checked;
+        guardarAjustesImagen(actuales);
+        const campoTexto = lista.querySelector(`input[data-texto-campo="${key}Texto"]`);
+        if(campoTexto) campoTexto.style.display = e.target.checked ? "" : "none";
+      });
+    });
+    lista.querySelectorAll("input[data-texto-campo]").forEach(input => {
+      input.addEventListener("input", (e) => {
+        const actuales = leerAjustesImagen();
+        actuales[e.target.dataset.textoCampo] = e.target.value;
+        guardarAjustesImagen(actuales);
+      });
+    });
+  }
+
+  function cerrarAjustesImagenModal(){
+    document.getElementById("ajustesImagenBackdrop").classList.remove("show");
+    if(modalAbiertoId === "ajustesImagenBackdrop"){
+      registrarCierreModal();
+      history.back(); // consume la entrada de historial que abrió este modal
+    }
+  }
+  document.getElementById("ajustesImagenBtn").addEventListener("click", () => {
+    renderAjustesImagenModal();
+    document.getElementById("ajustesImagenBackdrop").classList.add("show");
+    registrarAperturaModal("ajustesImagenBackdrop");
+  });
+  document.getElementById("ajustesImagenClose").addEventListener("click", cerrarAjustesImagenModal);
+  document.getElementById("ajustesImagenBackdrop").addEventListener("click", (e) => {
+    if(e.target.id === "ajustesImagenBackdrop") cerrarAjustesImagenModal();
+  });
+
+
+  // Tras completar cada ejercicio se guarda automáticamente el progreso
+  // del entrenamiento (sesión, resultados, ejercicios completados) en
+  // localStorage, para poder retomarlo si el usuario cierra la pestaña a
+  // mitad de un entrenamiento largo. No se persiste un cronómetro en
+  // marcha: si había un ejercicio a medias al cerrar, se retoma desde su
+  // inicio, no desde el segundo exacto en que se dejó.
+  // ====================================================================
+  const PROGRESO_KEY = "lightswan_reproductor_progreso";
+
+  function guardarProgresoLocal(){
+    if(!session) return;
+    try{
+      const payload = {
+        session,
+        completedSet: [...completedSet],
+        exerciseResults,
+        descansosActivos,
+        descansoOverrides,
+        guardadoEn: new Date().toISOString(),
+      };
+      localStorage.setItem(PROGRESO_KEY, JSON.stringify(payload));
+    }catch(e){ /* localStorage no disponible o lleno: se ignora, el progreso solo vive en memoria */ }
+  }
+
+  function borrarProgresoLocal(){
+    try{ localStorage.removeItem(PROGRESO_KEY); }catch(e){ /* no disponible */ }
+  }
+
+  function leerProgresoGuardado(){
+    try{
+      const raw = localStorage.getItem(PROGRESO_KEY);
+      return raw ? JSON.parse(raw) : null;
+    }catch(e){ return null; }
+  }
+
+  function reanudarProgresoGuardado(progreso){
+    session = progreso.session;
+    modoFisico = session.tipo === "sesion-fisica";
+    document.body.classList.toggle("modo-fisico", modoFisico);
+    buildFlat();
+    completedSet = new Set(progreso.completedSet || []);
+    exerciseResults = progreso.exerciseResults || {};
+    descansosActivos = progreso.descansosActivos !== undefined ? progreso.descansosActivos : true;
+    descansoOverrides = progreso.descansoOverrides || {};
+    renderOverview();
+    resetNavStack("overview");
+  }
+
   function cargarSesionDesdeJSON(raw){
     const data = JSON.parse(raw);
     const TIPOS_VALIDOS = ["sesion-natacion", "sesion-fisica"];
@@ -1113,8 +2093,10 @@
     buildFlat();
     completedSet = new Set();
     exerciseResults = {};
+    descansoOverrides = {};
+    borrarProgresoLocal(); // una sesión nueva sustituye cualquier progreso pendiente anterior
     renderOverview();
-    showScreen("overview");
+    resetNavStack("overview");
   }
 
   document.getElementById("loadTrainingBtn").addEventListener("click", () => {
@@ -1140,16 +2122,37 @@
   // lightswan.github.io, compartido entre todas las apps) y esta página
   // la recoge y la carga sola nada más entrar. La clave se borra al
   // consumirla para no repetir la carga en visitas posteriores.
+  //
+  // Si en cambio no llega ninguna sesión nueva pero sí hay un progreso
+  // guardado de un entrenamiento sin terminar, se ofrece continuarlo en
+  // vez de forzar a pegar el JSON de nuevo.
   // ====================================================================
   (function autoCargarSesionPendiente(){
     try{
       const pendiente = localStorage.getItem("lightswan_sesion_pendiente");
       if(pendiente){
         localStorage.removeItem("lightswan_sesion_pendiente");
+        borrarProgresoLocal(); // una sesión nueva explícita sustituye cualquier progreso previo
         cargarSesionDesdeJSON(pendiente);
+        return;
       }
     }catch(e){ /* localStorage no disponible: se ignora, queda la pantalla de importación manual */ }
+
+    mostrarPanelProgresoSiHay();
   })();
+
+  document.getElementById("continuarProgresoBtn").addEventListener("click", () => {
+    continuarSesionActivaOProgreso();
+  });
+
+  document.getElementById("descartarProgresoBtn").addEventListener("click", () => {
+    // Aquí sí se destruye la sesión: es una acción explícita del usuario
+    // ("Descartar y empezar de nuevo"), a diferencia de solo pulsar
+    // "Cargar otro entrenamiento", que por sí solo no debe borrar nada.
+    session = null; flat = []; currentIdx = -1; completedSet = new Set(); exerciseResults = {};
+    borrarProgresoLocal();
+    document.getElementById("progresoGuardadoPanel").style.display = "none";
+  });
 
   document.getElementById("startTrainingBtn").addEventListener("click", () => {
     if(flat.length === 0) return;
@@ -1164,13 +2167,60 @@
   });
 
   document.getElementById("loadOtherBtn").addEventListener("click", () => {
-    session = null; flat = []; currentIdx = -1; completedSet = new Set(); exerciseResults = {};
+    // Importante: NO se borra aquí la sesión en curso ni su progreso
+    // guardado. Este botón solo lleva a la pantalla de pegar/cargar; el
+    // entrenamiento a medias sigue intacto en memoria y en localStorage
+    // hasta que se cargue de verdad uno nuevo (cargarSesionDesdeJSON se
+    // encarga entonces de sustituirlo). Así, si el usuario usa el gesto
+    // "atrás" antes de cargar nada, puede volver a su entrenamiento a
+    // medias sin haberlo perdido.
     importTextarea.value = "";
     importError.style.display = "none";
     exitFullscreen();
     releaseWakeLock();
-    showScreen("import");
+    resetNavStack("import");
+    mostrarPanelProgresoSiHay();
   });
+
+  // Muestra el panel "Entrenamiento en curso" con los datos de la sesión
+  // activa en memoria (si la hay), aunque todavía no se haya completado
+  // ningún ejercicio y por tanto no exista aún progreso en localStorage.
+  // Se usa al entrar a la pantalla de import desde "Cargar otro
+  // entrenamiento", para poder retomar el entrenamiento a medias con un
+  // toque en vez de depender solo del gesto atrás.
+  function mostrarPanelProgresoSiHay(){
+    if(session){
+      const totalEj = flat.length;
+      const hechos = completedSet.size;
+      document.getElementById("progresoGuardadoNombre").textContent = session.nombre || "Entrenamiento";
+      document.getElementById("progresoGuardadoSub").textContent = `${hechos} de ${totalEj} ejercicios completados`;
+      document.getElementById("progresoGuardadoPanel").style.display = "block";
+      return;
+    }
+    const progreso = leerProgresoGuardado();
+    if(progreso && progreso.session){
+      const totalEj = (progreso.session.bloques || []).reduce((s,b) => s + (b.ejercicios || []).length, 0);
+      const hechos = (progreso.completedSet || []).length;
+      document.getElementById("progresoGuardadoNombre").textContent = progreso.session.nombre || "Entrenamiento";
+      document.getElementById("progresoGuardadoSub").textContent = `${hechos} de ${totalEj} ejercicios completados`;
+      document.getElementById("progresoGuardadoPanel").style.display = "block";
+    } else {
+      document.getElementById("progresoGuardadoPanel").style.display = "none";
+    }
+  }
+
+  // Si la sesión activa en memoria todavía no tiene ningún ejercicio
+  // completado (y por tanto no se ha guardado nunca en localStorage), el
+  // botón "Continuar" debe poder retomarla igualmente desde el panel.
+  function continuarSesionActivaOProgreso(){
+    if(session){
+      renderOverview();
+      resetNavStack("overview");
+      return;
+    }
+    const progreso = leerProgresoGuardado();
+    if(progreso) reanudarProgresoGuardado(progreso);
+  }
 
   // ====================================================================
   // 📚 RESUMEN
@@ -1193,7 +2243,10 @@
     }
     const dist = (ex.distanciaTotal || (ex.series * ex.metros) || 0) + "m";
     const objetivo = ex.tiempoObjetivo ? ` · 🎯 ${formatTime(ex.tiempoObjetivo*1000,false)}/serie` : "";
-    return `${ex.series}×${ex.metros}m (${dist})${objetivo}`;
+    const intensidadChip = (ex.intensidad !== null && ex.intensidad !== undefined)
+      ? ` · <span class="intensidad-chip" style="background:${intensidadGradiente(ex.intensidad)};">${ex.intensidad}%</span>`
+      : "";
+    return `${ex.series}×${ex.metros}m (${dist})${objetivo}${intensidadChip}`;
   }
 
   function renderOverview(){
@@ -1234,7 +2287,7 @@
     });
 
     if(flat.length === 0){
-      listEl.innerHTML = `<div class="rp-empty"><div class="icon">${modoFisico ? "🏋️" : "🏊"}</div><p>Este entrenamiento no tiene ejercicios.</p></div>`;
+      listEl.innerHTML = `<div class="rp-empty"><div class="icon">${modoFisico ? "🏋️" : LOGO_SVG_EMPTY}</div><p>Este entrenamiento no tiene ejercicios.</p></div>`;
     }
 
     const startBtn = document.getElementById("startTrainingBtn");
@@ -1335,6 +2388,8 @@
     if(idx < 0 || idx >= flat.length) return;
     currentIdx = idx;
     resetTimerVars();
+    detenerCronometroFisico();
+    detenerDescansoFisico();
     enterFullscreen();
     requestWakeLock();
     renderExerciseScreen();
@@ -1422,7 +2477,9 @@
 
       document.getElementById("exDistancia").textContent = (ex.distanciaTotal || (ex.series*ex.metros) || 0) + "m";
       document.getElementById("exSeries").textContent = `${ex.series} × ${ex.metros}m`;
-      document.getElementById("exIntensidad").textContent = ex.intensidad !== null && ex.intensidad !== undefined ? `${intensidadEmoji(ex.intensidad)} ${ex.intensidad}%` : "—";
+      document.getElementById("exIntensidad").innerHTML = ex.intensidad !== null && ex.intensidad !== undefined
+        ? `<span class="intensidad-chip" style="background:${intensidadGradiente(ex.intensidad)};">${ex.intensidad}%</span>`
+        : "—";
       document.getElementById("exObjetivo").textContent = ex.tiempoObjetivo ? formatTime(ex.tiempoObjetivo*1000,false) : "Sin objetivo";
 
       startBtn.textContent = "▶ Empezar";
@@ -1430,12 +2487,79 @@
 
     document.getElementById("prevExBtn").disabled = currentIdx === 0;
     document.getElementById("nextExBtn").disabled = currentIdx === flat.length - 1;
+
+    // Interruptor de descansos entre series: solo aplica si hay más de 1 serie.
+    const toggleWrap = document.getElementById("exDescansoToggleWrap");
+    const toggleInput = document.getElementById("exDescansoToggle");
+    const toggleSub = document.getElementById("exDescansoToggleSub");
+    const editorWrap = document.getElementById("exDescansoEditor");
+    if(ex.series > 1){
+      toggleWrap.style.display = "flex";
+      toggleInput.checked = descansosActivos;
+      actualizarDescansoToggleSub();
+      editorWrap.style.display = descansosActivos ? "flex" : "none";
+      renderDescansoEditorValor();
+    } else {
+      toggleWrap.style.display = "none";
+      editorWrap.style.display = "none";
+    }
   }
+
+  // Segundos de descanso a aplicar para un ejercicio: prioriza el ajuste
+  // manual hecho por el usuario en esta sesión (descansoOverrides, por
+  // índice dentro de `flat`); si no hay override, usa lo que traiga el
+  // JSON (descansoSerie) y, si tampoco viene definido, 30s por defecto.
+  let descansoOverrides = {};
+  function descansoSegundosDe(ex, idx){
+    const i = idx !== undefined ? idx : currentIdx;
+    if(descansoOverrides[i] !== undefined) return descansoOverrides[i];
+    return (ex.descansoSerie !== undefined && ex.descansoSerie !== null) ? ex.descansoSerie : 30;
+  }
+
+  function actualizarDescansoToggleSub(){
+    const item = flat[currentIdx];
+    if(!item) return;
+    const segs = descansoSegundosDe(item.ex);
+    document.getElementById("exDescansoToggleSub").textContent = descansosActivos ? `${segs}s entre cada serie` : "Desactivado";
+  }
+
+  function renderDescansoEditorValor(){
+    const item = flat[currentIdx];
+    if(!item) return;
+    document.getElementById("exDescansoValor").textContent = `${descansoSegundosDe(item.ex)}s`;
+  }
+
+  document.getElementById("exDescansoToggle").addEventListener("change", (e) => {
+    descansosActivos = e.target.checked;
+    actualizarDescansoToggleSub();
+    document.getElementById("exDescansoEditor").style.display = descansosActivos ? "flex" : "none";
+    if(descansosActivos) renderDescansoEditorValor();
+  });
+
+  // Ajuste manual del descanso por defecto para el ejercicio activo (±5s,
+  // mínimo 0s — sin límite superior salvo el que tenga sentido en la UI).
+  document.getElementById("exDescansoPlusBtn").addEventListener("click", () => {
+    const actual = descansoSegundosDe(flat[currentIdx].ex);
+    descansoOverrides[currentIdx] = actual + 5;
+    renderDescansoEditorValor();
+    actualizarDescansoToggleSub();
+  });
+  document.getElementById("exDescansoMinusBtn").addEventListener("click", () => {
+    const actual = descansoSegundosDe(flat[currentIdx].ex);
+    descansoOverrides[currentIdx] = Math.max(0, actual - 5);
+    renderDescansoEditorValor();
+    actualizarDescansoToggleSub();
+  });
 
   document.getElementById("prevExBtn").addEventListener("click", () => openExercise(currentIdx - 1));
   document.getElementById("nextExBtn").addEventListener("click", () => openExercise(currentIdx + 1));
   document.getElementById("backToOverviewBtn").addEventListener("click", () => { detenerAnimacionGif(); detenerCronometroFisico(); renderOverview(); showScreen("overview"); });
   document.getElementById("startExerciseBtn").addEventListener("click", () => {
+    // Si se repite un ejercicio ya completado, deja de contar como hecho
+    // hasta que se vuelva a finalizar — así el overview no lo muestra con
+    // el check de completado mientras el usuario lo está rehaciendo.
+    completedSet.delete(currentIdx);
+    delete exerciseResults[currentIdx];
     if(modoFisico){ abrirPantallaFisicaActiva(); } else { startCountdown(); }
   });
 
@@ -1470,12 +2594,30 @@
     document.getElementById("fisicoInfo").textContent = `${ex.series} × ${cantidad}`;
 
     const timerWrap = document.getElementById("fisicoTimerWrap");
+    const serieRepWrap = document.getElementById("fisicoSerieRepWrap");
+    const serieHechaBtn = document.getElementById("fisicoSerieHechaBtn");
+    fisicoSerieRepActual = 1;
     if(ex.duracionSegundos != null){
+      // Por tiempo: cronómetro automático, con descanso entre series
+      // insertado dentro de ejecutarSerieCronometroFisico si aplica.
       timerWrap.style.display = "flex";
+      serieRepWrap.style.display = "none";
+      serieHechaBtn.style.display = "none";
       iniciarCronometroFisico(ex);
+    } else if(descansosActivos && ex.series > 1){
+      // Por repeticiones con descansos activos: no hay cronómetro
+      // automático, así que el usuario marca cada serie a mano con
+      // "Serie hecha", lo que dispara el descanso antes de la siguiente.
+      timerWrap.style.display = "none";
+      detenerCronometroFisico();
+      serieRepWrap.style.display = "block";
+      serieHechaBtn.style.display = "flex";
+      actualizarFisicoSerieRepLabel();
     } else {
       timerWrap.style.display = "none";
       detenerCronometroFisico();
+      serieRepWrap.style.display = "none";
+      serieHechaBtn.style.display = "none";
     }
 
     enterFullscreen();
@@ -1483,13 +2625,20 @@
     showScreen("fisico");
   }
 
+  function actualizarFisicoSerieRepLabel(){
+    const ex = flat[currentIdx].ex;
+    document.getElementById("fisicoSerieRepLabel").textContent = `Serie ${fisicoSerieRepActual} de ${ex.series}`;
+  }
+
   document.getElementById("cancelFisicoBtn").addEventListener("click", () => {
     detenerCronometroFisico();
+    detenerDescansoFisico();
     renderExerciseScreen();
     showScreen("exercise");
   });
   document.getElementById("fisicoFinalizarBtn").addEventListener("click", () => {
     detenerCronometroFisico();
+    detenerDescansoFisico();
     completarEjercicioFisico();
   });
 
@@ -1533,7 +2682,11 @@
         fisicoTimerHandle = null;
         if(fisicoSerieActual < ex.series){
           fisicoSerieActual++;
-          ejecutarSerieCronometroFisico(ex);
+          if(descansosActivos){
+            iniciarDescansoFisico(() => ejecutarSerieCronometroFisico(ex), `Antes de la serie ${fisicoSerieActual} de ${ex.series}`);
+          } else {
+            ejecutarSerieCronometroFisico(ex);
+          }
         } else {
           completarEjercicioFisico();
         }
@@ -1546,6 +2699,94 @@
   }
 
   // ====================================================================
+  // DESCANSO ENTRE SERIES (modo físico) — reutilizable tanto para
+  // ejercicios por tiempo (entre una serie automática y la siguiente)
+  // como para ejercicios por repeticiones (tras pulsar "Serie hecha").
+  // `alContinuar` es la función que se ejecuta al acabar (o saltar) el
+  // descanso, para retomar el flujo correspondiente en cada caso.
+  // ====================================================================
+  let fisicoRestHandle = null;
+  let fisicoRestState = "idle";
+  let fisicoRestRemainingMs = 0;
+  let fisicoRestAlContinuar = null;
+
+  function iniciarDescansoFisico(alContinuar, subtexto){
+    const ex = flat[currentIdx].ex;
+    const segs = descansoSegundosDe(ex);
+    fisicoRestAlContinuar = alContinuar;
+    if(segs <= 0){ alContinuar(); return; } // 0s configurado = sin pausa
+    fisicoRestState = "running";
+    fisicoRestRemainingMs = segs * 1000;
+    document.getElementById("fisicoRestOverlay").style.display = "flex";
+    document.getElementById("fisicoRestSub").textContent = subtexto || "";
+    renderFisicoRestNum();
+    clearInterval(fisicoRestHandle);
+    // Igual que en natación: resta solo el delta desde el último tick,
+    // para que +5s/-5s no se reviertan en la siguiente actualización.
+    let ultimoTick = Date.now();
+    fisicoRestHandle = setInterval(() => {
+      const ahora = Date.now();
+      fisicoRestRemainingMs -= (ahora - ultimoTick);
+      ultimoTick = ahora;
+      if(fisicoRestRemainingMs <= 0){
+        finalizarDescansoFisico();
+      } else {
+        renderFisicoRestNum();
+      }
+    }, 100);
+  }
+
+  function renderFisicoRestNum(){
+    document.getElementById("fisicoRestNum").textContent = formatTime(Math.max(0,fisicoRestRemainingMs), false);
+  }
+
+  function finalizarDescansoFisico(){
+    clearInterval(fisicoRestHandle);
+    fisicoRestHandle = null;
+    fisicoRestState = "idle";
+    document.getElementById("fisicoRestOverlay").style.display = "none";
+    const cont = fisicoRestAlContinuar;
+    fisicoRestAlContinuar = null;
+    if(cont) cont();
+  }
+
+  function detenerDescansoFisico(){
+    clearInterval(fisicoRestHandle);
+    fisicoRestHandle = null;
+    fisicoRestState = "idle";
+    fisicoRestAlContinuar = null;
+    document.getElementById("fisicoRestOverlay").style.display = "none";
+  }
+
+  document.getElementById("fisicoRestPlus5Btn").addEventListener("click", () => {
+    if(fisicoRestState !== "running") return;
+    fisicoRestRemainingMs += 5000;
+    renderFisicoRestNum();
+  });
+  document.getElementById("fisicoRestMinus5Btn").addEventListener("click", () => {
+    if(fisicoRestState !== "running") return;
+    fisicoRestRemainingMs = Math.max(1000, fisicoRestRemainingMs - 5000);
+    renderFisicoRestNum();
+  });
+  document.getElementById("fisicoRestSkipBtn").addEventListener("click", () => {
+    if(fisicoRestState !== "running") return;
+    finalizarDescansoFisico();
+  });
+
+  // Ejercicios por repeticiones con descansos activos: cada pulsación
+  // marca una serie hecha; si quedan series, dispara el descanso antes
+  // de habilitar la siguiente; si era la última, completa el ejercicio.
+  document.getElementById("fisicoSerieHechaBtn").addEventListener("click", () => {
+    const ex = flat[currentIdx].ex;
+    if(fisicoSerieRepActual >= ex.series){
+      completarEjercicioFisico();
+      return;
+    }
+    fisicoSerieRepActual++;
+    iniciarDescansoFisico(() => actualizarFisicoSerieRepLabel(), `Antes de la serie ${fisicoSerieRepActual} de ${ex.series}`);
+  });
+
+  // ====================================================================
   // 🏋️ COMPLETAR EJERCICIO (rutinas físicas — sin cronómetro ni descanso:
   // se marca hecho y se pasa directamente al siguiente, o al resumen si
   // era el último)
@@ -1555,6 +2796,7 @@
     detenerCronometroFisico();
     completedSet.add(idx);
     exerciseResults[idx] = { ex: flat[idx].ex, completed: true };
+    guardarProgresoLocal();
     if(idx < flat.length - 1){
       openExercise(idx + 1);
     } else {
@@ -1620,7 +2862,13 @@
     timerState = "idle";
     startTime = 0; pausedAccum = 0; pauseStartedAt = 0;
     laps = [];
+    vueltasSueltas = [];
     clearInterval(tickHandle);
+    clearInterval(restHandle);
+    restHandle = null;
+    restState = "idle";
+    restPauseStartedAt = 0;
+    document.getElementById("restOverlay").style.display = "none";
   }
 
   function startTimerRun(){
@@ -1628,6 +2876,7 @@
     startTime = Date.now();
     pausedAccum = 0;
     laps = [];
+    vueltasSueltas = [];
     renderTimerScreen();
     showScreen("timer");
     tickHandle = setInterval(updateTimerDisplay, 100);
@@ -1642,7 +2891,28 @@
     document.getElementById("targetRef").textContent = ex.tiempoObjetivo
       ? `🎯 Objetivo: ${formatTime(ex.tiempoObjetivo*1000,false)} / serie`
       : "";
-    document.getElementById("lapBtn").disabled = false;
+    const lapBtnEl = document.getElementById("lapBtn");
+    lapBtnEl.disabled = false;
+    // Con 1 sola serie el botón se llama "Vuelta" y funciona como
+    // siempre (sin disparar descanso), con el icono de bandera de
+    // siempre. Con más de 1 serie se llama "Serie", usa el icono de
+    // repetición y, si los descansos están activos, dispara la cuenta
+    // atrás al pulsarlo — ver el listener de lapBtn.
+    const esMultiSerie = ex.series > 1;
+    lapBtnEl.innerHTML = `<span class="icon">${esMultiSerie ? ICON_REPEAT : ICON_LAP}</span>${esMultiSerie ? "Serie" : "Vuelta"}`;
+    // Con varias series, además de "Serie" se muestra un botón "Vuelta"
+    // aparte (icono de bandera, junto a "Pausa"), que solo marca el split
+    // — igual que en un ejercicio de 1 sola serie — sin disparar nunca
+    // fin-de-serie ni descanso.
+    const lapOnlyBtnEl = document.getElementById("lapOnlyBtn");
+    lapOnlyBtnEl.style.display = esMultiSerie ? "" : "none";
+    lapOnlyBtnEl.disabled = false;
+    lapOnlyBtnEl.innerHTML = `<span class="icon">${ICON_LAP}</span>Vuelta`;
+    // Con "Vuelta" visible hay 4 botones repartiéndose el ancho en vez de
+    // 3: esta clase reduce el tamaño del cronómetro en horizontal lo
+    // justo para que no invada el hueco de "Vuelta"/"Pausa" en pantallas
+    // estrechas.
+    document.body.classList.toggle("rp-lap-extra", esMultiSerie);
     document.getElementById("pauseBtn").innerHTML = `<span class="icon">${ICON_PAUSE}</span>Pausa`;
     document.getElementById("timerDisplay").classList.remove("paused");
     updateLapCounter();
@@ -1652,7 +2922,7 @@
     flashEl.textContent = "";
     flashEl.classList.remove("show");
     document.getElementById("timerDetail").classList.remove("expanded");
-    document.getElementById("detailToggleBtn").textContent = "👁 Ver detalles";
+    document.getElementById("detailToggleBtn").textContent = "Ver detalles";
   }
 
   function updateLapCounter(){
@@ -1668,9 +2938,15 @@
   }
 
   function updateTimerDisplay(){
-    if(timerState !== "running") return;
+    if(timerState !== "running" || restState === "running") return;
     const elapsed = Date.now() - startTime - pausedAccum;
-    const lastLap = laps.length ? laps[laps.length-1].elapsedMs : 0;
+    // El cronómetro grande se reinicia con la marca más reciente, sea de
+    // una serie ("Serie") o de una vuelta suelta ("Vuelta") — ambas son
+    // formas de marcar un split, aunque solo "Serie" cuenta para el
+    // conteo de series del ejercicio.
+    const lastLapMs = laps.length ? laps[laps.length-1].elapsedMs : 0;
+    const lastSueltaMs = vueltasSueltas.length ? vueltasSueltas[vueltasSueltas.length-1].elapsedMs : 0;
+    const lastLap = Math.max(lastLapMs, lastSueltaMs);
     const splitElapsed = elapsed - lastLap;
     // Cronómetro grande = tiempo desde la última vuelta (el que "se inicia" cada
     // vez que se pulsa Vuelta). El original (tiempo total del ejercicio) sigue
@@ -1683,22 +2959,160 @@
     const detail = document.getElementById("timerDetail");
     const btn = document.getElementById("detailToggleBtn");
     const expanded = detail.classList.toggle("expanded");
-    btn.textContent = expanded ? "🙈 Ocultar detalles" : "👁 Ver detalles";
+    btn.textContent = expanded ? "Ocultar detalles" : "Ver detalles";
   });
 
   document.getElementById("lapBtn").addEventListener("click", () => {
-    if(timerState !== "running") return;
+    if(timerState !== "running" || restState === "running") return;
     const elapsed = Date.now() - startTime - pausedAccum;
     const prev = laps.length ? laps[laps.length-1].elapsedMs : 0;
     laps.push({ elapsedMs: elapsed, splitMs: elapsed - prev });
     updateLapCounter();
     renderLapsMini();
-    flashLap(laps.length, elapsed - prev);
+    const ex0 = flat[currentIdx].ex;
+    const splitMs = elapsed - prev;
+    flashLap(ex0.series > 1
+      ? `Serie ${laps.length} marcada — ${formatTime(splitMs, true)}`
+      : `Vuelta ${laps.length} marcada — ${formatTime(splitMs, true)}`);
+
+    const ex = flat[currentIdx].ex;
+    // Con 1 sola serie el botón ("Vuelta") funciona exactamente como
+    // antes: solo marca la vuelta, nunca dispara un descanso, tenga o no
+    // el interruptor activado.
+    if(ex.series <= 1) return;
+    if(!descansosActivos) return; // comportamiento de siempre: solo marcar
+
+    if(laps.length >= ex.series){
+      // Se han completado todas las series previstas: se ofrece seguir
+      // con una serie extra o finalizar, en vez de arrancar un descanso.
+      mostrarSeriesCompletas();
+    } else {
+      iniciarDescansoSerie();
+    }
   });
 
-  function flashLap(numero, splitMs){
+  // Botón "Vuelta" suelto (solo visible en ejercicios de varias series):
+  // marca un split exactamente igual que "Vuelta" en un ejercicio de 1
+  // sola serie, sin disparar nunca fin-de-serie ni descanso, sea cual sea
+  // el estado del interruptor de descansos. Usa su propio array
+  // (vueltasSueltas), totalmente independiente de `laps` (series): no
+  // cuenta para "Vuelta X de N" ni puede disparar "series completadas".
+  document.getElementById("lapOnlyBtn").addEventListener("click", () => {
+    if(timerState !== "running" || restState === "running") return;
+    const elapsed = Date.now() - startTime - pausedAccum;
+    const lastLapMs = laps.length ? laps[laps.length-1].elapsedMs : 0;
+    const lastSueltaMs = vueltasSueltas.length ? vueltasSueltas[vueltasSueltas.length-1].elapsedMs : 0;
+    const prev = Math.max(lastLapMs, lastSueltaMs);
+    vueltasSueltas.push({ elapsedMs: elapsed, splitMs: elapsed - prev });
+    renderLapsMini();
+    flashLap(`Vuelta suelta ${vueltasSueltas.length} marcada — ${formatTime(elapsed - prev, true)}`);
+  });
+
+  // ====================================================================
+  // DESCANSO ENTRE SERIES (natación)
+  // Se dispara al marcar una vuelta con el interruptor de descansos
+  // activo. El cronómetro de fondo se congela exactamente igual que con
+  // el botón Pausa (se acumula en pausedAccum), así el tiempo de
+  // descanso NUNCA se cuenta como parte de ninguna vuelta ni del
+  // resultado final: solo se mide el tiempo real nadado. Al llegar a 0
+  // se descongela el cronómetro y la siguiente vuelta empieza a contar
+  // desde cero de nuevo.
+  // ====================================================================
+  let restPauseStartedAt = 0;
+
+  function iniciarDescansoSerie(){
+    const ex = flat[currentIdx].ex;
+    restTotalSec = descansoSegundosDe(ex);
+    if(restTotalSec <= 0) return; // 0s de descanso configurado = sin pausa
+    restState = "running";
+    restRemainingMs = restTotalSec * 1000;
+    restPauseStartedAt = Date.now(); // congela el cronómetro real durante el descanso
+    document.getElementById("restOverlay").style.display = "flex";
+    actualizarRestSub();
+    renderRestNum();
+    clearInterval(restHandle);
+    // El intervalo resta solo el tiempo transcurrido DESDE EL ÚLTIMO TICK
+    // (no recalcula desde un total fijo), así los ajustes manuales de
+    // +5s/-5s sobre restRemainingMs se respetan en vez de revertirse en
+    // el siguiente tick.
+    let ultimoTick = Date.now();
+    restHandle = setInterval(() => {
+      const ahora = Date.now();
+      restRemainingMs -= (ahora - ultimoTick);
+      ultimoTick = ahora;
+      if(restRemainingMs <= 0){
+        finalizarDescansoSerie();
+      } else {
+        renderRestNum();
+      }
+    }, 100);
+  }
+
+  function renderRestNum(){
+    document.getElementById("restNum").textContent = formatTime(Math.max(0,restRemainingMs), false);
+  }
+
+  function actualizarRestSub(){
+    const ex = flat[currentIdx].ex;
+    document.getElementById("restSub").textContent = ex.series > 1
+      ? `Antes de la serie ${laps.length + 1} de ${ex.series}`
+      : "";
+  }
+
+  function finalizarDescansoSerie(){
+    clearInterval(restHandle);
+    restHandle = null;
+    restState = "idle";
+    document.getElementById("restOverlay").style.display = "none";
+    // Descongela el cronómetro: el tiempo pasado en el descanso se suma a
+    // pausedAccum, exactamente igual que con el botón Pausa, así queda
+    // excluido del cómputo de la siguiente vuelta.
+    pausedAccum += Date.now() - restPauseStartedAt;
+  }
+
+  document.getElementById("restPlus5Btn").addEventListener("click", () => {
+    if(restState !== "running") return;
+    restRemainingMs += 5000;
+    restTotalSec += 5;
+    renderRestNum();
+  });
+  document.getElementById("restMinus5Btn").addEventListener("click", () => {
+    if(restState !== "running") return;
+    restRemainingMs = Math.max(1000, restRemainingMs - 5000);
+    renderRestNum();
+  });
+  document.getElementById("restSkipBtn").addEventListener("click", () => {
+    if(restState !== "running") return;
+    finalizarDescansoSerie();
+  });
+
+  // ====================================================================
+  // SERIES COMPLETADAS (natación) — todas las series previstas del
+  // ejercicio ya se han marcado con descansos activos. El usuario puede
+  // añadir una serie extra (sigue el mismo ejercicio, con una vuelta más
+  // de margen) o finalizar y pasar a los resultados como de costumbre.
+  // ====================================================================
+  function mostrarSeriesCompletas(){
+    const ex = flat[currentIdx].ex;
+    document.getElementById("seriesCompletasSub").textContent =
+      `${ex.series} de ${ex.series} series completadas.`;
+    showScreen("series-completas");
+  }
+
+  document.getElementById("seguirSerieBtn").addEventListener("click", () => {
+    // Vuelve al cronómetro (ya en marcha de fondo) y arranca el descanso
+    // habitual antes de la serie extra.
+    showScreen("timer");
+    iniciarDescansoSerie();
+  });
+  document.getElementById("finalizarSeriesBtn").addEventListener("click", () => {
+    showScreen("timer");
+    stopExercise();
+  });
+
+  function flashLap(texto){
     const el = document.getElementById("lapFlash");
-    el.textContent = `🏁 Vuelta ${numero} marcada — ${formatTime(splitMs, true)}`;
+    el.textContent = `🏁 ${texto}`;
     el.classList.remove("show");
     void el.offsetWidth; // fuerza reflow para poder re-disparar la animación en marcas consecutivas
     el.classList.add("show");
@@ -1706,11 +3120,24 @@
 
   function renderLapsMini(){
     const el = document.getElementById("lapsMini");
-    el.innerHTML = laps.map((l,i) => `<div>Vuelta ${i+1}: ${formatTime(l.splitMs, true)}</div>`).join("");
+    const ex = flat[currentIdx].ex;
+    // Combina series y vueltas sueltas en orden cronológico para el
+    // listado de detalle. En ejercicios de 1 sola serie, `laps` son
+    // simplemente "Vuelta N" (comportamiento de siempre); en ejercicios
+    // de varias series, `laps` son "Serie N" y las vueltas sueltas se
+    // etiquetan aparte para distinguirlas.
+    const combinadas = ex.series > 1
+      ? [
+          ...laps.map((l,i) => ({...l, label: `Serie ${i+1}`})),
+          ...vueltasSueltas.map((l,i) => ({...l, label: `Vuelta suelta ${i+1}`}))
+        ].sort((a,b) => a.elapsedMs - b.elapsedMs)
+      : laps.map((l,i) => ({...l, label: `Vuelta ${i+1}`}));
+    el.innerHTML = combinadas.map(l => `<div>${l.label}: ${formatTime(l.splitMs, true)}</div>`).join("");
     el.scrollTop = el.scrollHeight;
   }
 
   document.getElementById("pauseBtn").addEventListener("click", () => {
+    if(restState === "running") return; // el overlay de descanso ya cubre los controles, pero por seguridad
     if(timerState === "running"){
       timerState = "paused";
       pauseStartedAt = Date.now();
@@ -1730,11 +3157,22 @@
 
   function stopExercise(){
     if(timerState !== "running" && timerState !== "paused") return;
-    const elapsed = Date.now() - startTime - (timerState === "paused" ? (pausedAccum + (Date.now()-pauseStartedAt)) : pausedAccum);
+    // Si el ejercicio se finaliza con el descanso en marcha, ese tramo
+    // también se excluye del tiempo total (igual que cualquier otro
+    // descanso ya completado).
+    const pausadoTotal = pausedAccum
+      + (timerState === "paused" ? (Date.now() - pauseStartedAt) : 0)
+      + (restState === "running" ? (Date.now() - restPauseStartedAt) : 0);
+    const elapsed = Date.now() - startTime - pausadoTotal;
     clearInterval(tickHandle);
+    clearInterval(restHandle);
+    restHandle = null;
+    restState = "idle";
+    document.getElementById("restOverlay").style.display = "none";
     timerState = "stopped";
     completedSet.add(currentIdx);
-    exerciseResults[currentIdx] = { elapsedMs: elapsed, laps: laps.slice(), ex: flat[currentIdx].ex };
+    exerciseResults[currentIdx] = { elapsedMs: elapsed, laps: laps.slice(), vueltasSueltas: vueltasSueltas.slice(), ex: flat[currentIdx].ex };
+    guardarProgresoLocal();
     renderResultScreen(elapsed);
     showScreen("result");
   }
@@ -1755,29 +3193,89 @@
 
     if(laps.length > 0){
       // Resultado por vueltas — se muestran todas las marcas registradas y el total,
-      // tenga el ejercicio una o varias series.
+      // tenga el ejercicio una o varias series. Si el usuario finalizó sin marcar
+      // la última vuelta, esa vuelta se da por completada igualmente — PERO solo
+      // cuando de verdad quedaba una serie pendiente por marcar. Si ya se habían
+      // marcado todas las series previstas (p.ej. el usuario pasó por la pantalla
+      // "Series completadas" y tardó unos segundos en decidir "Finalizar"), ese
+      // tiempo de espera NO cuenta como una serie extra — de lo contrario el
+      // conteo final quedaba inflado en +1 sin que el usuario hubiera nadado esa
+      // serie de más.
+      const lastLapMsPre = laps[laps.length-1].elapsedMs;
+      const yaCompletoTodasLasSeries = ex.series > 1 && laps.length >= ex.series;
+      const huboVueltaFinalImplicita = !yaCompletoTodasLasSeries && (totalElapsedMs - lastLapMsPre) > 1000;
+      const vueltasTotales = laps.length + (huboVueltaFinalImplicita ? 1 : 0);
       mainEl.textContent = formatTime(totalElapsedMs, true);
       mainEl.className = "rp-result-time res-neutral";
-      subEl.textContent = ex.series > 1
-        ? `Tiempo total · ${laps.length} de ${ex.series} vueltas registradas`
-        : `Tiempo total · ${laps.length} vuelta${laps.length > 1 ? "s" : ""} registrada${laps.length > 1 ? "s" : ""}`;
 
-      laps.forEach((l, i) => {
-        const cls = claseResultado(l.splitMs/1000, ex.tiempoObjetivo);
-        const row = document.createElement("div");
-        row.className = "rp-lap-row " + cls;
-        row.innerHTML = `<span class="lap-label">Vuelta ${i+1}</span><span class="lap-time">${formatTime(l.splitMs, true)}</span>`;
-        lapsListEl.appendChild(row);
-      });
+      if(ex.series > 1){
+        // Con varias series: cada "Serie N" se agrupa junto con las
+        // vueltas sueltas marcadas dentro de su rango de tiempo (entre el
+        // final de la serie anterior y el final de esta), indentadas
+        // debajo de ella — independientes del conteo de series.
+        subEl.textContent = `Tiempo total · ${vueltasTotales} de ${ex.series} series registradas`;
 
-      const lastLapMs = laps[laps.length-1].elapsedMs;
-      if(totalElapsedMs - lastLapMs > 1000){
-        const restante = totalElapsedMs - lastLapMs;
-        const cls = claseResultado(restante/1000, ex.tiempoObjetivo);
-        const row = document.createElement("div");
-        row.className = "rp-lap-row " + cls;
-        row.innerHTML = `<span class="lap-label">Sin marcar</span><span class="lap-time">${formatTime(restante, true)}</span>`;
-        lapsListEl.appendChild(row);
+        // Límites temporales de cada serie: [inicioDeLaSerie, finDeLaSerie]
+        const limites = laps.map((l, i) => ({
+          inicio: i === 0 ? 0 : laps[i-1].elapsedMs,
+          fin: l.elapsedMs,
+          splitMs: l.splitMs
+        }));
+        if(huboVueltaFinalImplicita){
+          limites.push({
+            inicio: lastLapMsPre,
+            fin: totalElapsedMs,
+            splitMs: totalElapsedMs - lastLapMsPre
+          });
+        }
+
+        limites.forEach((serieInfo, i) => {
+          const grupo = document.createElement("div");
+          grupo.className = "rp-serie-group";
+
+          const cls = claseResultado(serieInfo.splitMs/1000, ex.tiempoObjetivo);
+          const row = document.createElement("div");
+          row.className = "rp-lap-row rp-serie-row " + cls;
+          row.innerHTML = `<span class="lap-label">Serie ${i+1}</span><span class="lap-time">${formatTime(serieInfo.splitMs, true)}</span>`;
+          grupo.appendChild(row);
+
+          // Vueltas sueltas cuya marca cae dentro del rango de esta serie.
+          const sueltasDeEstaSerie = vueltasSueltas.filter(v => v.elapsedMs > serieInfo.inicio && v.elapsedMs <= serieInfo.fin);
+          if(sueltasDeEstaSerie.length > 0){
+            const listaSueltas = document.createElement("div");
+            listaSueltas.className = "rp-vueltas-sueltas-list";
+            sueltasDeEstaSerie.forEach((v, j) => {
+              const vRow = document.createElement("div");
+              vRow.className = "rp-lap-row rp-vuelta-suelta-row res-neutral";
+              vRow.innerHTML = `<span class="lap-label">Vuelta ${j+1}</span><span class="lap-time">${formatTime(v.splitMs, true)}</span>`;
+              listaSueltas.appendChild(vRow);
+            });
+            grupo.appendChild(listaSueltas);
+          }
+
+          lapsListEl.appendChild(grupo);
+        });
+      } else {
+        // Ejercicio de 1 sola serie: "laps" son directamente las vueltas
+        // de siempre, sin agrupación (comportamiento sin cambios).
+        subEl.textContent = `Tiempo total · ${vueltasTotales} vuelta${vueltasTotales > 1 ? "s" : ""} registrada${vueltasTotales > 1 ? "s" : ""}`;
+
+        laps.forEach((l, i) => {
+          const cls = claseResultado(l.splitMs/1000, ex.tiempoObjetivo);
+          const row = document.createElement("div");
+          row.className = "rp-lap-row " + cls;
+          row.innerHTML = `<span class="lap-label">Vuelta ${i+1}</span><span class="lap-time">${formatTime(l.splitMs, true)}</span>`;
+          lapsListEl.appendChild(row);
+        });
+
+        if(huboVueltaFinalImplicita){
+          const restante = totalElapsedMs - lastLapMsPre;
+          const cls = claseResultado(restante/1000, ex.tiempoObjetivo);
+          const row = document.createElement("div");
+          row.className = "rp-lap-row " + cls;
+          row.innerHTML = `<span class="lap-label">Vuelta ${laps.length+1}</span><span class="lap-time">${formatTime(restante, true)}</span>`;
+          lapsListEl.appendChild(row);
+        }
       }
 
       const totalRow = document.createElement("div");
@@ -1807,14 +3305,20 @@
       nextBtn.innerHTML = "⏭ Siguiente ejercicio";
       nextBtn.onclick = () => openExercise(currentIdx + 1);
     } else {
-      nextBtn.innerHTML = "🏁 Ver resumen del entrenamiento";
+      nextBtn.innerHTML = "Ver resumen del entrenamiento";
       nextBtn.onclick = () => { renderSummaryScreen(); showScreen("summary"); };
     }
   }
 
   document.getElementById("repeatExBtn").addEventListener("click", () => {
+    // Igual que al pulsar "Empezar/Repetir" desde el detalle: deja de
+    // contar como completado hasta que se vuelva a finalizar, así el
+    // overview no lo muestra con el check mientras se está rehaciendo.
+    completedSet.delete(currentIdx);
+    delete exerciseResults[currentIdx];
     resetTimerVars();
     document.getElementById("lapBtn").disabled = false;
+    renderExerciseScreen();
     showScreen("exercise");
   });
   document.getElementById("overviewFromResultBtn").addEventListener("click", () => { renderOverview(); showScreen("overview"); });
@@ -1859,7 +3363,7 @@
       document.getElementById("sumTiempo").textContent = formatTime(stats.totalTimeMs, false);
       document.getElementById("sumRitmoLabel").textContent = "Ritmo /100m";
       document.getElementById("sumRitmo").textContent = stats.totalMetros > 0 ? formatTime(stats.paceMs, false) + " /100m" : "—";
-      if(pngRow) pngRow.style.display = "";
+      if(pngRow) pngRow.style.display = "flex";
     }
 
     const listEl = document.getElementById("sumList");
@@ -1885,7 +3389,7 @@
       listEl.appendChild(row);
     });
     if(!any){
-      listEl.innerHTML = `<div class="rp-empty"><div class="icon">${modoFisico ? "🏋️" : "🏊"}</div><p>Todavía no has completado ningún ejercicio.</p></div>`;
+      listEl.innerHTML = `<div class="rp-empty"><div class="icon">${modoFisico ? "🏋️" : LOGO_SVG_EMPTY}</div><p>Todavía no has completado ningún ejercicio.</p></div>`;
     }
 
     const hasResults = Object.keys(exerciseResults).length > 0;
@@ -1915,6 +3419,22 @@
     ctx.closePath();
   }
 
+  // Dibuja texto con un contorno nítido y sin difuminado detrás (en vez de
+  // una sombra borrosa): así el texto claro sigue siendo legible incluso
+  // sobre un fondo blanco cuando no hay tarjeta oscura detrás (modo
+  // transparente), sin generar la neblina de píxeles semitransparentes
+  // que deja un shadowBlur.
+  function fillTextConContorno(ctx, texto, tx, ty, conContorno){
+    if(conContorno){
+      ctx.lineJoin = "round";
+      ctx.miterLimit = 2;
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = "rgba(2,6,15,.85)";
+      ctx.strokeText(texto, tx, ty);
+    }
+    ctx.fillText(texto, tx, ty);
+  }
+
   // Fecha y día en que se ha hecho el entrenamiento (momento de exportar el
   // resumen, justo tras completarlo), para el título de la imagen y del archivo.
   function fechaSesionBonita(){
@@ -1922,30 +3442,197 @@
     return s.charAt(0).toUpperCase() + s.slice(1);
   }
 
-  async function generarResumenPNG(full){
-    if(document.fonts && document.fonts.ready){ try{ await document.fonts.ready; }catch(e){} }
+  // PNG reducido: tarjeta vertical compacta con las métricas apiladas
+  // (Metros / Tiempo / Ritmo), cada una con su etiqueta pequeña arriba y
+  // el número grande debajo — mismo lenguaje visual que la tarjeta de
+  // resumen de Strava, pensada para compartir en Stories sin ocupar la
+  // pantalla entera. Cada bloque (título, fecha, cada métrica, logo,
+  // texto del logo) se incluye o se omite según los ajustes de imagen
+  // guardados por el usuario.
+  function generarResumenPNGReducido({ logoImg, fondoTransparente, stats, nombre, fechaBonita, ajustes }){
+    const CARD_W = 420, SCALE = 3, OUTER_PAD = 24, INNER_PAD = 34, RADIUS = 28;
+    const HEADER_H = 30, NAME_H = 34, DATE_H = 24, GAP_TOP = 18;
+    const STAT_LABEL_H = 20, STAT_VALUE_H = 52, STAT_GAP = 22;
+    const GAP_BOTTOM = 22, FOOTER_H = 44;
 
+    const statDefsAll = [
+      { key:"metros", label:"METROS",      value: stats.totalMetros + "m" },
+      { key:"tiempo", label:"TIEMPO",      value: formatTime(stats.totalTimeMs, false) },
+      { key:"ritmo",  label:"RITMO /100M", value: stats.totalMetros > 0 ? formatTime(stats.paceMs, false) : "—" },
+    ];
+    const statDefs = statDefsAll.filter(s => ajustes[s.key]);
+    const statsBlockH = statDefs.length ? statDefs.length * (STAT_LABEL_H + STAT_VALUE_H) + (statDefs.length - 1) * STAT_GAP : 0;
+
+    const mostrarFooter = ajustes.logo || ajustes.textoLogo;
+    const mostrarTextoResumen = ajustes.textoResumen !== false; // por defecto true, admite ocultarlo
+    const textoResumen = (ajustes.textoResumenTexto || TEXTO_RESUMEN_DEFAULT).toUpperCase();
+    const cardW = CARD_W;
+    let cardH = INNER_PAD*2;
+    if(mostrarTextoResumen) cardH += HEADER_H;
+    if(ajustes.titulo) cardH += NAME_H;
+    if(ajustes.fecha) cardH += DATE_H;
+    if(statDefs.length) cardH += GAP_TOP + statsBlockH;
+    if(mostrarFooter) cardH += GAP_BOTTOM + FOOTER_H;
+
+    const canvasW = cardW + OUTER_PAD*2;
+    const canvasH = cardH + OUTER_PAD*2;
+
+    const canvas = document.createElement("canvas");
+    canvas.width = canvasW * SCALE;
+    canvas.height = canvasH * SCALE;
+    const ctx = canvas.getContext("2d");
+    ctx.scale(SCALE, SCALE);
+    ctx.shadowColor = "transparent";
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetY = 0;
+
+    if(!fondoTransparente){
+      roundRect(ctx, OUTER_PAD, OUTER_PAD, cardW, cardH, RADIUS);
+      ctx.fillStyle = "rgba(6,10,16,0.68)";
+      ctx.fill();
+    }
+
+    const contentW = cardW - INNER_PAD*2;
+    const centerX = OUTER_PAD + cardW/2;
+    let y = OUTER_PAD + INNER_PAD;
+
+    ctx.textAlign = "center";
+    if(mostrarTextoResumen){
+      ctx.font = "800 12px 'Inter',system-ui,sans-serif";
+      ctx.fillStyle = "#7dd3fc";
+      fillTextConContorno(ctx, textoResumen, centerX, y + 12, fondoTransparente);
+      y += HEADER_H;
+    }
+
+    if(ajustes.titulo){
+      ctx.font = "800 22px 'Inter',system-ui,sans-serif";
+      ctx.fillStyle = "#ffffff";
+      fillTextConContorno(ctx, truncateText(ctx, nombre, contentW), centerX, y + 17, fondoTransparente);
+      y += NAME_H;
+    }
+
+    if(ajustes.fecha){
+      ctx.font = "600 13px 'Inter',system-ui,sans-serif";
+      ctx.fillStyle = "rgba(226,232,240,.68)";
+      fillTextConContorno(ctx, fechaBonita, centerX, y + 11, fondoTransparente);
+      y += DATE_H;
+    }
+
+    if(statDefs.length){
+      y += GAP_TOP;
+      // Métricas apiladas verticalmente, centradas — igual que Distance /
+      // Pace / Time en la tarjeta de Strava.
+      statDefs.forEach((s) => {
+        ctx.font = "800 12px 'Inter',system-ui,sans-serif";
+        ctx.fillStyle = "#7dd3fc";
+        fillTextConContorno(ctx, s.label, centerX, y + 12, fondoTransparente);
+        y += STAT_LABEL_H;
+
+        ctx.font = "800 44px 'Inter',system-ui,sans-serif";
+        ctx.fillStyle = "#ffffff";
+        fillTextConContorno(ctx, truncateText(ctx, s.value, contentW), centerX, y + 40, fondoTransparente);
+        y += STAT_VALUE_H + STAT_GAP;
+      });
+      y -= STAT_GAP;
+    }
+
+    if(mostrarFooter){
+      y += GAP_BOTTOM;
+      ctx.font = "600 12px 'Inter',system-ui,sans-serif";
+      ctx.fillStyle = "#38bdf8";
+      const footerTextY = y + 12;
+      if(ajustes.logo && ajustes.textoLogo && logoImg){
+        // Logo del tamaño aprox. de un dígito de las stats (STAT_VALUE 44px)
+        // pero algo contenido para no desbordar la línea junto al texto.
+        const logoSize = 26;
+        const footerText = "Biblioteca de la natación";
+        const footerTextW = ctx.measureText(footerText).width;
+        const totalW = logoSize + 6 + footerTextW;
+        const footerX = centerX - totalW/2;
+        ctx.drawImage(logoImg, footerX, footerTextY - logoSize + 3, logoSize, logoSize);
+        ctx.textAlign = "left";
+        fillTextConContorno(ctx, footerText, footerX + logoSize + 6, footerTextY, fondoTransparente);
+        ctx.textAlign = "center";
+      } else if(ajustes.logo && logoImg){
+        // Sin texto junto al logo: puede ir a tamaño completo, similar al
+        // de un dígito de las stats grandes (44px).
+        const logoSize = 44;
+        ctx.drawImage(logoImg, centerX - logoSize/2, footerTextY - logoSize + 5, logoSize, logoSize);
+      } else if(ajustes.textoLogo){
+        fillTextConContorno(ctx, "Biblioteca de la natación", centerX, footerTextY, fondoTransparente);
+      }
+    }
+
+    canvas.toBlob(blob => {
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      const sufijoFondo = fondoTransparente ? " transparente" : "";
+      a.download = `Resumen sesión ${fechaBonita} (reducido${sufijoFondo}).png`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    }, "image/png");
+  }
+
+  async function generarResumenPNG(full){
+    // Inter no se usa en ningún elemento visible del HTML (la UI usa
+    // Sora), así que el navegador no la descarga por sí solo con solo el
+    // <link> del <head>: hay que pedir explícitamente su carga (los pesos
+    // usados en el canvas) antes de dibujar, o el PNG saldría con la
+    // tipografía de reserva (fallback) en el primer intento.
+    if(document.fonts && document.fonts.load){
+      try{
+        await Promise.all([
+          document.fonts.load("800 30px 'Inter'"),
+          document.fonts.load("600 30px 'Inter'"),
+        ]);
+      }catch(e){ /* si falla, se sigue con la tipografía de reserva */ }
+    }
+    if(document.fonts && document.fonts.ready){ try{ await document.fonts.ready; }catch(e){} }
+    const logoImg = await cargarLogoImg();
+
+    const fondoTransparente = document.getElementById("pngTransparenteToggle").checked;
     const stats = computeSummaryStats();
     const nombre = session ? (session.nombre || "Entrenamiento") : "Entrenamiento";
     const fechaBonita = fechaSesionBonita();
     const colorMap = { "res-green":"#4ade80", "res-yellow":"#fbbf24", "res-red":"#f87171", "res-neutral":"#e2e8f0" };
+    const ajustes = leerAjustesImagen();
+
+    if(!full){
+      generarResumenPNGReducido({ logoImg, fondoTransparente, stats, nombre, fechaBonita, ajustes });
+      return;
+    }
 
     const ejercicios = [];
-    if(full){
+    if(ajustes.ejercicios){
       flat.forEach((item, idx) => {
         const r = exerciseResults[idx];
         if(!r) return;
         const objetivoTotal = item.ex.tiempoObjetivo ? item.ex.tiempoObjetivo * item.ex.series : null;
         const cls = claseResultado(r.elapsedMs / 1000, objetivoTotal);
-        ejercicios.push({ nombre: item.ex.nombre, tiempo: formatTime(r.elapsedMs, false), cls });
+        ejercicios.push({ nombre: item.ex.nombre, tiempo: formatTime(r.elapsedMs, false), cls, intensidad: item.ex.intensidad });
       });
     }
 
     const BASE_W = 720, SCALE = 3, OUTER_PAD = 30, INNER_PAD = 32, RADIUS = 32;
-    const HEADER_H = 34, NAME_H = 40, DATE_H = 28, STATS_H = 92, DIVIDER_H = 26, EJ_TITLE_H = 26, EJ_ROW_H = 32, FOOTER_H = 34;
+    const HEADER_H = 34, NAME_H = 40, DATE_H = 28, STATS_H = 92, DIVIDER_H = 26, EJ_TITLE_H = 26, EJ_ROW_H = 32, FOOTER_H = 40;
 
-    let cardH = INNER_PAD*2 + HEADER_H + NAME_H + DATE_H + STATS_H + FOOTER_H;
-    if(full && ejercicios.length){ cardH += DIVIDER_H + EJ_TITLE_H + ejercicios.length * EJ_ROW_H; }
+    const statDefsAll = [
+      { key:"metros", label:"METROS",       value: stats.totalMetros + "m" },
+      { key:"tiempo", label:"TIEMPO",       value: formatTime(stats.totalTimeMs, false) },
+      { key:"ritmo",  label:"RITMO /100M",  value: stats.totalMetros > 0 ? formatTime(stats.paceMs, false) : "—" },
+    ];
+    const statDefs = statDefsAll.filter(s => ajustes[s.key]);
+    const mostrarFooter = ajustes.logo || ajustes.textoLogo;
+    const mostrarTextoResumen = ajustes.textoResumen !== false;
+    const textoResumen = (ajustes.textoResumenTexto || TEXTO_RESUMEN_DEFAULT).toUpperCase();
+
+    let cardH = INNER_PAD*2;
+    if(mostrarTextoResumen) cardH += HEADER_H;
+    if(ajustes.titulo) cardH += NAME_H;
+    if(ajustes.fecha) cardH += DATE_H;
+    if(statDefs.length) cardH += STATS_H;
+    if(mostrarFooter) cardH += FOOTER_H;
+    if(ejercicios.length){ cardH += DIVIDER_H + EJ_TITLE_H + ejercicios.length * EJ_ROW_H; }
 
     const cardW = BASE_W - OUTER_PAD*2;
     const canvasW = BASE_W;
@@ -1960,85 +3647,142 @@
     // la tarjeta "glass" redondeada, así el PNG se puede compartir sobre
     // cualquier fondo (estilo tarjeta de Strava).
 
-    roundRect(ctx, OUTER_PAD, OUTER_PAD, cardW, cardH, RADIUS);
-    ctx.fillStyle = "rgba(6,10,16,0.68)";
-    ctx.fill();
-    ctx.lineWidth = 1.5;
-    ctx.strokeStyle = "rgba(255,255,255,0.09)";
-    ctx.stroke();
+    if(!fondoTransparente){
+      // Tarjeta oscura semi-transparente (como estaba originalmente): el
+      // halo que se veía en algunas apps de mensajería era un artefacto
+      // de esas apps al mostrar la pegatina, no del propio archivo.
+      ctx.shadowColor = "transparent";
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetY = 0;
+      roundRect(ctx, OUTER_PAD, OUTER_PAD, cardW, cardH, RADIUS);
+      ctx.fillStyle = "rgba(6,10,16,0.68)";
+      ctx.fill();
+    } else {
+      // Sin tarjeta de fondo: el propio canvas es 100% transparente (nunca
+      // se pinta ningún fillRect/roundRect de fondo aquí). Sin sombra
+      // difusa en el texto: un shadowBlur, por sutil que sea, deja una
+      // neblina de píxeles de alpha muy bajo alrededor de cada letra que
+      // se nota como un "ahumado" gris sobre fondos claros o coloridos.
+      ctx.shadowColor = "transparent";
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetY = 0;
+    }
 
     const x = OUTER_PAD + INNER_PAD;
     const contentW = cardW - INNER_PAD*2;
     let y = OUTER_PAD + INNER_PAD;
 
     ctx.textAlign = "left";
-    ctx.font = "800 13px 'Sora',system-ui,sans-serif";
-    ctx.fillStyle = "#6ee7b7";
-    ctx.fillText("🏁 RESUMEN DE SESIÓN", x, y + 13);
-    y += HEADER_H;
+    if(mostrarTextoResumen){
+      ctx.font = "800 13px 'Inter',system-ui,sans-serif";
+      ctx.fillStyle = "#7dd3fc";
+      fillTextConContorno(ctx, textoResumen, x, y + 13, fondoTransparente);
+      y += HEADER_H;
+    }
 
-    ctx.font = "800 27px 'Sora',system-ui,sans-serif";
-    ctx.fillStyle = "#ffffff";
-    ctx.fillText(truncateText(ctx, nombre, contentW), x, y + 21);
-    y += NAME_H;
-
-    ctx.font = "600 14px 'Sora',system-ui,sans-serif";
-    ctx.fillStyle = "rgba(226,232,240,.68)";
-    ctx.fillText(fechaBonita, x, y + 12);
-    y += DATE_H;
-
-    // Fila de 3 estadísticas grandes, estilo tarjeta de Strava:
-    // número enorme y en negrita, etiqueta pequeña en verde debajo.
-    const statColW = contentW / 3;
-    const statDefs = [
-      { label:"METROS",       value: stats.totalMetros + "m" },
-      { label:"TIEMPO",       value: formatTime(stats.totalTimeMs, false) },
-      { label:"RITMO /100M",  value: stats.totalMetros > 0 ? formatTime(stats.paceMs, false) : "—" },
-    ];
-    statDefs.forEach((s, i) => {
-      const cx = x + statColW * i;
-      ctx.font = "800 30px 'Sora',system-ui,sans-serif";
+    if(ajustes.titulo){
+      ctx.font = "800 27px 'Inter',system-ui,sans-serif";
       ctx.fillStyle = "#ffffff";
-      ctx.fillText(truncateText(ctx, s.value, statColW - 8), cx, y + 32);
-      ctx.font = "800 11px 'Sora',system-ui,sans-serif";
-      ctx.fillStyle = "#6ee7b7";
-      ctx.fillText(s.label, cx, y + 52);
-    });
-    y += STATS_H;
+      fillTextConContorno(ctx, truncateText(ctx, nombre, contentW), x, y + 21, fondoTransparente);
+      y += NAME_H;
+    }
 
-    if(full && ejercicios.length){
+    if(ajustes.fecha){
+      ctx.font = "600 14px 'Inter',system-ui,sans-serif";
+      ctx.fillStyle = "rgba(226,232,240,.68)";
+      fillTextConContorno(ctx, fechaBonita, x, y + 12, fondoTransparente);
+      y += DATE_H;
+    }
+
+    if(statDefs.length){
+      // Fila de estadísticas grandes, estilo tarjeta de Strava: número
+      // enorme y en negrita, etiqueta pequeña en verde debajo. Las
+      // columnas se reparten el ancho según cuántas métricas queden
+      // activas, para no dejar huecos vacíos si se oculta alguna.
+      const statColW = contentW / statDefs.length;
+      statDefs.forEach((s, i) => {
+        const cx = x + statColW * i;
+        ctx.font = "800 30px 'Inter',system-ui,sans-serif";
+        ctx.fillStyle = "#ffffff";
+        fillTextConContorno(ctx, truncateText(ctx, s.value, statColW - 8), cx, y + 32, fondoTransparente);
+        ctx.font = "800 11px 'Inter',system-ui,sans-serif";
+        ctx.fillStyle = "#7dd3fc";
+        fillTextConContorno(ctx, s.label, cx, y + 52, fondoTransparente);
+      });
+      y += STATS_H;
+    }
+
+    if(ejercicios.length){
       ctx.strokeStyle = "rgba(255,255,255,.12)";
       ctx.lineWidth = 1;
       ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + contentW, y); ctx.stroke();
       y += DIVIDER_H - 12;
 
-      ctx.font = "800 12px 'Sora',system-ui,sans-serif";
-      ctx.fillStyle = "#6ee7b7";
-      ctx.fillText("EJERCICIOS", x, y + 12);
+      ctx.font = "800 12px 'Inter',system-ui,sans-serif";
+      ctx.fillStyle = "#7dd3fc";
+      fillTextConContorno(ctx, "EJERCICIOS", x, y + 12, fondoTransparente);
       y += EJ_TITLE_H;
 
       ejercicios.forEach(e => {
-        ctx.font = "600 14px 'Sora',system-ui,sans-serif";
+        let chipW = 0;
+        if(e.intensidad !== null && e.intensidad !== undefined){
+          const texto = `${e.intensidad}%`;
+          ctx.font = "800 11px 'Inter',system-ui,sans-serif";
+          const textW = ctx.measureText(texto).width;
+          chipW = textW + 14;
+          const chipH = 17;
+          const chipY = y + 1;
+          const grad = ctx.createLinearGradient(x, 0, x + chipW, 0);
+          const pIntens = Math.max(0, Math.min(100, e.intensidad));
+          grad.addColorStop(0, intensidadColor(Math.max(0, pIntens - 18)));
+          grad.addColorStop(1, intensidadColor(Math.min(100, pIntens + 2)));
+          ctx.fillStyle = grad;
+          roundRect(ctx, x, chipY, chipW, chipH, chipH/2);
+          ctx.fill();
+          ctx.fillStyle = "#0b1120";
+          ctx.textAlign = "center";
+          ctx.fillText(texto, x + chipW/2, chipY + 12);
+          ctx.textAlign = "left";
+        }
+        ctx.font = "600 14px 'Inter',system-ui,sans-serif";
         ctx.fillStyle = "#e2e8f0";
-        const nameW = contentW - 90;
-        ctx.fillText(truncateText(ctx, e.nombre, nameW), x, y + 16);
+        const nameX = x + (chipW > 0 ? chipW + 10 : 0);
+        const nameW = contentW - 90 - (chipW > 0 ? chipW + 10 : 0);
+        fillTextConContorno(ctx, truncateText(ctx, e.nombre, nameW), nameX, y + 16, fondoTransparente);
         ctx.textAlign = "right";
-        ctx.font = "800 14px 'Sora',system-ui,sans-serif";
+        ctx.font = "800 14px 'Inter',system-ui,sans-serif";
         ctx.fillStyle = colorMap[e.cls] || "#e2e8f0";
-        ctx.fillText(e.tiempo, x + contentW, y + 16);
+        fillTextConContorno(ctx, e.tiempo, x + contentW, y + 16, fondoTransparente);
         ctx.textAlign = "left";
         y += EJ_ROW_H;
       });
     }
 
-    ctx.font = "600 11px 'Sora',system-ui,sans-serif";
-    ctx.fillStyle = "rgba(148,163,184,.7)";
-    ctx.fillText("🏊 Generado con el Reproductor de Sesiones", x, OUTER_PAD + cardH - INNER_PAD + 14);
+    if(mostrarFooter){
+      ctx.font = "600 11px 'Inter',system-ui,sans-serif";
+      ctx.fillStyle = "#38bdf8";
+      const footerY = OUTER_PAD + cardH - INNER_PAD + 14;
+      if(ajustes.logo && ajustes.textoLogo && logoImg){
+        // Logo aproximándose al tamaño de un dígito de las stats (30px),
+        // algo contenido para no desbordar junto al texto del footer.
+        const logoSize = 20;
+        ctx.drawImage(logoImg, x, footerY - logoSize + 4, logoSize, logoSize);
+        fillTextConContorno(ctx, "Biblioteca de la natación", x + logoSize + 6, footerY, fondoTransparente);
+      } else if(ajustes.logo && logoImg){
+        // Sin texto junto al logo: tamaño pleno, igual al de un dígito
+        // de las stats grandes (30px).
+        const logoSize = 30;
+        ctx.drawImage(logoImg, x, footerY - logoSize + 6, logoSize, logoSize);
+      } else if(ajustes.textoLogo){
+        fillTextConContorno(ctx, "Biblioteca de la natación", x, footerY, fondoTransparente);
+      }
+    }
 
     canvas.toBlob(blob => {
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
-      a.download = `Resumen sesión ${fechaBonita} (${full ? "completo" : "reducido"}).png`;
+      const sufijoFondo = fondoTransparente ? " transparente" : "";
+      a.download = `Resumen sesión ${fechaBonita} (${full ? "completo" : "reducido"}${sufijoFondo}).png`;
       a.click();
       URL.revokeObjectURL(a.href);
     }, "image/png");
@@ -2054,9 +3798,14 @@
     document.getElementById("descModalTitle").textContent = title;
     document.getElementById("descModalBody").textContent = body;
     document.getElementById("descModalBackdrop").classList.add("show");
+    registrarAperturaModal("descModalBackdrop");
   }
   function closeDescModal(){
     document.getElementById("descModalBackdrop").classList.remove("show");
+    if(modalAbiertoId === "descModalBackdrop"){
+      registrarCierreModal();
+      history.back(); // consume la entrada de historial que abrió este modal
+    }
   }
   document.getElementById("exDescBtn").addEventListener("click", () => {
     const item = flat[currentIdx];
