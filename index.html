@@ -341,7 +341,16 @@
        centra en su tercio, como en el diseño original. */
     .rp-split-media{ display:none; }
     body.modo-fisico .rp-split-media{ flex:none; display:flex; flex-direction:column; }
-    .rp-split-text{ flex:1; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch; display:flex; flex-direction:column; justify-content:center; }
+    /* overflow-y:auto es solo un seguro por si el contenido no cupiera
+       (nombres de ejercicio muy largos, etc.), no algo que deba
+       activarse en el uso normal. Con justify-content:center a secas,
+       cuando el contenido mide un pelín más que el hueco disponible el
+       navegador oscila entre "cabe" y "no cabe" en sucesivos redibujados
+       (p. ej. al cambiar el interruptor de descansos o recalcular
+       fuentes), y eso se percibe como si la pantalla se desplazara sola
+       arriba/abajo. "safe center" evita ese salto: si no cabe, ancla
+       arriba en vez de re-centrar, así el contenido deja de moverse. */
+    .rp-split-text{ flex:1; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch; display:flex; flex-direction:column; justify-content:safe center; }
     .rp-split-actions{
       display:flex; flex-direction:column; gap:10px;
       flex:0 0 34%; min-height:0;
@@ -708,6 +717,81 @@
     .rp-modal-header{ font-size:20px; font-weight:800; margin-bottom:14px; padding-right:38px; color:var(--text); }
     .rp-modal-body{ color:var(--muted); font-size:15.5px; line-height:1.7; white-space:pre-wrap; }
 
+
+    /* ============================================================
+       BIBLIOTECA (modal de carga) + EDICIÓN DE RESULTADOS
+    ============================================================ */
+    .rp-bib-tabs{ display:flex; gap:8px; margin-bottom:14px; }
+    .rp-bib-tab{
+      flex:1; padding:10px 12px; border-radius:12px; cursor:pointer; font-family:'Sora',sans-serif; font-size:13px; font-weight:700;
+      background:rgba(30,41,59,.6); border:1px solid var(--border); color:var(--muted); transition:.2s;
+    }
+    .rp-bib-tab.active{ background:rgba(56,189,248,.14); border-color:rgba(56,189,248,.5); color:#7dd3fc; }
+    .rp-bib-item{
+      display:flex; align-items:center; gap:12px; padding:14px 16px; margin-bottom:8px; cursor:pointer;
+      background:rgba(30,41,59,.5); border:1px solid var(--border); border-radius:14px; transition:.2s; color:var(--text);
+    }
+    .rp-bib-item:hover{ border-color:var(--primary); transform:translateY(-1px); }
+    .rp-bib-item:active{ transform:scale(.99); }
+    .rp-bib-item .info{ flex:1; min-width:0; }
+    .rp-bib-item .nombre{ font-weight:700; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .rp-bib-item .meta{ font-size:12px; color:var(--muted); margin-top:3px; }
+    .rp-bib-item .chevron{ color:var(--muted); font-size:20px; }
+    .rp-bib-vacio{ text-align:center; color:var(--muted); font-size:14px; line-height:1.6; padding:22px 8px; white-space:normal; }
+    #bibModalBody, #editModalBody{ white-space:normal; }
+
+    /* Filas del resumen: en modo edición son pulsables (abren el editor) */
+    .rp-sum-row .rp-lap-row{ gap:12px; }
+    .rp-sum-row .lap-label{ flex:1; min-width:0; line-height:1.35; }
+    .rp-sum-row .lap-time{ flex:none; }
+    .rp-sum-row .rp-sum-sub{ display:block; font-size:11.5px; color:var(--muted); margin-top:2px; font-weight:500; }
+    body.sum-editando .rp-sum-row .rp-lap-row{
+      cursor:pointer; border-style:dashed; border-color:rgba(56,189,248,.45);
+    }
+    body.sum-editando .rp-sum-row .rp-lap-row:hover{ border-color:var(--primary); transform:translateY(-1px); }
+    body.sum-editando .rp-sum-row .rp-lap-row:active{ transform:scale(.99); }
+    .rp-sum-edit-hint{
+      display:none; font-size:12px; color:#7dd3fc; text-align:center; margin:-4px 0 12px;
+    }
+    body.sum-editando .rp-sum-edit-hint{ display:block; }
+
+    .rp-edit-field{ margin-bottom:14px; }
+    .rp-edit-field > label{ display:block; font-size:12px; color:var(--muted); margin-bottom:6px; font-weight:600; }
+    .rp-edit-time{ display:flex; align-items:center; gap:6px; }
+    .rp-edit-time input, .rp-edit-serie input{
+      width:100%; min-width:0; background:var(--card2); border:1px solid var(--border); border-radius:10px;
+      padding:11px 10px; color:var(--text); font-family:'Sora',sans-serif; font-size:16px; text-align:center;
+      font-variant-numeric:tabular-nums;
+    }
+    .rp-edit-time input:focus, .rp-edit-serie input:focus{ outline:none; border-color:var(--primary); }
+    .rp-edit-time .sep{ color:var(--muted); font-weight:700; }
+    .rp-edit-time .unit{ color:var(--muted); font-size:11px; margin-right:4px; }
+    .rp-edit-serie{ display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+    .rp-edit-serie .lbl{ flex:none; width:64px; font-size:13px; color:var(--muted); }
+    .rp-edit-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px; }
+    .rp-edit-grid .rp-edit-field{ margin-bottom:0; }
+    .rp-edit-num, .rp-edit-text{
+      width:100%; min-width:0; background:var(--card2); border:1px solid var(--border); border-radius:10px;
+      padding:11px 12px; color:var(--text); font-family:'Sora',sans-serif; font-size:16px;
+    }
+    .rp-edit-num{ text-align:center; font-variant-numeric:tabular-nums; }
+    .rp-edit-num:focus, .rp-edit-text:focus{ outline:none; border-color:var(--primary); }
+    .rp-edit-aviso{ font-size:12px; color:#fbbf24; line-height:1.5; margin:-6px 0 14px; display:none; }
+    .rp-edit-nota{ font-size:12px; color:var(--muted); line-height:1.5; margin-bottom:16px; }
+    .rp-edit-total{
+      display:flex; justify-content:space-between; align-items:center; padding:12px 16px; margin:4px 0 16px; border-radius:13px;
+      background:linear-gradient(135deg, rgba(56,189,248,.14), rgba(14,165,233,.08)); border:1px solid rgba(56,189,248,.4);
+      font-size:14px;
+    }
+    .rp-edit-total .v{ font-weight:800; font-size:17px; font-variant-numeric:tabular-nums; }
+    .rp-edit-error{ color:#f87171; font-size:13px; margin-bottom:12px; display:none; }
+    .rp-edit-actions{ display:flex; gap:10px; }
+    .rp-edit-actions .action-btn{ flex:1; justify-content:center; }
+
+    .rp-ver-biblioteca-btn{
+      width:100%; max-width:none; justify-content:center; gap:8px; padding:17px 18px; font-size:15.5px; margin-bottom:16px;
+    }
+
     @media (max-width:480px){
       .rp-meta-grid{ grid-template-columns:1fr 1fr; }
       .header h1{ font-size:24px; }
@@ -763,7 +847,7 @@
          todo el tercio y se centra solo — igual que en vertical. */
       body.modo-fisico .rp-split-info{ flex-direction:row; gap:18px; }
       body.modo-fisico .rp-split-media{ flex:0 0 40%; min-width:0; min-height:0; display:flex; flex-direction:column; align-items:stretch; justify-content:center; position:relative; }
-      .rp-split-text{ flex:1; min-width:0; overflow-y:auto; display:flex; flex-direction:column; justify-content:center; }
+      .rp-split-text{ flex:1; min-width:0; overflow-y:auto; display:flex; flex-direction:column; justify-content:safe center; }
 
       .rp-gif-wrap{ flex:none; width:100%; height:min(100%,320px); max-height:none; margin-bottom:0; }
       /* En horizontal el aviso ya no se superpone a la imagen: el slot
@@ -826,9 +910,19 @@
          arriba a abajo, para ser fáciles de golpear con el dedo mojado—
          y el tiempo centrado ocupando todo el espacio que queda en medio.
          Este reposicionamiento en barras laterales SOLO aplica aquí
-         (pantalla realmente más ancha que alta), no en vertical. ---- */
+         (pantalla realmente más ancha que alta), no en vertical.
+
+         Se usa GRID de 3 columnas (izquierda / centro / derecha) en vez
+         de flex + space-between: con flex, el bloque central se centra
+         en el espacio *sobrante*, que deja de ser simétrico en cuanto un
+         lado pesa más que el otro (p. ej. "Pausa" con margin-left pero
+         sin margin-right al lado de "Vuelta suelta" oculta) y el reloj
+         se ve desplazado. Con grid, las columnas laterales tienen SIEMPRE
+         el mismo ancho fijo (se declare o no lapOnlyBtn visible), así
+         que la columna central queda perfectamente centrada en pantalla
+         siempre, sea cual sea el ejercicio o su estado. ---- */
       #screenTimer .rp-fullblack{
-        flex-direction:row; align-items:center; justify-content:space-between; gap:18px;
+        display:grid; grid-template-columns:min(20vw,150px) 1fr min(20vw,150px); grid-template-rows:1fr auto; align-items:center; gap:18px;
         padding-top:env(safe-area-inset-top); padding-bottom:env(safe-area-inset-bottom);
       }
       .rp-timer-top{ position:absolute; top:calc(8px + env(safe-area-inset-top)); left:0; right:0; padding:0 calc(min(20vw,150px) + 14px); }
@@ -837,40 +931,38 @@
 
       /* .rp-timer-controls pasa a ser "invisible" para el layout: sus
          cuatro botones (Serie, Vuelta, Pausa, Finalizar) se convierten en
-         hijos directos de la fila junto con el bloque central del tiempo,
-         y así podemos colocar cada uno donde queremos con `order`.
-         "Vuelta" se sitúa simétrica a "Pausa" a ambos lados del bloque
-         central, para que el cronómetro se mantenga centrado en medio. */
+         hijos directos del grid, cada uno anclado a su columna con
+         grid-column. Cada columna lateral tiene SIEMPRE el mismo ancho
+         fijo min(20vw,150px), se muestre o no el botón secundario
+         (Vuelta suelta/Pausa) — así la columna central del reloj se
+         mantiene perfectamente centrada en cualquier caso.
+
+         Vuelta y Finalizar vuelven a ocupar todo el alto de la pantalla
+         (align-self:stretch), ancladas cada una a su columna lateral.
+         "Vuelta suelta" y "Pausa" NO van dentro de su columna (ahí
+         quedarían pegadas a Vuelta/Finalizar): se anclan con
+         position:fixed y se desplazan hacia el CENTRO de la pantalla
+         (fuera de la franja de Vuelta/Finalizar), para que nunca se
+         solapen ni queden tapados por el botón grande de al lado. */
       .rp-timer-controls{ display:contents; }
-      #lapBtn{ order:1; }
-      #lapOnlyBtn{ order:2; }
-      .rp-timer-info{ order:3; flex:1; min-width:0; }
-      #pauseBtn{ order:4; }
-      #stopBtn{ order:5; }
+      #lapBtn{ grid-column:1; grid-row:1 / 3; }
+      .rp-timer-info{ grid-column:2; grid-row:1 / 3; min-width:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+      #stopBtn{ grid-column:3; grid-row:1 / 3; }
 
-      #lapBtn, #stopBtn{ align-self:stretch; width:min(20vw,150px); height:auto; border-radius:28px; flex-shrink:0; }
+      #lapBtn, #stopBtn{ align-self:stretch; width:100%; height:100%; border-radius:28px; }
       #lapBtn .icon, #stopBtn .icon{ font-size:34px; }
-      #lapBtn{ margin-left:calc(4px + env(safe-area-inset-left)); }
-      #stopBtn{ margin-right:calc(4px + env(safe-area-inset-right)); }
-      /* "Vuelta" y "Pausa" se anclan a la parte inferior de la pantalla
-         (en vez de centradas a la altura del cronómetro) y con un tamaño
-         mayor, como un segundo par de controles bajo el bloque central. */
-      #pauseBtn{
-        align-self:flex-end; width:min(11vw,110px); height:min(11vw,110px);
-        flex-shrink:0; font-size:14px; margin-left:22px;
-        margin-bottom:calc(30px + env(safe-area-inset-bottom));
-      }
-      #pauseBtn .icon{ font-size:30px; }
 
-      /* Botón "Vuelta" suelto (varias series): mismo tamaño y altura que
-         "Pausa", anclado igual a la parte inferior de la pantalla,
-         simétrico a "Pausa" al otro lado del bloque central. */
-      .rp-lap-only-btn{
-        align-self:flex-end; width:min(11vw,110px); height:min(11vw,110px);
-        flex-shrink:0; font-size:14px; margin:0 22px 0 0;
-        margin-bottom:calc(30px + env(safe-area-inset-bottom));
+      .rp-lap-only-btn, #pauseBtn{
+        position:fixed; bottom:calc(30px + env(safe-area-inset-bottom));
+        width:min(11vw,110px); height:min(11vw,110px); font-size:14px;
       }
-      .rp-lap-only-btn .icon{ font-size:30px; }
+      /* Desplazados hacia el centro: ya no centrados dentro de la franja
+         lateral (min(20vw,150px)), sino pegados al borde interior de esa
+         franja, invadiendo un poco el hueco central para separarse de
+         Vuelta/Finalizar. */
+      .rp-lap-only-btn{ left:calc(env(safe-area-inset-left) + min(20vw,150px) + 18px); }
+      #pauseBtn{ right:calc(env(safe-area-inset-right) + min(20vw,150px) + 18px); }
+      .rp-lap-only-btn .icon, #pauseBtn .icon{ font-size:30px; }
 
       #timerDisplay{ font-size:min(11vw,130px); white-space:nowrap; }
       /* Con "Vuelta" visible (varias series) hay un botón más compitiendo
@@ -966,12 +1058,13 @@
     </div>
 
     <div class="panel">
-      <p style="color:var(--muted); font-size:14px; margin-bottom:14px;">Pega aquí tu entrenamiento JSON del generador.</p>
+      <button class="action-btn btn-violet rp-ver-biblioteca-btn" id="abrirBibliotecaBtn" type="button">📚 Cargar entrenamiento</button>
+      <p style="color:var(--muted); font-size:14px; margin-bottom:14px;">O pega aquí tu entrenamiento JSON del generador.</p>
       <textarea class="rp-input" id="importTextarea" placeholder='{"tipo":"sesion-natacion", ...}'></textarea>
       <p id="importError"></p>
       <div style="display:flex; flex-direction:column; gap:10px; margin-top:16px;">
         <button class="action-btn" id="pasteClipboardBtn" style="justify-content:center;">📋 Pegar del portapapeles</button>
-        <button class="action-btn btn-success" id="loadTrainingBtn" style="justify-content:center; padding:19px 22px; font-size:17px; border-radius:18px;">✓ Cargar entrenamiento</button>
+        <button class="action-btn btn-success" id="loadTrainingBtn" style="justify-content:center; padding:19px 22px; font-size:17px; border-radius:18px;">✓ Empezar entrenamiento</button>
       </div>
 
       <div style="display:flex; flex-direction:column; align-items:center; gap:8px; margin-top:24px; padding-top:20px; border-top:1px solid rgba(148,163,184,.15);">
@@ -1004,6 +1097,7 @@
     </div>
     <div style="display:flex; justify-content:center; gap:10px; margin-top:16px; flex-wrap:wrap;">
       <button class="action-btn btn-violet" id="viewSummaryBtn" style="font-size:15px; padding:14px 20px;">Ver resumen general</button>
+      <button class="action-btn btn-magenta" id="saveTrainingBtn" style="font-size:15px; padding:14px 20px;">💾 Guardar</button>
       <button class="action-btn btn-violet" id="loadOtherBtn" style="font-size:15px; padding:14px 20px;">Cargar otro entrenamiento</button>
     </div>
   </div>
@@ -1143,13 +1237,13 @@
       <div class="rp-block-label">Resumen del entrenamiento</div>
       <div class="rp-ex-name" style="margin-bottom:18px;" id="sumNombre"></div>
 
-      <div class="rp-meta-grid" style="grid-template-columns:repeat(3,1fr); margin-bottom:24px;">
+      <div class="rp-meta-grid" style="grid-template-columns:repeat(3,1fr); margin-bottom:14px;">
         <div class="rp-meta-item">
           <div class="label" id="sumMetrosLabel">Metros totales</div>
           <div class="value" id="sumMetros">0m</div>
         </div>
         <div class="rp-meta-item">
-          <div class="label" id="sumTiempoLabel">Tiempo total</div>
+          <div class="label" id="sumTiempoLabel">Tiempo nadado</div>
           <div class="value" id="sumTiempo">00:00</div>
         </div>
         <div class="rp-meta-item">
@@ -1158,6 +1252,19 @@
         </div>
       </div>
 
+      <!-- Tiempo de SESIÓN: cronómetro aparte que corre desde que se abre
+           el primer ejercicio hasta que se entra aquí (incluye descansos y
+           pausas entre ejercicios, a diferencia de "Tiempo total" que solo
+           suma el tiempo nadado). Editable a mano con el lápiz. -->
+      <div class="rp-meta-item" id="sumSesionWrap" style="margin-bottom:24px; display:flex; align-items:center; justify-content:space-between; gap:10px; background:rgba(255,255,255,.04); border-radius:12px; padding:12px 16px;">
+        <div>
+          <div class="label">Tiempo de sesión</div>
+          <div class="value" id="sumTiempoSesion" style="font-size:20px;">00:00</div>
+        </div>
+        <button type="button" id="editarTiempoSesionBtn" style="background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.18); color:inherit; width:38px; height:38px; border-radius:10px; font-size:16px; cursor:pointer; flex-shrink:0;">✏️</button>
+      </div>
+
+      <div class="rp-sum-edit-hint" id="sumEditHint">Toca un ejercicio para editarlo</div>
       <div id="sumList"></div>
 
       <!-- Fondo transparente para el PNG exportado: pensado para pegar el
@@ -1194,7 +1301,64 @@
           <span style="font-size:12px; font-weight:500; opacity:.85;">reducido</span>
         </button>
       </div>
+      <!-- Modo edición: al activarlo, cada ejercicio del resumen se puede
+           pulsar para editar nombre, series, metros y tiempos. Apagado por
+           defecto para no abrir el editor sin querer. -->
+      <label class="rp-descanso-toggle" style="margin-top:18px; margin-bottom:0;">
+        <span class="rp-descanso-toggle-text">
+          <span>Modo edición</span>
+          <span class="rp-descanso-toggle-sub">Toca un ejercicio para editarlo</span>
+        </span>
+        <span class="rp-toggle-switch">
+          <input type="checkbox" id="modoEdicionToggle">
+          <span class="rp-toggle-track"><span class="rp-toggle-thumb"></span></span>
+        </span>
+      </label>
+
       <button class="action-btn btn-violet btn-block" id="summaryBackBtn" style="margin-top:14px; font-size:15px; padding:14px 18px;">☰ Ver ejercicios</button>
+    </div>
+  </div>
+
+
+  <!-- ============================================================
+    MODAL: CARGAR ENTRENAMIENTO DE LA BIBLIOTECA
+    Se abre solo al entrar en la app (si no hay otra sesión que cargar)
+    y también desde el botón de la pantalla principal.
+  ============================================================ -->
+  <div class="rp-modal-backdrop" id="bibModalBackdrop">
+    <div class="rp-modal" role="dialog" aria-modal="true" aria-labelledby="bibModalTitle">
+      <button class="rp-modal-close" id="bibModalClose" type="button" aria-label="Cerrar">✕</button>
+      <div class="rp-modal-header" id="bibModalTitle">Biblioteca de entrenamientos</div>
+      <div class="rp-modal-body" id="bibModalBody"></div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+    MODAL: EDITAR EL TIEMPO DE SESIÓN (cronómetro aparte, desde el resumen)
+  ============================================================ -->
+  <div class="rp-modal-backdrop" id="sesionTiempoModalBackdrop">
+    <div class="rp-modal" role="dialog" aria-modal="true" aria-labelledby="sesionTiempoModalTitle">
+      <button class="rp-modal-close" id="sesionTiempoModalClose" type="button" aria-label="Cerrar">✕</button>
+      <div class="rp-modal-header" id="sesionTiempoModalTitle">Tiempo de sesión</div>
+      <div class="rp-modal-body">
+        <p style="opacity:.75; font-size:13.5px; margin:0 0 16px;">Tiempo total desde el primer ejercicio hasta el resumen (incluye descansos). Puedes ajustarlo a mano si hace falta.</p>
+        <div id="sesionTiempoCampo"></div>
+        <div style="display:flex; gap:10px; margin-top:20px;">
+          <button class="action-btn btn-violet" id="sesionTiempoRecalcularBtn" type="button" style="flex:1; justify-content:center; padding:13px 14px; font-size:14px;">↺ Recalcular</button>
+          <button class="action-btn btn-success" id="sesionTiempoGuardarBtn" type="button" style="flex:1; justify-content:center; padding:13px 14px;">Guardar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+    MODAL: EDITAR UN ENTRENAMIENTO REALIZADO (desde el resumen final)
+  ============================================================ -->
+  <div class="rp-modal-backdrop" id="editModalBackdrop">
+    <div class="rp-modal" role="dialog" aria-modal="true" aria-labelledby="editModalTitle">
+      <button class="rp-modal-close" id="editModalClose" type="button" aria-label="Cerrar">✕</button>
+      <div class="rp-modal-header" id="editModalTitle">Editar ejercicio</div>
+      <div class="rp-modal-body" id="editModalBody"></div>
     </div>
   </div>
 
@@ -1211,6 +1375,24 @@
       <div class="rp-modal-body" style="white-space:normal;">
         <p style="margin:0 0 16px; font-size:13.5px; color:var(--muted);">Elige qué mostrar en las imágenes descargadas. Se aplica tanto al PNG completo como al reducido.</p>
         <div id="ajustesImagenLista" style="display:flex; flex-direction:column; gap:4px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pop-up del botón "Guardar": en vez de descargar el archivo
+       directamente, deja elegir entre copiar el JSON al portapapeles o
+       guardarlo como archivo .json (comportamiento anterior). -->
+  <div class="rp-modal-backdrop" id="guardarModalBackdrop">
+    <div class="rp-modal" role="dialog" aria-modal="true" aria-labelledby="guardarModalTitle">
+      <button class="rp-modal-close" id="guardarModalClose" type="button" aria-label="Cerrar">✕</button>
+      <div class="rp-modal-header" id="guardarModalTitle">Guardar entrenamiento</div>
+      <div class="rp-modal-body" style="white-space:normal;">
+        <p style="margin:0 0 16px; font-size:13.5px; color:var(--muted);">Elige cómo quieres guardar el progreso de este entrenamiento.</p>
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <button class="action-btn btn-violet" id="guardarCopiarBtn" type="button" style="justify-content:center;">📋 Copiar JSON</button>
+          <button class="action-btn btn-success" id="guardarArchivoBtn" type="button" style="justify-content:center;">💾 Guardar como archivo</button>
+        </div>
+        <p id="guardarCopiadoMsg" style="display:none; margin:12px 0 0; font-size:13px; color:#4ade80; text-align:center;">✓ JSON copiado al portapapeles</p>
       </div>
     </div>
   </div>
@@ -1406,6 +1588,54 @@
   let restHandle = null;
   let fisicoSerieRepActual = 1; // serie actual (1-indexado) en modo físico por repeticiones con descansos
 
+  // Cronómetro de SESIÓN (independiente del cronómetro de cada ejercicio):
+  // arranca solo al abrir el primer ejercicio de la sesión y se pausa al
+  // entrar en el resumen; si se vuelve a la pantalla de ejercicios sigue
+  // corriendo. Mide el tiempo real de principio a fin de la sesión
+  // (incluye descansos y pausas entre ejercicios), a diferencia de
+  // "Tiempo total" del resumen (que solo suma el tiempo nadado). Se puede
+  // editar manualmente desde el resumen: en ese caso `sessionTiempoManual`
+  // fija el valor y deja de recalcularse solo hasta que se reanude.
+  let sessionTimerState = "idle"; // idle | running | paused
+  let sessionStartTime = 0, sessionPausedAccum = 0, sessionPauseStartedAt = 0;
+  let sessionTiempoManual = null; // ms fijados a mano desde el resumen, o null si se calcula solo
+
+  // Arranca el cronómetro de sesión la primera vez que se abre un
+  // ejercicio (no-op si ya está corriendo o si el usuario fijó un tiempo
+  // manual, que tiene prioridad hasta que decida "recalcular").
+  function iniciarCronoSesionSiHaceFalta(){
+    if(sessionTimerState === "idle" && sessionTiempoManual === null){
+      sessionTimerState = "running";
+      sessionStartTime = Date.now();
+      sessionPausedAccum = 0;
+    }
+  }
+  function pausarCronoSesion(){
+    if(sessionTimerState === "running"){
+      sessionTimerState = "paused";
+      sessionPauseStartedAt = Date.now();
+    }
+  }
+  function reanudarCronoSesion(){
+    if(sessionTimerState === "paused" && sessionTiempoManual === null){
+      sessionPausedAccum += Date.now() - sessionPauseStartedAt;
+      sessionTimerState = "running";
+    }
+  }
+  // Tiempo de sesión a mostrar: el fijado a mano si existe, o el
+  // transcurrido real (running) o congelado (paused/idle) en caso contrario.
+  function obtenerTiempoSesionMs(){
+    if(sessionTiempoManual !== null) return sessionTiempoManual;
+    if(sessionTimerState === "idle") return 0;
+    const fin = sessionTimerState === "paused" ? sessionPauseStartedAt : Date.now();
+    return fin - sessionStartTime - sessionPausedAccum;
+  }
+  function reiniciarCronoSesion(){
+    sessionTimerState = "idle";
+    sessionStartTime = 0; sessionPausedAccum = 0; sessionPauseStartedAt = 0;
+    sessionTiempoManual = null;
+  }
+
   // ====================================================================
   // 🔧 UTILIDADES
   // ====================================================================
@@ -1420,6 +1650,7 @@
   const navStack = ["import"]; // pila de nombres de pantalla, la primera es la de entrada
   let modalAbiertoId = null;   // id del backdrop de modal actualmente abierto, o null
   let navegandoPorPopstate = false; // evita volver a hacer pushState al reaccionar a un popstate
+  let popstatesAIgnorar = 0;        // popstates provocados por nuestro propio history.back() al cerrar un modal con ✕/fondo/botón
 
   function pushNavState(tipo, valor){
     try{ history.pushState({ rpNav:true, tipo, valor }, ""); }catch(e){ /* entorno sin history API */ }
@@ -1457,6 +1688,10 @@
   }
 
   window.addEventListener("popstate", () => {
+    // Cierre de modal iniciado por la propia app (✕, fondo, Guardar…): el
+    // history.back() que consume su entrada de historial no debe
+    // interpretarse además como un "atrás" del usuario entre pantallas.
+    if(popstatesAIgnorar > 0){ popstatesAIgnorar--; return; }
     if(modalAbiertoId){
       // Hay un modal/pop-up abierto: "atrás" solo lo cierra, no cambia de pantalla.
       const idCerrar = modalAbiertoId;
@@ -1481,6 +1716,14 @@
       document.getElementById("ajustesImagenBackdrop").classList.remove("show");
     } else if(id === "descModalBackdrop"){
       document.getElementById("descModalBackdrop").classList.remove("show");
+    } else if(id === "bibModalBackdrop"){
+      document.getElementById("bibModalBackdrop").classList.remove("show");
+    } else if(id === "editModalBackdrop"){
+      document.getElementById("editModalBackdrop").classList.remove("show");
+    } else if(id === "sesionTiempoModalBackdrop"){
+      document.getElementById("sesionTiempoModalBackdrop").classList.remove("show");
+    } else if(id === "guardarModalBackdrop"){
+      document.getElementById("guardarModalBackdrop").classList.remove("show");
     }
   }
 
@@ -1945,17 +2188,19 @@ c48 -9 152 -20 232 -26 80 -6 199 -15 265 -21 180 -14 336 -26 580 -44 270
     metros: true,
     tiempo: true,
     ritmo: true,
+    tiempoSesion: false,
     ejercicios: true,
     logo: true,
     textoLogo: false,
   };
   const AJUSTES_IMAGEN_CAMPOS = [
-    { key:"textoResumen", label:"Texto \"RESUMEN DE SESIÓN\"", editable:true },
+    { key:"textoResumen", label:"Texto personalizado", editable:true },
     { key:"titulo",     label:"Título del entrenamiento" },
     { key:"fecha",      label:"Fecha" },
     { key:"metros",     label:"Metros totales" },
-    { key:"tiempo",     label:"Tiempo total" },
+    { key:"tiempo",     label:"Tiempo nadado", sub:"Suma solo el tiempo de los ejercicios nadados" },
     { key:"ritmo",      label:"Ritmo /100m" },
+    { key:"tiempoSesion", label:"Tiempo total de la sesión", sub:"Desde el primer ejercicio hasta el resumen (incluye descansos)" },
     { key:"ejercicios", label:"Lista de ejercicios", sub:"Solo en el PNG completo" },
     { key:"logo",       label:"Logo" },
     { key:"textoLogo",  label:"Texto \"Biblioteca de la natación\"" },
@@ -2019,6 +2264,7 @@ c48 -9 152 -20 232 -26 80 -6 199 -15 265 -21 180 -14 336 -26 580 -44 270
     document.getElementById("ajustesImagenBackdrop").classList.remove("show");
     if(modalAbiertoId === "ajustesImagenBackdrop"){
       registrarCierreModal();
+      popstatesAIgnorar++;
       history.back(); // consume la entrada de historial que abrió este modal
     }
   }
@@ -2051,6 +2297,8 @@ c48 -9 152 -20 232 -26 80 -6 199 -15 265 -21 180 -14 336 -26 580 -44 270
         exerciseResults,
         descansosActivos,
         descansoOverrides,
+        sessionTiempoMs: obtenerTiempoSesionMs(),
+        sessionTiempoEsManual: sessionTiempoManual !== null,
         guardadoEn: new Date().toISOString(),
       };
       localStorage.setItem(PROGRESO_KEY, JSON.stringify(payload));
@@ -2059,6 +2307,60 @@ c48 -9 152 -20 232 -26 80 -6 199 -15 265 -21 180 -14 336 -26 580 -44 270
 
   function borrarProgresoLocal(){
     try{ localStorage.removeItem(PROGRESO_KEY); }catch(e){ /* no disponible */ }
+  }
+
+  // Descarga el entrenamiento en su estado actual (sesión completa —
+  // incluida intensidad, tiempoObjetivo, desc, etc. — más resultados y
+  // ejercicios completados) como archivo .json, para poder recargarlo más
+  // tarde sin perder ningún campo. Mismo payload que guardarProgresoLocal(),
+  // solo que en vez de a localStorage se manda a un archivo descargable.
+  function construirPayloadEntrenamientoActual(){
+    if(!session) return null;
+    return {
+      session,
+      completedSet: [...completedSet],
+      exerciseResults,
+      descansosActivos,
+      descansoOverrides,
+      sessionTiempoMs: obtenerTiempoSesionMs(),
+      sessionTiempoEsManual: sessionTiempoManual !== null,
+      guardadoEn: new Date().toISOString(),
+    };
+  }
+
+  function descargarEntrenamientoActual(){
+    const payload = construirPayloadEntrenamientoActual();
+    if(!payload) return;
+    const blob = new Blob([JSON.stringify(payload, null, 1)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    const nombreArchivo = (session.nombre || "entrenamiento").replace(/[\\/:*?"<>|]+/g, "_");
+    a.download = `${nombreArchivo}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  async function copiarEntrenamientoActual(){
+    const payload = construirPayloadEntrenamientoActual();
+    if(!payload) return false;
+    const texto = JSON.stringify(payload, null, 1);
+    try{
+      await navigator.clipboard.writeText(texto);
+      return true;
+    }catch(e){
+      // Fallback para navegadores/contextos sin permiso de portapapeles
+      try{
+        const ta = document.createElement("textarea");
+        ta.value = texto;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+        return true;
+      }catch(e2){ return false; }
+    }
   }
 
   function leerProgresoGuardado(){
@@ -2077,6 +2379,26 @@ c48 -9 152 -20 232 -26 80 -6 199 -15 265 -21 180 -14 336 -26 580 -44 270
     exerciseResults = progreso.exerciseResults || {};
     descansosActivos = progreso.descansosActivos !== undefined ? progreso.descansosActivos : true;
     descansoOverrides = progreso.descansoOverrides || {};
+    // Cronómetro de sesión: se restaura como tiempo fijo (pausado) igual al
+    // que había al guardar. Si el usuario sigue entrenando (abre un
+    // ejercicio), openExercise() lo reanuda contando desde ese punto en
+    // vez de reiniciar desde 0 — ver reanudarCronoSesion()/openExercise().
+    if(progreso.sessionTiempoMs != null){
+      if(progreso.sessionTiempoEsManual){
+        sessionTimerState = "idle";
+        sessionTiempoManual = progreso.sessionTiempoMs;
+      } else {
+        // Se recrea como si se hubiera pausado justo en ese instante, para
+        // que reanudarCronoSesion() continúe sumando desde ahí.
+        sessionTimerState = "paused";
+        sessionPauseStartedAt = Date.now();
+        sessionStartTime = Date.now() - progreso.sessionTiempoMs;
+        sessionPausedAccum = 0;
+        sessionTiempoManual = null;
+      }
+    } else {
+      reiniciarCronoSesion();
+    }
     renderOverview();
     resetNavStack("overview");
   }
@@ -2094,6 +2416,7 @@ c48 -9 152 -20 232 -26 80 -6 199 -15 265 -21 180 -14 336 -26 580 -44 270
     completedSet = new Set();
     exerciseResults = {};
     descansoOverrides = {};
+    reiniciarCronoSesion(); // entrenamiento nuevo: el cronómetro de sesión empieza de cero
     borrarProgresoLocal(); // una sesión nueva sustituye cualquier progreso pendiente anterior
     renderOverview();
     resetNavStack("overview");
@@ -2107,7 +2430,18 @@ c48 -9 152 -20 232 -26 80 -6 199 -15 265 -21 180 -14 336 -26 580 -44 270
       return;
     }
     try{
-      cargarSesionDesdeJSON(raw);
+      // Además del JSON de un entrenamiento, se acepta un "entrenamiento en
+      // curso" exportado con sus resultados ({session, completedSet,
+      // exerciseResults, ...}): se restaura tal cual, con sus tiempos, para
+      // poder revisarlo y editarlo desde el resumen.
+      let parsed = null;
+      try{ parsed = JSON.parse(raw); }catch(e){ /* lo gestiona cargarSesionDesdeJSON */ }
+      if(parsed && parsed.session && parsed.exerciseResults && esSesionValida(parsed.session)){
+        reanudarProgresoGuardado(parsed);
+        guardarProgresoLocal();
+      } else {
+        cargarSesionDesdeJSON(raw);
+      }
       importError.style.display = "none";
     }catch(err){
       importError.textContent = "No se pudo leer el JSON: " + err.message;
@@ -2150,6 +2484,7 @@ c48 -9 152 -20 232 -26 80 -6 199 -15 265 -21 180 -14 336 -26 580 -44 270
     // ("Descartar y empezar de nuevo"), a diferencia de solo pulsar
     // "Cargar otro entrenamiento", que por sí solo no debe borrar nada.
     session = null; flat = []; currentIdx = -1; completedSet = new Set(); exerciseResults = {};
+    reiniciarCronoSesion();
     borrarProgresoLocal();
     document.getElementById("progresoGuardadoPanel").style.display = "none";
   });
@@ -2164,6 +2499,43 @@ c48 -9 152 -20 232 -26 80 -6 199 -15 265 -21 180 -14 336 -26 580 -44 270
   document.getElementById("viewSummaryBtn").addEventListener("click", () => {
     renderSummaryScreen();
     showScreen("summary");
+  });
+
+  document.getElementById("saveTrainingBtn").addEventListener("click", () => {
+    if(!session) return;
+    document.getElementById("guardarCopiadoMsg").style.display = "none";
+    document.getElementById("guardarModalBackdrop").classList.add("show");
+    registrarAperturaModal("guardarModalBackdrop");
+  });
+
+  function cerrarGuardarModal(){
+    document.getElementById("guardarModalBackdrop").classList.remove("show");
+    if(modalAbiertoId === "guardarModalBackdrop"){
+      registrarCierreModal();
+      popstatesAIgnorar++;
+      history.back();
+    }
+  }
+  document.getElementById("guardarModalClose").addEventListener("click", cerrarGuardarModal);
+  document.getElementById("guardarModalBackdrop").addEventListener("click", (e) => {
+    if(e.target.id === "guardarModalBackdrop") cerrarGuardarModal();
+  });
+  document.getElementById("guardarCopiarBtn").addEventListener("click", async () => {
+    const ok = await copiarEntrenamientoActual();
+    const msg = document.getElementById("guardarCopiadoMsg");
+    if(ok){
+      msg.textContent = "✓ JSON copiado al portapapeles";
+      msg.style.color = "#4ade80";
+      msg.style.display = "block";
+    } else {
+      msg.textContent = "No se pudo copiar automáticamente. Prueba a guardar como archivo.";
+      msg.style.color = "#f87171";
+      msg.style.display = "block";
+    }
+  });
+  document.getElementById("guardarArchivoBtn").addEventListener("click", () => {
+    descargarEntrenamientoActual();
+    cerrarGuardarModal();
   });
 
   document.getElementById("loadOtherBtn").addEventListener("click", () => {
@@ -2222,6 +2594,1587 @@ c48 -9 152 -20 232 -26 80 -6 199 -15 265 -21 180 -14 336 -26 580 -44 270
     if(progreso) reanudarProgresoGuardado(progreso);
   }
 
+
+  // ====================================================================
+  // 📚 BIBLIOTECA DE ENTRENAMIENTOS (carga desde la pantalla principal)
+  // La Biblioteca y este Reproductor comparten origen (lightswan.github.io),
+  // así que comparten localStorage. Aquí se buscan las sesiones que la
+  // Biblioteca haya dejado guardadas. Como el formato exacto de cada app
+  // puede variar, la detección es tolerante: se revisan todas las claves
+  // de localStorage y se aceptan como entrenamiento válido:
+  //   · un objeto {tipo:"sesion-natacion"|"sesion-fisica", bloques:[...]}
+  //   · un array de objetos con ese formato
+  //   · un objeto/array que CONTENGA sesiones (p. ej. {sesiones:[...]})
+  //   · un string JSON con cualquiera de los anteriores
+  // Se ignoran las claves propias de este Reproductor (progreso, ajustes).
+  // ====================================================================
+  const CLAVES_PROPIAS = ["lightswan_reproductor_progreso", "lightswan_reproductor_ajustes_imagen", "lightswan_sesion_pendiente"];
+  const TIPOS_SESION = ["sesion-natacion", "sesion-fisica"];
+  const BIB_VISTO_KEY = "lightswan_reproductor_bib_visto"; // sessionStorage: no reabrir el modal solo tras volver a la pantalla
+
+  // Entrenamientos de natación predefinidos (extraídos de la Biblioteca:
+  // lightswan.github.io/biblioteca-natacion, sección "Entrenamientos de
+  // Natación"). Lista fija embebida aquí, independiente del localStorage
+  // del navegador — sustituye a la antigua pestaña "Guardados".
+  const SESIONES_PREDEFINIDAS = [
+  {
+    "tipo": "sesion-natacion",
+    "version": 1,
+    "nombre": "Sesión de Estilos - 900m",
+    "generadoEn": "2026-09-24T09:51:16.896Z",
+    "totalMetros": 900,
+    "bloques": [
+      {
+        "titulo": "Sesión de Estilos - 900m",
+        "distancia": "900m",
+        "ejercicios": [
+          {
+            "nombre": "Calentamiento — alternando crol y espalda (5 largos de cada)",
+            "desc": "",
+            "style": "Crol",
+            "tags": [
+              "Crol"
+            ],
+            "series": 1,
+            "metros": 250,
+            "distanciaTotal": 250,
+            "intensidad": null,
+            "tiempoObjetivo": null,
+            "pagina": null
+          },
+          {
+            "nombre": "Recobro alejado con tabla en crol",
+            "desc": "Llevar la mano a la esquina superior de la tabla en cada recobro",
+            "style": "Crol",
+            "tags": [
+              "Crol",
+              "Tabla"
+            ],
+            "series": 1,
+            "metros": 100,
+            "distanciaTotal": 100,
+            "intensidad": null,
+            "tiempoObjetivo": null,
+            "pagina": null
+          },
+          {
+            "nombre": "Espalda con brazo estirado a 90°",
+            "desc": "Sin material; un brazo bien estirado fuera del agua marcando el rollillo, el otro pegado al cuerpo",
+            "style": "Espalda",
+            "tags": [
+              "Espalda"
+            ],
+            "series": 1,
+            "metros": 100,
+            "distanciaTotal": 100,
+            "intensidad": null,
+            "tiempoObjetivo": null,
+            "pagina": null
+          },
+          {
+            "nombre": "Lateral con aletas",
+            "desc": "Tronco en posición lateral, cadera y pies paralelos al suelo; a mitad de piscina cambiar de lado con una brazada grande",
+            "style": "Braza",
+            "tags": [
+              "Braza",
+              "Aletas"
+            ],
+            "series": 1,
+            "metros": 100,
+            "distanciaTotal": 100,
+            "intensidad": null,
+            "tiempoObjetivo": null,
+            "pagina": null
+          },
+          {
+            "nombre": "Patada de delfín con aletas",
+            "desc": "Respirar realizando un impulso de mariposa con una mano",
+            "style": "Mariposa",
+            "tags": [
+              "Mariposa",
+              "Aletas"
+            ],
+            "series": 1,
+            "metros": 50,
+            "distanciaTotal": 50,
+            "intensidad": null,
+            "tiempoObjetivo": null,
+            "pagina": null
+          },
+          {
+            "nombre": "Patada de delfín de espaldas con aletas",
+            "desc": "Brazos bien estirados arriba",
+            "style": "Espalda",
+            "tags": [
+              "Espalda",
+              "Aletas"
+            ],
+            "series": 1,
+            "metros": 50,
+            "distanciaTotal": 50,
+            "intensidad": null,
+            "tiempoObjetivo": null,
+            "pagina": null
+          },
+          {
+            "nombre": "Patada de delfín + brazos de braza con aletas",
+            "desc": "Pies juntos; 1 brazada · 2-3 patadas",
+            "style": "Braza",
+            "tags": [
+              "Braza",
+              "Aletas"
+            ],
+            "series": 1,
+            "metros": 50,
+            "distanciaTotal": 50,
+            "intensidad": null,
+            "tiempoObjetivo": null,
+            "pagina": null
+          },
+          {
+            "nombre": "Braza sin aletas",
+            "desc": "Énfasis en el deslizamiento y la coordinación",
+            "style": "Braza",
+            "tags": [
+              "Braza",
+              "Aletas"
+            ],
+            "series": 1,
+            "metros": 100,
+            "distanciaTotal": 100,
+            "intensidad": null,
+            "tiempoObjetivo": null,
+            "pagina": null
+          },
+          {
+            "nombre": "Vuelta a la calma — Patada de braza de espaldas",
+            "desc": "",
+            "style": "Espalda",
+            "tags": [
+              "Espalda"
+            ],
+            "series": 1,
+            "metros": 0,
+            "distanciaTotal": 0,
+            "intensidad": null,
+            "tiempoObjetivo": null,
+            "pagina": null
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "tipo": "sesion-natacion",
+    "version": 1,
+    "nombre": "Sesión de Crol - 1100m",
+    "generadoEn": "2026-09-24T09:51:16.902Z",
+    "totalMetros": 1100,
+    "bloques": [
+      {
+        "titulo": "Sesión de Crol - 1100m",
+        "distancia": "1100m",
+        "ejercicios": [
+          {
+            "nombre": "Calentamiento libre",
+            "desc": "",
+            "style": "Crol",
+            "tags": [
+              "Crol"
+            ],
+            "series": 1,
+            "metros": 250,
+            "distanciaTotal": 250,
+            "intensidad": null,
+            "tiempoObjetivo": null,
+            "pagina": null
+          },
+          {
+            "nombre": "Ejercicio de rodillo en crol",
+            "desc": "Brazos pegados al cuerpo; a lo largo del largo ir rotando un hombro hasta posición de espalda y volver. A la ida hacia un lado, a la vuelta hacia el otro. Pies mirando al suelo el máximo tiempo posible",
+            "style": "Crol",
+            "tags": [
+              "Crol"
+            ],
+            "series": 1,
+            "metros": 100,
+            "distanciaTotal": 100,
+            "intensidad": null,
+            "tiempoObjetivo": null,
+            "pagina": null
+          },
+          {
+            "nombre": "Rodillo de espalda",
+            "desc": "Quedarse a 90° sacando el hombro lo máximo posible; cambiar lentamente al otro hombro",
+            "style": "Espalda",
+            "tags": [
+              "Espalda"
+            ],
+            "series": 1,
+            "metros": 100,
+            "distanciaTotal": 100,
+            "intensidad": null,
+            "tiempoObjetivo": null,
+            "pagina": null
+          },
+          {
+            "nombre": "Rodillo de crol con brazo en triángulo",
+            "desc": "Mantener un hombro fuera del agua con la mano tocando la oreja; cada 5 s cambiar de brazo con el recobro lo más alejado posible; el otro brazo se queda adelante",
+            "style": "Crol",
+            "tags": [
+              "Crol"
+            ],
+            "series": 1,
+            "metros": 100,
+            "distanciaTotal": 100,
+            "intensidad": null,
+            "tiempoObjetivo": null,
+            "pagina": null
+          },
+          {
+            "nombre": "Patada de delfín + crol a tope",
+            "desc": "Con aletas: máximas patadas subacuáticas posibles, luego crol a máxima velocidad hasta el final",
+            "style": "Crol",
+            "tags": [
+              "Crol",
+              "Aletas"
+            ],
+            "series": 1,
+            "metros": 100,
+            "distanciaTotal": 100,
+            "intensidad": null,
+            "tiempoObjetivo": null,
+            "pagina": null
+          },
+          {
+            "nombre": "Patada de delfín + espalda a tope",
+            "desc": "Igual que el anterior pero de espaldas",
+            "style": "Espalda",
+            "tags": [
+              "Espalda"
+            ],
+            "series": 1,
+            "metros": 100,
+            "distanciaTotal": 100,
+            "intensidad": null,
+            "tiempoObjetivo": null,
+            "pagina": null
+          },
+          {
+            "nombre": "Patada de delfín + brazos de braza",
+            "desc": "Combinar ambos estilos para introducir la coordinación de mariposa (1 brazada · 2-3 patadas)",
+            "style": "Braza",
+            "tags": [
+              "Braza"
+            ],
+            "series": 1,
+            "metros": 100,
+            "distanciaTotal": 100,
+            "intensidad": null,
+            "tiempoObjetivo": null,
+            "pagina": null
+          },
+          {
+            "nombre": "Vuelta a la calma — Buceo con aletas (máximos metros sin respirar) · 100 m espalda con aletas · 50 m espalda sin aletas",
+            "desc": "",
+            "style": "Espalda",
+            "tags": [
+              "Espalda",
+              "Aletas"
+            ],
+            "series": 1,
+            "metros": 150,
+            "distanciaTotal": 150,
+            "intensidad": null,
+            "tiempoObjetivo": null,
+            "pagina": null
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "tipo": "sesion-natacion",
+    "version": 1,
+    "nombre": "Sesión de Crol - 1250m",
+    "generadoEn": "2026-09-24T09:51:16.904Z",
+    "totalMetros": 1250,
+    "bloques": [
+      {
+        "titulo": "Sesión de Crol - 1250m",
+        "distancia": "1250m",
+        "ejercicios": [
+          {
+            "nombre": "Calentamiento libre",
+            "desc": "",
+            "style": "Crol",
+            "tags": [
+              "Crol"
+            ],
+            "series": 1,
+            "metros": 300,
+            "distanciaTotal": 300,
+            "intensidad": null,
+            "tiempoObjetivo": null,
+            "pagina": null
+          },
+          {
+            "nombre": "Patada de crol con tabla",
+            "desc": "",
+            "style": "Crol",
+            "tags": [
+              "Crol",
+              "Tabla"
+            ],
+            "series": 1,
+            "metros": 150,
+            "distanciaTotal": 150,
+            "intensidad": null,
+            "tiempoObjetivo": null,
+            "pagina": null
+          },
+          {
+            "nombre": "Solo brazos de espalda con pull",
+            "desc": "",
+            "style": "Espalda",
+            "tags": [
+              "Espalda",
+              "Pull"
+            ],
+            "series": 1,
+            "metros": 100,
+            "distanciaTotal": 100,
+            "intensidad": null,
+            "tiempoObjetivo": null,
+            "pagina": null
+          },
+          {
+            "nombre": "Patada de espalda con tabla",
+            "desc": "",
+            "style": "Espalda",
+            "tags": [
+              "Espalda",
+              "Tabla"
+            ],
+            "series": 1,
+            "metros": 100,
+            "distanciaTotal": 100,
+            "intensidad": null,
+            "tiempoObjetivo": null,
+            "pagina": null
+          },
+          {
+            "nombre": "Solo brazos de crol con pull",
+            "desc": "",
+            "style": "Crol",
+            "tags": [
+              "Crol",
+              "Pull"
+            ],
+            "series": 1,
+            "metros": 100,
+            "distanciaTotal": 100,
+            "intensidad": null,
+            "tiempoObjetivo": null,
+            "pagina": null
+          },
+          {
+            "nombre": "Brazos de braza con pull",
+            "desc": "",
+            "style": "Braza",
+            "tags": [
+              "Braza",
+              "Pull"
+            ],
+            "series": 1,
+            "metros": 100,
+            "distanciaTotal": 100,
+            "intensidad": null,
+            "tiempoObjetivo": null,
+            "pagina": null
+          },
+          {
+            "nombre": "Brazos de mariposa con pull (ida) + vuelta de espaldas con pull (vuelta)",
+            "desc": "",
+            "style": "Espalda",
+            "tags": [
+              "Espalda",
+              "Pull"
+            ],
+            "series": 1,
+            "metros": 100,
+            "distanciaTotal": 100,
+            "intensidad": null,
+            "tiempoObjetivo": null,
+            "pagina": null
+          },
+          {
+            "nombre": "Vuelta a la calma",
+            "desc": "",
+            "style": "Crol",
+            "tags": [
+              "Crol"
+            ],
+            "series": 1,
+            "metros": 0,
+            "distanciaTotal": 0,
+            "intensidad": null,
+            "tiempoObjetivo": null,
+            "pagina": null
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "tipo": "sesion-natacion",
+    "version": 1,
+    "nombre": "Sesión de Crol - 1150m",
+    "generadoEn": "2026-09-24T09:51:16.906Z",
+    "totalMetros": 1150,
+    "bloques": [
+      {
+        "titulo": "Sesión de Crol - 1150m",
+        "distancia": "1150m",
+        "ejercicios": [
+          {
+            "nombre": "Calentamiento — intercalando patada de crol con tabla y brazadas con pullboy en las rodillas cada 50 metros",
+            "desc": "",
+            "style": "Crol",
+            "tags": [
+              "Crol",
+              "Pull",
+              "Tabla",
+              "Pullboy"
+            ],
+            "series": 1,
+            "metros": 300,
+            "distanciaTotal": 300,
+            "intensidad": null,
+            "tiempoObjetivo": null,
+            "pagina": null
+          },
+          {
+            "nombre": "Crol",
+            "desc": "Salida cada 2:00",
+            "style": "Crol",
+            "tags": [
+              "Crol"
+            ],
+            "series": 5,
+            "metros": 100,
+            "distanciaTotal": 500,
+            "intensidad": null,
+            "tiempoObjetivo": 120,
+            "pagina": null
+          },
+          {
+            "nombre": "Crol",
+            "desc": "Primeros 20 m suave, los 30 restantes al 90% con viraje · Recuperación 60s",
+            "style": "Crol",
+            "tags": [
+              "Crol"
+            ],
+            "series": 4,
+            "metros": 50,
+            "distanciaTotal": 200,
+            "intensidad": null,
+            "tiempoObjetivo": null,
+            "pagina": null
+          },
+          {
+            "nombre": "Espalda",
+            "desc": "",
+            "style": "Espalda",
+            "tags": [
+              "Espalda"
+            ],
+            "series": 1,
+            "metros": 100,
+            "distanciaTotal": 100,
+            "intensidad": null,
+            "tiempoObjetivo": null,
+            "pagina": null
+          },
+          {
+            "nombre": "Subacuático",
+            "desc": "",
+            "style": "Crol",
+            "tags": [
+              "Crol"
+            ],
+            "series": 1,
+            "metros": 50,
+            "distanciaTotal": 50,
+            "intensidad": null,
+            "tiempoObjetivo": null,
+            "pagina": null
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "tipo": "sesion-natacion",
+    "version": 1,
+    "nombre": "Sesión de Crol - 1600m",
+    "generadoEn": "2026-09-24T09:51:16.911Z",
+    "totalMetros": 1600,
+    "bloques": [
+      {
+        "titulo": "Sesión de Crol - 1600m",
+        "distancia": "1600m",
+        "ejercicios": [
+          {
+            "nombre": "Calentamiento libre",
+            "desc": "",
+            "style": "Crol",
+            "tags": [
+              "Crol"
+            ],
+            "series": 1,
+            "metros": 300,
+            "distanciaTotal": 300,
+            "intensidad": null,
+            "tiempoObjetivo": null,
+            "pagina": null
+          },
+          {
+            "nombre": "Patada de crol con colchoneta de agujeros",
+            "desc": "Ritmo óptimo: ni cansado por ir despacio ni por ir rápido",
+            "style": "Crol",
+            "tags": [
+              "Crol",
+              "Colchoneta"
+            ],
+            "series": 1,
+            "metros": 0,
+            "distanciaTotal": 0,
+            "intensidad": null,
+            "tiempoObjetivo": 360,
+            "pagina": null
+          },
+          {
+            "nombre": "Patada de espalda con tabla y brazos estirados arriba",
+            "desc": "Mismo objetivo de ritmo",
+            "style": "Espalda",
+            "tags": [
+              "Espalda",
+              "Tabla"
+            ],
+            "series": 1,
+            "metros": 0,
+            "distanciaTotal": 0,
+            "intensidad": null,
+            "tiempoObjetivo": 420,
+            "pagina": null
+          },
+          {
+            "nombre": "Solo brazos de crol con pull en piernas",
+            "desc": "Mismo objetivo de ritmo",
+            "style": "Crol",
+            "tags": [
+              "Crol",
+              "Pull"
+            ],
+            "series": 1,
+            "metros": 0,
+            "distanciaTotal": 0,
+            "intensidad": null,
+            "tiempoObjetivo": 480,
+            "pagina": null
+          },
+          {
+            "nombre": "Brazos de espalda con pull en piernas",
+            "desc": "Mismo objetivo de ritmo",
+            "style": "Espalda",
+            "tags": [
+              "Espalda",
+              "Pull"
+            ],
+            "series": 1,
+            "metros": 0,
+            "distanciaTotal": 0,
+            "intensidad": null,
+            "tiempoObjetivo": 480,
+            "pagina": null
+          },
+          {
+            "nombre": "Crol a ritmo óptimo",
+            "desc": "",
+            "style": "Crol",
+            "tags": [
+              "Crol"
+            ],
+            "series": 1,
+            "metros": 0,
+            "distanciaTotal": 0,
+            "intensidad": null,
+            "tiempoObjetivo": 360,
+            "pagina": null
+          },
+          {
+            "nombre": "Espalda a ritmo óptimo",
+            "desc": "",
+            "style": "Espalda",
+            "tags": [
+              "Espalda"
+            ],
+            "series": 1,
+            "metros": 0,
+            "distanciaTotal": 0,
+            "intensidad": null,
+            "tiempoObjetivo": 240,
+            "pagina": null
+          },
+          {
+            "nombre": "Vuelta a la calma — alternar crol y espalda cada medio largo a ritmo óptimo",
+            "desc": "",
+            "style": "Crol",
+            "tags": [
+              "Crol"
+            ],
+            "series": 1,
+            "metros": 200,
+            "distanciaTotal": 200,
+            "intensidad": null,
+            "tiempoObjetivo": null,
+            "pagina": null
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "tipo": "sesion-natacion",
+    "version": 1,
+    "nombre": "Sesión de Crol - 1350m",
+    "generadoEn": "2026-09-24T09:51:16.920Z",
+    "totalMetros": 1350,
+    "bloques": [
+      {
+        "titulo": "Sesión de Crol - 1350m",
+        "distancia": "1350m",
+        "ejercicios": [
+          {
+            "nombre": "Calentamiento libre",
+            "desc": "",
+            "style": "Crol",
+            "tags": [
+              "Crol"
+            ],
+            "series": 1,
+            "metros": 300,
+            "distanciaTotal": 300,
+            "intensidad": null,
+            "tiempoObjetivo": null,
+            "pagina": null
+          },
+          {
+            "nombre": "Crol con brazo suspendido",
+            "desc": "Un brazo en horizontal; impulsarse solo con el otro sin hundir el suspendido y manteniendo la máxima horizontalidad. A la ida un brazo, a la vuelta el otro. Deslizar",
+            "style": "Crol",
+            "tags": [
+              "Crol"
+            ],
+            "series": 1,
+            "metros": 100,
+            "distanciaTotal": 100,
+            "intensidad": null,
+            "tiempoObjetivo": null,
+            "pagina": null
+          },
+          {
+            "nombre": "Espalda con un brazo arriba",
+            "desc": "Impulsarse con un solo brazo mientras el otro permanece estirado arriba durante los 25 m; cambiar de brazo en cada largo",
+            "style": "Espalda",
+            "tags": [
+              "Espalda"
+            ],
+            "series": 1,
+            "metros": 100,
+            "distanciaTotal": 100,
+            "intensidad": null,
+            "tiempoObjetivo": null,
+            "pagina": null
+          },
+          {
+            "nombre": "Crol a intensidad media-alta",
+            "desc": "",
+            "style": "Crol",
+            "tags": [
+              "Crol"
+            ],
+            "series": 1,
+            "metros": 200,
+            "distanciaTotal": 200,
+            "intensidad": null,
+            "tiempoObjetivo": null,
+            "pagina": null
+          },
+          {
+            "nombre": "Espalda a intensidad media-alta",
+            "desc": "Coordinación de brazos eficiente",
+            "style": "Espalda",
+            "tags": [
+              "Espalda"
+            ],
+            "series": 1,
+            "metros": 200,
+            "distanciaTotal": 200,
+            "intensidad": null,
+            "tiempoObjetivo": null,
+            "pagina": null
+          },
+          {
+            "nombre": "Crol con mínimas brazadas",
+            "desc": "Intensidad baja; deslizar lo máximo posible intentando reducir el número de brazadas por largo",
+            "style": "Crol",
+            "tags": [
+              "Crol"
+            ],
+            "series": 1,
+            "metros": 200,
+            "distanciaTotal": 200,
+            "intensidad": null,
+            "tiempoObjetivo": null,
+            "pagina": null
+          },
+          {
+            "nombre": "Espalda deslizando",
+            "desc": "Igual que el anterior pero de espalda",
+            "style": "Espalda",
+            "tags": [
+              "Espalda"
+            ],
+            "series": 1,
+            "metros": 150,
+            "distanciaTotal": 150,
+            "intensidad": null,
+            "tiempoObjetivo": null,
+            "pagina": null
+          },
+          {
+            "nombre": "Crol mixto",
+            "desc": "25 m al 100% + 25 m lo más lento posible; repetir",
+            "style": "Crol",
+            "tags": [
+              "Crol"
+            ],
+            "series": 1,
+            "metros": 100,
+            "distanciaTotal": 100,
+            "intensidad": null,
+            "tiempoObjetivo": null,
+            "pagina": null
+          },
+          {
+            "nombre": "Vuelta a la calma — braza de espaldas",
+            "desc": "",
+            "style": "Espalda",
+            "tags": [
+              "Espalda"
+            ],
+            "series": 1,
+            "metros": 100,
+            "distanciaTotal": 100,
+            "intensidad": null,
+            "tiempoObjetivo": null,
+            "pagina": null
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "tipo": "sesion-natacion",
+    "version": 1,
+    "nombre": "Sesión de Crol - 2000m",
+    "generadoEn": "2026-09-24T09:51:16.922Z",
+    "totalMetros": 2000,
+    "bloques": [
+      {
+        "titulo": "Sesión de Crol - 2000m",
+        "distancia": "2000m",
+        "ejercicios": [
+          {
+            "nombre": "Estilos",
+            "desc": "",
+            "style": "Crol",
+            "tags": [
+              "Crol"
+            ],
+            "series": 1,
+            "metros": 300,
+            "distanciaTotal": 300,
+            "intensidad": null,
+            "tiempoObjetivo": null,
+            "pagina": null
+          },
+          {
+            "nombre": "Brazada de mariposa con pausas",
+            "desc": "Recobro de braza",
+            "style": "Braza",
+            "tags": [
+              "Braza"
+            ],
+            "series": 1,
+            "metros": 100,
+            "distanciaTotal": 100,
+            "intensidad": null,
+            "tiempoObjetivo": null,
+            "pagina": null
+          },
+          {
+            "nombre": "Crol continuo",
+            "desc": "Ritmo ~2:00/100 m",
+            "style": "Crol",
+            "tags": [
+              "Crol"
+            ],
+            "series": 1,
+            "metros": 1500,
+            "distanciaTotal": 1500,
+            "intensidad": null,
+            "tiempoObjetivo": null,
+            "pagina": null
+          },
+          {
+            "nombre": "Espalda",
+            "desc": "",
+            "style": "Espalda",
+            "tags": [
+              "Espalda"
+            ],
+            "series": 1,
+            "metros": 100,
+            "distanciaTotal": 100,
+            "intensidad": null,
+            "tiempoObjetivo": null,
+            "pagina": null
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "tipo": "sesion-natacion",
+    "version": 1,
+    "nombre": "Sesión de Crol - 3050m",
+    "generadoEn": "2026-09-24T09:51:16.925Z",
+    "totalMetros": 3050,
+    "bloques": [
+      {
+        "titulo": "Sesión de Crol - 3050m",
+        "distancia": "3050m",
+        "ejercicios": [
+          {
+            "nombre": "Estilos",
+            "desc": "Espalda, Crol, Braza",
+            "style": "Crol",
+            "tags": [
+              "Crol"
+            ],
+            "series": 1,
+            "metros": 300,
+            "distanciaTotal": 300,
+            "intensidad": null,
+            "tiempoObjetivo": null,
+            "pagina": null
+          },
+          {
+            "nombre": "Calentamiento técnico",
+            "desc": "Intercalando patada de crol con tabla y brazadas con pullboy en las rodillas cada 50 m",
+            "style": "Crol",
+            "tags": [
+              "Crol",
+              "Pull",
+              "Tabla",
+              "Pullboy"
+            ],
+            "series": 1,
+            "metros": 300,
+            "distanciaTotal": 300,
+            "intensidad": null,
+            "tiempoObjetivo": null,
+            "pagina": null
+          },
+          {
+            "nombre": "Técnica",
+            "desc": "Cada 25 m centrándonos en la técnica y 25 m nadando a ritmo",
+            "style": "Crol",
+            "tags": [
+              "Crol"
+            ],
+            "series": 1,
+            "metros": 300,
+            "distanciaTotal": 300,
+            "intensidad": null,
+            "tiempoObjetivo": null,
+            "pagina": null
+          },
+          {
+            "nombre": "Crol",
+            "desc": "Salida cada 1:50 · 10 primeras series con palas · 5 últimas sin palas",
+            "style": "Crol",
+            "tags": [
+              "Crol",
+              "Palas"
+            ],
+            "series": 15,
+            "metros": 100,
+            "distanciaTotal": 1500,
+            "intensidad": null,
+            "tiempoObjetivo": 110,
+            "pagina": null
+          },
+          {
+            "nombre": "8x25",
+            "desc": "Salida cada 40s · Impares al ritmo de 100 m · Pares a ritmo ligero al estilo que se quiera",
+            "style": "Crol",
+            "tags": [
+              "Crol"
+            ],
+            "series": 8,
+            "metros": 25,
+            "distanciaTotal": 200,
+            "intensidad": null,
+            "tiempoObjetivo": 40,
+            "pagina": null
+          },
+          {
+            "nombre": "4x50",
+            "desc": "Salida cada 60s · Impares al ritmo de 100 m · Pares a ritmo ligero al estilo que se quiera",
+            "style": "Crol",
+            "tags": [
+              "Crol"
+            ],
+            "series": 4,
+            "metros": 50,
+            "distanciaTotal": 200,
+            "intensidad": null,
+            "tiempoObjetivo": 60,
+            "pagina": null
+          },
+          {
+            "nombre": "2x75",
+            "desc": "Salida cada 90s · Impares al ritmo de 200 m · Pares a ritmo ligero al estilo que se quiera",
+            "style": "Crol",
+            "tags": [
+              "Crol"
+            ],
+            "series": 2,
+            "metros": 75,
+            "distanciaTotal": 150,
+            "intensidad": null,
+            "tiempoObjetivo": 90,
+            "pagina": null
+          },
+          {
+            "nombre": "Vuelta a la calma",
+            "desc": "Suave, al estilo que se quiera",
+            "style": "Crol",
+            "tags": [
+              "Crol"
+            ],
+            "series": 1,
+            "metros": 100,
+            "distanciaTotal": 100,
+            "intensidad": null,
+            "tiempoObjetivo": null,
+            "pagina": null
+          }
+        ]
+      }
+    ]
+  }
+];
+
+  function esSesionValida(o){
+    return !!o && typeof o === "object" && !Array.isArray(o) && TIPOS_SESION.includes(o.tipo) && Array.isArray(o.bloques);
+  }
+
+  // Recorre un valor ya parseado y devuelve todas las sesiones que encuentre (máx. 4 niveles).
+  function extraerSesiones(valor, nivel, salida){
+    if(nivel > 4 || valor == null) return;
+    if(typeof valor === "string"){
+      const t = valor.trim();
+      if(t[0] === "{" || t[0] === "["){
+        try{ extraerSesiones(JSON.parse(t), nivel + 1, salida); }catch(e){ /* no era JSON */ }
+      }
+      return;
+    }
+    if(typeof valor !== "object") return;
+    if(esSesionValida(valor)){ salida.push(valor); return; }
+    const hijos = Array.isArray(valor) ? valor : Object.values(valor);
+    hijos.forEach(h => extraerSesiones(h, nivel + 1, salida));
+  }
+
+  function leerSesionesBiblioteca(){
+    const encontradas = [];
+    try{
+      for(let i = 0; i < localStorage.length; i++){
+        const clave = localStorage.key(i);
+        if(!clave || CLAVES_PROPIAS.includes(clave)) continue;
+        const raw = localStorage.getItem(clave);
+        if(!raw) continue;
+        extraerSesiones(raw, 0, encontradas);
+      }
+    }catch(e){ /* localStorage no disponible */ }
+    // Sin duplicados (misma sesión guardada bajo dos claves)
+    const vistos = new Set();
+    return encontradas.filter(se => {
+      const huella = JSON.stringify([se.nombre, se.generadoEn, se.totalMetros, se.bloques.length]);
+      if(vistos.has(huella)) return false;
+      vistos.add(huella);
+      return true;
+    }).sort((a, b) => String(b.generadoEn || "").localeCompare(String(a.generadoEn || "")));
+  }
+
+  function escHtml(t){
+    return String(t == null ? "" : t).replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+  }
+
+  // Estilo predominante (el que acumula más metros) y enfoque de la sesión
+  // (Técnica/Rendimiento, según si predominan series repetidas con tiempo
+  // objetivo —salidas cronometradas, ritmo— o ejercicios sueltos centrados
+  // en el gesto). Solo aplica a sesiones de natación.
+  function analizarSesionNatacion(se){
+    const ejercicios = se.bloques.reduce((arr, b) => arr.concat(Array.isArray(b.ejercicios) ? b.ejercicios : []), []);
+    const metrosPorEstilo = {};
+    ejercicios.forEach(e => {
+      const st = e.style || null;
+      if(!st) return;
+      metrosPorEstilo[st] = (metrosPorEstilo[st] || 0) + (e.distanciaTotal || 0);
+    });
+    const estilos = Object.entries(metrosPorEstilo).sort((a, b) => b[1] - a[1]);
+    const estiloPredominante = estilos.length ? estilos[0][0] : null;
+
+    // Marcador de "rendimiento": ejercicios con tiempo objetivo (ritmo/salida
+    // cronometrada) o con varias series de la misma serie (repeticiones).
+    const conRitmo = ejercicios.filter(e => e.tiempoObjetivo !== null || e.series > 1).length;
+    const enfoque = ejercicios.length && (conRitmo / ejercicios.length) >= 0.35 ? "Rendimiento" : "Técnica";
+
+    return { estiloPredominante, enfoque };
+  }
+
+  function resumenSesionBib(se){
+    const nEj = se.bloques.reduce((n, b) => n + (Array.isArray(b.ejercicios) ? b.ejercicios.length : 0), 0);
+    const fisica = se.tipo === "sesion-fisica";
+    const partes = [];
+    if(fisica){
+      partes.push("Rutina física");
+    } else {
+      const { estiloPredominante, enfoque } = analizarSesionNatacion(se);
+      partes.push(estiloPredominante ? `${estiloPredominante} · ${enfoque}` : enfoque);
+      if(se.totalMetros) partes.push(se.totalMetros + "m");
+    }
+    partes.push(nEj + " ejercicio" + (nEj === 1 ? "" : "s"));
+    if(se.generadoEn){
+      const f = new Date(se.generadoEn);
+      if(!isNaN(f)) partes.push(f.toLocaleDateString("es-ES", { day:"numeric", month:"short" }));
+    }
+    return partes.join(" · ");
+  }
+
+  let bibSesionesActuales = [];
+  let bibTabActiva = "predefinidos";
+  let bibPreviewSesion = null; // sesión mostrada en la vista previa (null = lista)
+
+  // Vista previa de un entrenamiento predefinido/importado: desglose por
+  // bloques y ejercicios (series×metros, estilo, tiempo objetivo si tiene),
+  // sin cargarlo todavía. Desde aquí el usuario decide cargarlo o volver.
+  function renderBibPreview(se){
+    const body = document.getElementById("bibModalBody");
+    const fisica = se.tipo === "sesion-fisica";
+    const { estiloPredominante, enfoque } = fisica ? {} : analizarSesionNatacion(se);
+
+    let html = `<button class="rp-bib-volver" id="bibPreviewVolverBtn" type="button" style="display:flex; align-items:center; gap:6px; background:none; border:none; color:inherit; opacity:.8; font-size:14px; padding:4px 0 14px; cursor:pointer;">‹ Volver a la lista</button>`;
+
+    html += `<div class="rp-bib-preview-header" style="margin-bottom:16px;">
+      <div style="font-size:17px; font-weight:700; margin-bottom:4px;">${escHtml(se.nombre || "Entrenamiento sin nombre")}</div>
+      <div style="opacity:.75; font-size:13.5px;">${escHtml(resumenSesionBib(se))}</div>
+    </div>`;
+
+    se.bloques.forEach(b => {
+      const ejercicios = Array.isArray(b.ejercicios) ? b.ejercicios : [];
+      html += `<div class="rp-bib-preview-bloque" style="margin-bottom:14px;">
+        <div style="font-weight:600; font-size:14px; opacity:.85; margin-bottom:6px;">${escHtml(b.titulo || "Bloque")}${b.distancia ? ` <span style="opacity:.6; font-weight:400;">· ${escHtml(b.distancia)}</span>` : ""}</div>
+        <div style="display:flex; flex-direction:column; gap:4px;">`;
+      ejercicios.forEach(e => {
+        const partes = [];
+        if(e.series > 1) partes.push(`${e.series}×${e.metros}m`);
+        else if(e.metros) partes.push(`${e.metros}m`);
+        if(e.tiempoObjetivo) partes.push(`cada ${Math.floor(e.tiempoObjetivo / 60)}:${String(e.tiempoObjetivo % 60).padStart(2, "0")}`);
+        const medida = partes.join(" · ");
+        html += `<div style="display:flex; justify-content:space-between; gap:10px; font-size:13.5px; padding:5px 0; border-bottom:1px solid rgba(255,255,255,.06);">
+          <span style="opacity:.9;">${escHtml(e.nombre || "Ejercicio")}</span>
+          ${medida ? `<span style="white-space:nowrap; opacity:.6;">${escHtml(medida)}</span>` : ""}
+        </div>`;
+      });
+      html += `</div></div>`;
+    });
+
+    html += `<div style="display:flex; gap:10px; margin-top:18px;">
+      <button class="action-btn btn-violet" id="bibPreviewVolverBtn2" type="button" style="flex:1; justify-content:center; padding:14px 16px;">‹ Volver</button>
+      <button class="action-btn btn-success" id="bibPreviewCargarBtn" type="button" style="flex:1.4; justify-content:center; padding:14px 16px;">Cargar entrenamiento</button>
+    </div>`;
+
+    body.innerHTML = html;
+
+    const volver = () => { bibPreviewSesion = null; renderBibModal(); };
+    document.getElementById("bibPreviewVolverBtn").addEventListener("click", volver);
+    document.getElementById("bibPreviewVolverBtn2").addEventListener("click", volver);
+    document.getElementById("bibPreviewCargarBtn").addEventListener("click", () => {
+      bibPreviewSesion = null;
+      cargarDesdeBiblioteca(se);
+    });
+  }
+
+  function renderBibModal(){
+    const body = document.getElementById("bibModalBody");
+
+    // Vista previa de un entrenamiento: se sustituye toda la lista/pestañas
+    // por el desglose de bloques y ejercicios, con la decisión de cargarlo
+    // o volver atrás, sin haberlo cargado todavía.
+    if(bibPreviewSesion){
+      renderBibPreview(bibPreviewSesion);
+      return;
+    }
+
+    const hayProgreso = !!(session || leerProgresoGuardado());
+
+    let html = "";
+    if(hayProgreso){
+      html += `<button class="action-btn btn-success" id="bibContinuarBtn" type="button" style="width:100%; justify-content:center; margin-bottom:14px; padding:14px 16px;">▶ Continuar entrenamiento en curso</button>`;
+    }
+    html += `<div class="rp-bib-tabs">
+      <button class="rp-bib-tab ${bibTabActiva === "predefinidos" ? "active" : ""}" data-tab="predefinidos" type="button">Predefinidos (${SESIONES_PREDEFINIDAS.length})</button>
+      <button class="rp-bib-tab ${bibTabActiva === "archivo" ? "active" : ""}" data-tab="archivo" type="button">Desde archivo</button>
+    </div>`;
+
+    // Enlace a la Biblioteca real (lightswan.github.io): esta lista de
+    // predefinidos es una copia fija de las sesiones publicadas ahí; si el
+    // usuario quiere ver la Biblioteca completa y actualizada, este botón
+    // le lleva a la sección de Entrenamientos.
+    html += `<a href="https://lightswan.github.io/biblioteca-natacion/#entrenamientos" target="_blank" rel="noopener" class="action-btn btn-violet" style="width:100%; justify-content:center; padding:12px 16px; margin-bottom:14px; text-decoration:none; font-size:14px;">🔗 Abrir la Biblioteca de la Natación</a>`;
+
+    if(bibTabActiva === "predefinidos"){
+      bibSesionesActuales = SESIONES_PREDEFINIDAS;
+      html += bibSesionesActuales.map((se, i) => `
+        <div class="rp-bib-item" data-idx="${i}" role="button" tabindex="0">
+          <div class="info">
+            <div class="nombre">${escHtml(se.nombre || "Entrenamiento sin nombre")}</div>
+            <div class="meta">${escHtml(resumenSesionBib(se))}</div>
+          </div>
+          <div class="chevron">›</div>
+        </div>`).join("");
+    } else {
+      html += `<div class="rp-bib-vacio" style="padding-bottom:14px;">Elige un archivo <b>.json</b> con un entrenamiento (o una lista de ellos) exportado desde la Biblioteca o el Generador.</div>
+        <input type="file" id="bibArchivoInput" accept=".json,application/json,text/plain" style="display:none;">
+        <button class="action-btn btn-primary" id="bibArchivoBtn" type="button" style="width:100%; justify-content:center; padding:14px 16px;">📂 Elegir archivo</button>
+        <p id="bibArchivoError" style="color:#f87171; font-size:13px; margin-top:12px; display:none; white-space:normal;"></p>`;
+    }
+    body.innerHTML = html;
+
+    const cont = document.getElementById("bibContinuarBtn");
+    if(cont) cont.addEventListener("click", () => { cerrarBibModal(); continuarSesionActivaOProgreso(); });
+
+    body.querySelectorAll(".rp-bib-tab").forEach(t => t.addEventListener("click", () => { bibTabActiva = t.dataset.tab; renderBibModal(); }));
+    body.querySelectorAll(".rp-bib-item").forEach(el => {
+      // Un clic en un ítem SIEMPRE abre antes la vista previa: cargar el
+      // entrenamiento es una decisión aparte que el usuario toma desde ahí.
+      const previsualizar = () => { bibPreviewSesion = bibSesionesActuales[Number(el.dataset.idx)]; renderBibModal(); };
+      el.addEventListener("click", previsualizar);
+      el.addEventListener("keydown", (e) => { if(e.key === "Enter" || e.key === " "){ e.preventDefault(); previsualizar(); } });
+    });
+
+    const inputArchivo = document.getElementById("bibArchivoInput");
+    if(inputArchivo){
+      document.getElementById("bibArchivoBtn").addEventListener("click", () => inputArchivo.click());
+      inputArchivo.addEventListener("change", () => {
+        const f = inputArchivo.files && inputArchivo.files[0];
+        if(!f) return;
+        const errEl = document.getElementById("bibArchivoError");
+        const lector = new FileReader();
+        lector.onload = () => {
+          const texto = String(lector.result || "");
+          // Si el archivo es un entrenamiento "en curso" exportado con sus
+          // resultados ({session, completedSet, exerciseResults, ...} — el
+          // mismo formato que genera el botón "Guardar"), se restaura tal
+          // cual, con los tiempos ya hechos, en vez de tratarlo como una
+          // sesión nueva vacía (que es lo que hacía extraerSesiones(),
+          // ya que solo busca el objeto "session" y descarta el resto).
+          let parsed = null;
+          try{ parsed = JSON.parse(texto); }catch(e){ /* no es JSON plano: puede ser una lista, lo gestiona extraerSesiones */ }
+          if(parsed && parsed.session && parsed.exerciseResults && esSesionValida(parsed.session)){
+            cerrarBibModal();
+            reanudarProgresoGuardado(parsed);
+            guardarProgresoLocal();
+            importError.style.display = "none";
+            return;
+          }
+          const halladas = [];
+          extraerSesiones(texto, 0, halladas);
+          if(halladas.length === 0){
+            errEl.textContent = "El archivo no contiene ningún entrenamiento con formato válido.";
+            errEl.style.display = "block";
+            return;
+          }
+          if(halladas.length === 1){ cargarDesdeBiblioteca(halladas[0]); return; }
+          // Varias sesiones en el archivo: se muestran como lista para elegir.
+          bibSesionesActuales = halladas;
+          bibTabActiva = "guardados";
+          const cuerpo = document.getElementById("bibModalBody");
+          cuerpo.innerHTML = `<div class="rp-bib-vacio" style="padding:0 0 12px;">El archivo contiene ${halladas.length} entrenamientos. Elige uno:</div>` +
+            halladas.map((se, i) => `
+              <div class="rp-bib-item" data-idx="${i}" role="button" tabindex="0">
+                <div class="info"><div class="nombre">${escHtml(se.nombre || "Entrenamiento sin nombre")}</div><div class="meta">${escHtml(resumenSesionBib(se))}</div></div>
+                <div class="chevron">›</div>
+              </div>`).join("");
+          cuerpo.querySelectorAll(".rp-bib-item").forEach(el => el.addEventListener("click", () => cargarDesdeBiblioteca(bibSesionesActuales[Number(el.dataset.idx)])));
+        };
+        lector.onerror = () => { errEl.textContent = "No se pudo leer el archivo."; errEl.style.display = "block"; };
+        lector.readAsText(f);
+      });
+    }
+  }
+
+  function cargarDesdeBiblioteca(se){
+    if(!se) return;
+    try{
+      cargarSesionDesdeJSON(JSON.stringify(se));
+      importError.style.display = "none";
+    }catch(err){
+      importError.textContent = "No se pudo cargar el entrenamiento: " + err.message;
+      importError.style.display = "block";
+    }
+    cerrarBibModal();
+  }
+
+  function abrirBibModal(){
+    if(modalAbiertoId === "bibModalBackdrop") return;
+    bibPreviewSesion = null; // siempre se abre en la lista, nunca en una preview de una vez anterior
+    renderBibModal();
+    document.getElementById("bibModalBackdrop").classList.add("show");
+    registrarAperturaModal("bibModalBackdrop");
+  }
+
+  function cerrarBibModal(){
+    document.getElementById("bibModalBackdrop").classList.remove("show");
+    bibPreviewSesion = null;
+    if(modalAbiertoId === "bibModalBackdrop"){
+      registrarCierreModal();
+      // Consume la entrada de historial que abrió el modal. Sin esto, tras
+      // cargar un entrenamiento el gesto "atrás" solo cerraría un modal fantasma.
+      popstatesAIgnorar++;
+      history.back();
+    }
+  }
+  document.getElementById("bibModalClose").addEventListener("click", cerrarBibModal);
+  document.getElementById("bibModalBackdrop").addEventListener("click", (e) => { if(e.target.id === "bibModalBackdrop") cerrarBibModal(); });
+  document.getElementById("abrirBibliotecaBtn").addEventListener("click", () => { bibTabActiva = "predefinidos"; abrirBibModal(); });
+
+  // El modal de Biblioteca ya NO se abre solo al entrar: se desactivó el
+  // popup automático a petición del usuario. La carga desde Biblioteca
+  // sigue disponible en todo momento pulsando #abrirBibliotecaBtn.
+  // (BIB_VISTO_KEY queda sin uso, se deja declarada por si se reactiva.)
+
+  // ====================================================================
+  // ✏️ EDITAR ENTRENAMIENTOS REALIZADOS (desde el resumen final)
+  // Permite corregir el tiempo total de un ejercicio ya hecho y, si tiene
+  // series, el tiempo de cada serie (el total se recalcula como suma).
+  // Modifica exerciseResults[idx], que es lo que leen las estadísticas del
+  // resumen, la exportación a PNG y el guardado de progreso — así todo se
+  // mantiene coherente sin tocar nada más.
+  // ====================================================================
+  let editIdx = -1;
+
+  function msAPartes(ms){
+    const t = Math.max(0, Math.round(ms / 100)); // décimas
+    return { m: Math.floor(t / 600), s: Math.floor((t % 600) / 10), d: t % 10 };
+  }
+  function partesAMs(m, s, d){ return ((m * 60 + s) * 10 + d) * 100; }
+
+  // Devuelve las series de un resultado como [{splitMs}], o null si no hay desglose fiable.
+  function seriesEditablesDe(r){
+    const ex = r.ex;
+    if(!(ex.series > 1) || !Array.isArray(r.laps) || r.laps.length === 0) return null;
+    const lista = r.laps.map(l => ({ splitMs: l.splitMs }));
+    const yaCompleto = r.laps.length >= ex.series;
+    const ultimo = r.laps[r.laps.length - 1].elapsedMs;
+    if(!yaCompleto && (r.elapsedMs - ultimo) > 1000){ lista.push({ splitMs: r.elapsedMs - ultimo }); }
+    return lista;
+  }
+
+  function campoTiempoHTML(prefijo, ms){
+    const p = msAPartes(ms);
+    return `<div class="rp-edit-time">
+      <input type="number" inputmode="numeric" min="0" max="599" id="${prefijo}m" value="${p.m}" aria-label="minutos"><span class="unit">min</span>
+      <input type="number" inputmode="numeric" min="0" max="59" id="${prefijo}s" value="${p.s}" aria-label="segundos"><span class="unit">s</span>
+      <input type="number" inputmode="numeric" min="0" max="9" id="${prefijo}d" value="${p.d}" aria-label="décimas" style="max-width:60px;"><span class="unit">déc.</span>
+    </div>`;
+  }
+  function leerCampoTiempo(prefijo){
+    const m = parseInt(document.getElementById(prefijo + "m").value, 10);
+    const s = parseInt(document.getElementById(prefijo + "s").value, 10);
+    const d = parseInt(document.getElementById(prefijo + "d").value, 10);
+    if([m, s, d].some(n => isNaN(n) || n < 0) || s > 59 || d > 9) return null;
+    return partesAMs(m, s, d);
+  }
+
+  // Lee los tiempos por serie (data-s) del DOM del editor; null si alguno es inválido o no hay.
+  // Lee los tiempos por serie. Devuelve null si alguno es inválido; en ese
+  // caso `leerSplitsDesdeDOM.ultimaInvalida` guarda el nº (1-indexado) de la
+  // primera serie con un valor incorrecto, para poder indicarlo al usuario.
+  function leerSplitsDesdeDOM(cont){
+    leerSplitsDesdeDOM.ultimaInvalida = 0;
+    const filas = cont.querySelectorAll("input[data-s][data-u='m']");
+    if(!filas.length) return null;
+    const out = [];
+    for(let i = 0; i < filas.length; i++){
+      const g = (u) => parseInt(cont.querySelector(`input[data-s="${i}"][data-u="${u}"]`).value, 10);
+      const m = g("m"), sg = g("s"), d = g("d");
+      if([m, sg, d].some(n => isNaN(n) || n < 0) || sg > 59 || d > 9){
+        leerSplitsDesdeDOM.ultimaInvalida = i + 1;
+        return null;
+      }
+      out.push(partesAMs(m, sg, d));
+    }
+    return out;
+  }
+
+  function engancharBotonesEdicion(){
+    document.getElementById("editGuardarBtn").addEventListener("click", guardarEdicionResultado);
+    document.getElementById("editCancelarBtn").addEventListener("click", cerrarEditModal);
+    document.getElementById("editQuitarBtn").addEventListener("click", quitarResultadoDelResumen);
+    document.getElementById("editModalBackdrop").classList.add("show");
+    registrarAperturaModal("editModalBackdrop");
+  }
+
+  function abrirEditarResultado(idx){
+    const r = exerciseResults[idx];
+    if(!r) return;
+    editIdx = idx;
+    const ex = flat[idx] ? flat[idx].ex : r.ex;
+    document.getElementById("editModalTitle").textContent = "Editar ejercicio";
+    const body = document.getElementById("editModalBody");
+
+    if(modoFisico){
+      body.innerHTML = `<div class="rp-edit-field"><label for="editNombre">Nombre</label>
+          <input type="text" class="rp-edit-text" id="editNombre" value="${escHtml(ex.nombre)}" maxlength="160"></div>
+        <div class="rp-edit-field"><label for="editSeries">Series</label>
+          <input type="number" inputmode="numeric" class="rp-edit-num" id="editSeries" min="1" max="99" value="${ex.series || 1}"></div>
+        <p class="rp-edit-error" id="editError"></p>
+        <div class="rp-edit-actions">
+          <button class="action-btn btn-success" id="editGuardarBtn" type="button">Guardar</button>
+          <button class="action-btn" id="editCancelarBtn" type="button">Cancelar</button>
+        </div>
+        <button class="action-btn" id="editQuitarBtn" type="button" style="width:100%; justify-content:center; margin-top:10px; color:#f87171; border-color:rgba(248,113,113,.3);">Quitar del resumen</button>`;
+    } else {
+      const series = seriesEditablesDe(r);
+      let html = `<div class="rp-edit-field"><label for="editNombre">Nombre</label>
+          <input type="text" class="rp-edit-text" id="editNombre" value="${escHtml(ex.nombre)}" maxlength="160"></div>
+        <div class="rp-edit-grid">
+          <div class="rp-edit-field"><label for="editSeries">Series</label>
+            <input type="number" inputmode="numeric" class="rp-edit-num" id="editSeries" min="1" max="99" value="${ex.series || 1}"></div>
+          <div class="rp-edit-field"><label for="editMetros">Metros por serie</label>
+            <input type="number" inputmode="numeric" class="rp-edit-num" id="editMetros" min="1" max="99999" value="${ex.metros || 0}"></div>
+        </div>
+        <div class="rp-edit-total" style="margin-top:0;"><span>Distancia total</span><span class="v" id="editDistTotal">—</span></div>
+        <p class="rp-edit-aviso" id="editAvisoSeries"></p>
+        <div id="editTiempos"></div>
+        <p class="rp-edit-error" id="editError"></p>
+        <div class="rp-edit-actions">
+          <button class="action-btn btn-success" id="editGuardarBtn" type="button">Guardar</button>
+          <button class="action-btn" id="editCancelarBtn" type="button">Cancelar</button>
+        </div>
+        <button class="action-btn" id="editQuitarBtn" type="button" style="width:100%; justify-content:center; margin-top:10px; color:#f87171; border-color:rgba(248,113,113,.3);">Quitar del resumen</button>`;
+      body.innerHTML = html;
+
+      const inpSeries = document.getElementById("editSeries");
+      const inpMetros = document.getElementById("editMetros");
+      const distEl = document.getElementById("editDistTotal");
+      const tiemposEl = document.getElementById("editTiempos");
+      const avisoEl = document.getElementById("editAvisoSeries");
+      const hayDesglose = !!series; // el ejercicio original tenía tiempos por serie
+
+      const recalcularDist = () => {
+        const se = parseInt(inpSeries.value, 10), me = parseInt(inpMetros.value, 10);
+        distEl.textContent = (se > 0 && me > 0) ? (se * me) + "m" : "—";
+      };
+
+      // El bloque de tiempos depende del nº de series que se esté editando:
+      //  · 1 serie, o sin desglose original → un único "tiempo total".
+      //  · varias series con desglose original → un tiempo por serie
+      //    (al cambiar el nº de series se conservan las ya escritas y las
+      //    nuevas se rellenan con la media, para no perder lo introducido).
+      let splitsActuales = hayDesglose ? series.map(x => x.splitMs) : null;
+      const pintarTiempos = () => {
+        const se = Math.max(1, parseInt(inpSeries.value, 10) || 1);
+        if(hayDesglose && se > 1){
+          // recoger lo que haya escrito antes de repintar
+          const previos = leerSplitsDesdeDOM(tiemposEl);
+          if(previos) splitsActuales = previos;
+          const media = splitsActuales.length ? Math.round(splitsActuales.reduce((a,b)=>a+b,0) / splitsActuales.length) : 0;
+          const lista = [];
+          for(let i = 0; i < se; i++) lista.push(i < splitsActuales.length ? splitsActuales[i] : media);
+          splitsActuales = lista;
+          tiemposEl.innerHTML = `<div class="rp-edit-field"><label>Tiempo de cada serie</label>` +
+            lista.map((ms, i) => {
+              const pt = msAPartes(ms);
+              return `<div class="rp-edit-serie"><span class="lbl">Serie ${i+1}</span>
+                <input type="number" inputmode="numeric" min="0" max="599" data-s="${i}" data-u="m" value="${pt.m}" aria-label="minutos serie ${i+1}">
+                <span style="color:var(--muted)">:</span>
+                <input type="number" inputmode="numeric" min="0" max="59" data-s="${i}" data-u="s" value="${pt.s}" aria-label="segundos serie ${i+1}">
+                <span style="color:var(--muted)">.</span>
+                <input type="number" inputmode="numeric" min="0" max="9" data-s="${i}" data-u="d" value="${pt.d}" aria-label="décimas serie ${i+1}" style="max-width:60px;">
+              </div>`;
+            }).join("") +
+            `</div><div class="rp-edit-total"><span>Tiempo total</span><span class="v" id="editTotalVal">—</span></div>`;
+          tiemposEl.querySelectorAll("input[data-s]").forEach(inp => inp.addEventListener("input", actualizarTotalSeries));
+          actualizarTotalSeries();
+          avisoEl.style.display = "none";
+        } else {
+          // Tiempo total único: si se venía de varias series, se conserva la suma.
+          const previos = leerSplitsDesdeDOM(tiemposEl);
+          const totalPrevio = previos ? previos.reduce((a,b)=>a+b,0)
+                             : (splitsActuales ? splitsActuales.reduce((a,b)=>a+b,0) : r.elapsedMs);
+          const valorActual = document.getElementById("editT_m") ? leerCampoTiempo("editT_") : null;
+          const ms = valorActual !== null ? valorActual : totalPrevio;
+          tiemposEl.innerHTML = `<div class="rp-edit-field"><label>Tiempo total</label>${campoTiempoHTML("editT_", ms)}</div>`;
+          avisoEl.style.display = "none";
+        }
+      };
+      const actualizarTotalSeries = () => {
+        const sp = leerSplitsDesdeDOM(tiemposEl);
+        const el = document.getElementById("editTotalVal");
+        if(el) el.textContent = sp ? formatTime(sp.reduce((a,b)=>a+b,0), true) : "—";
+      };
+
+      inpSeries.addEventListener("input", () => { recalcularDist(); pintarTiempos(); });
+      inpMetros.addEventListener("input", recalcularDist);
+      recalcularDist();
+      pintarTiempos();
+    }
+    engancharBotonesEdicion();
+  }
+
+  // Recalcula las distancias derivadas tras cambiar series/metros de un
+  // ejercicio: distancia total de cada bloque y metros totales de la sesión.
+  // Se recorre TODA la sesión (no solo el ejercicio editado) para que
+  // los totales siempre cuadren con los ejercicios reales.
+  function recalcularTotalesSesion(){
+    if(!session || modoFisico) return;
+    let total = 0;
+    session.bloques.forEach(b => {
+      let sub = 0;
+      (b.ejercicios || []).forEach(e => { sub += (e.distanciaTotal || (e.series * e.metros) || 0); });
+      b.distancia = sub + "m";
+      total += sub;
+    });
+    session.totalMetros = total;
+  }
+
+  // Aplica una modificación a todas las copias del ejercicio `idx`: el de
+  // `flat`, el de `exerciseResults` y el de `session.bloques` (que son el
+  // mismo objeto en una sesión en vivo pero copias tras recargar).
+  function aplicarACopiasDelEjercicio(idx, fn){
+    const vistos = new Set();
+    const aplicar = (e) => { if(e && !vistos.has(e)){ vistos.add(e); fn(e); } };
+    if(flat[idx]){
+      aplicar(flat[idx].ex);
+      const b = session.bloques[flat[idx].bi];
+      if(b && b.ejercicios) aplicar(b.ejercicios[flat[idx].ei]);
+    }
+    if(exerciseResults[idx]) aplicar(exerciseResults[idx].ex);
+  }
+
+  function guardarEdicionResultado(){
+    const r = exerciseResults[editIdx];
+    if(!r) return cerrarEditModal();
+    const errEl = document.getElementById("editError");
+    const fallo = (msg) => { errEl.textContent = msg; errEl.style.display = "block"; };
+
+    const nombre = document.getElementById("editNombre").value.trim();
+    if(!nombre) return fallo("El nombre no puede estar vacío.");
+    const series = parseInt(document.getElementById("editSeries").value, 10);
+    if(isNaN(series) || series < 1 || series > 99) return fallo("Las series tienen que ser un número entre 1 y 99.");
+
+    if(modoFisico){
+      aplicarACopiasDelEjercicio(editIdx, e => { e.nombre = nombre; e.series = series; });
+      guardarProgresoLocal();
+      cerrarEditModal();
+      renderSummaryScreen();
+      return;
+    }
+
+    const metros = parseInt(document.getElementById("editMetros").value, 10);
+    if(isNaN(metros) || metros < 1) return fallo("Los metros por serie tienen que ser un número mayor que 0.");
+
+    // --- Tiempos ---
+    const tiemposEl = document.getElementById("editTiempos");
+    let nuevoTotal, nuevasLaps = null;
+    if(tiemposEl.querySelector("input[data-s]")){
+      const splits = leerSplitsDesdeDOM(tiemposEl);
+      if(!splits) return fallo(`Revisa el tiempo de la serie ${leerSplitsDesdeDOM.ultimaInvalida}: minutos y décimas válidos, segundos entre 0 y 59.`);
+      let acum = 0;
+      nuevasLaps = splits.map(sp => { acum += sp; return { elapsedMs: acum, splitMs: sp }; });
+      nuevoTotal = acum;
+    } else {
+      const t = leerCampoTiempo("editT_");
+      if(t === null) return fallo("Revisa el tiempo: minutos y décimas válidos, segundos entre 0 y 59.");
+      nuevoTotal = t;
+    }
+    if(nuevoTotal <= 0) return fallo("El tiempo total tiene que ser mayor que cero. Si el ejercicio no se hizo, usa «Quitar del resumen».");
+
+    // --- Aplicar ---
+    // Se actualiza el ejercicio en TODAS sus copias (flat, exerciseResults y
+    // la propia sesión): tras recargar desde localStorage son objetos distintos
+    // y, si solo se tocase uno, el resumen y el detalle se contradirían.
+    aplicarACopiasDelEjercicio(editIdx, e => {
+      e.nombre = nombre;
+      e.series = series;
+      e.metros = metros;
+      e.distanciaTotal = series * metros;
+    });
+    r.elapsedMs = nuevoTotal;
+    if(nuevasLaps){
+      r.laps = nuevasLaps;
+      // Las vueltas sueltas se referían a los tiempos anteriores y ya no encajan.
+      r.vueltasSueltas = [];
+    } else {
+      // Sin desglose por serie: se deja solo el tiempo total.
+      r.laps = [];
+      r.vueltasSueltas = [];
+    }
+    recalcularTotalesSesion();
+    guardarProgresoLocal();
+    cerrarEditModal();
+    renderSummaryScreen();
+  }
+
+  function quitarResultadoDelResumen(){
+    if(!(editIdx in exerciseResults)) return cerrarEditModal();
+    delete exerciseResults[editIdx];
+    completedSet.delete(editIdx);
+    guardarProgresoLocal();
+    cerrarEditModal();
+    renderSummaryScreen();
+  }
+
+  function cerrarEditModal(){
+    document.getElementById("editModalBackdrop").classList.remove("show");
+    if(modalAbiertoId === "editModalBackdrop"){
+      registrarCierreModal();
+      popstatesAIgnorar++;
+      history.back();
+    }
+    editIdx = -1;
+  }
+  document.getElementById("editModalClose").addEventListener("click", cerrarEditModal);
+  document.getElementById("editModalBackdrop").addEventListener("click", (e) => { if(e.target.id === "editModalBackdrop") cerrarEditModal(); });
+
   // ====================================================================
   // 📚 RESUMEN
   // ====================================================================
@@ -2250,6 +4203,12 @@ c48 -9 152 -20 232 -26 80 -6 199 -15 265 -21 180 -14 336 -26 580 -44 270
   }
 
   function renderOverview(){
+    // Si el cronómetro de sesión ya se había puesto en marcha (se hizo al
+    // menos un ejercicio) y veníamos del resumen (donde se pausa), se
+    // reanuda aquí. Si aún no se ha empezado nada, sigue "idle": arrancará
+    // de verdad al abrir el primer ejercicio (openExercise).
+    reanudarCronoSesion();
+
     document.getElementById("ovNombre").textContent = session.nombre || "Entrenamiento";
     document.getElementById("ovFecha").textContent = session.generadoEn
       ? new Date(session.generadoEn).toLocaleDateString("es-ES", { day:"numeric", month:"long", year:"numeric" })
@@ -2387,6 +4346,8 @@ c48 -9 152 -20 232 -26 80 -6 199 -15 265 -21 180 -14 336 -26 580 -44 270
   function openExercise(idx){
     if(idx < 0 || idx >= flat.length) return;
     currentIdx = idx;
+    iniciarCronoSesionSiHaceFalta();
+    reanudarCronoSesion(); // por si veníamos de haber entrado al resumen (pausado)
     resetTimerVars();
     detenerCronometroFisico();
     detenerDescansoFisico();
@@ -3343,6 +5304,16 @@ c48 -9 152 -20 232 -26 80 -6 199 -15 265 -21 180 -14 336 -26 580 -44 270
   }
 
   function renderSummaryScreen(){
+    // El cronómetro de sesión se pausa en cuanto se entra al resumen (desde
+    // cualquier punto de la app) y solo se reanuda si se vuelve a la lista
+    // de ejercicios o se abre uno nuevo.
+    pausarCronoSesion();
+
+    // Si la pantalla ya estaba en modo edición (p. ej. tras guardar un cambio)
+    // se respeta; si se llega desde otra pantalla, empieza apagado.
+    if(document.body.getAttribute("data-screen") !== "summary" && modoEdicionToggle && modoEdicionToggle.checked){
+      aplicarModoEdicion(false);
+    }
     const stats = computeSummaryStats();
     document.getElementById("sumNombre").textContent = session ? (session.nombre || "Entrenamiento") : "";
 
@@ -3359,12 +5330,14 @@ c48 -9 152 -20 232 -26 80 -6 199 -15 265 -21 180 -14 336 -26 580 -44 270
     } else {
       document.getElementById("sumMetrosLabel").textContent = "Metros totales";
       document.getElementById("sumMetros").textContent = stats.totalMetros + "m";
-      document.getElementById("sumTiempoLabel").textContent = "Tiempo total";
+      document.getElementById("sumTiempoLabel").textContent = "Tiempo nadado";
       document.getElementById("sumTiempo").textContent = formatTime(stats.totalTimeMs, false);
       document.getElementById("sumRitmoLabel").textContent = "Ritmo /100m";
       document.getElementById("sumRitmo").textContent = stats.totalMetros > 0 ? formatTime(stats.paceMs, false) + " /100m" : "—";
       if(pngRow) pngRow.style.display = "flex";
     }
+
+    renderTiempoSesion();
 
     const listEl = document.getElementById("sumList");
     listEl.innerHTML = "";
@@ -3374,19 +5347,30 @@ c48 -9 152 -20 232 -26 80 -6 199 -15 265 -21 180 -14 336 -26 580 -44 270
       if(!r) return;
       any = true;
       const row = document.createElement("div");
+      const ex = item.ex;
       if(modoFisico){
         row.className = "rp-lap-row res-green";
-        const cantidad = item.ex.duracionSegundos != null
-          ? formatTime(item.ex.duracionSegundos*1000, false)
-          : `${item.ex.repeticiones != null ? item.ex.repeticiones : "?"} rep${item.ex.porLado ? "/lado" : ""}`;
-        row.innerHTML = `<span class="lap-label">✓ ${item.ex.nombre}</span><span class="lap-time">${item.ex.series} × ${cantidad}</span>`;
+        const cantidad = ex.duracionSegundos != null
+          ? formatTime(ex.duracionSegundos*1000, false)
+          : `${ex.repeticiones != null ? ex.repeticiones : "?"} rep${ex.porLado ? "/lado" : ""}`;
+        row.innerHTML = `<span class="lap-label">✓ ${escHtml(ex.nombre)}</span><span class="lap-time">${ex.series} × ${cantidad}</span>`;
       } else {
-        const objetivoTotal = item.ex.tiempoObjetivo ? item.ex.tiempoObjetivo * item.ex.series : null;
+        const objetivoTotal = ex.tiempoObjetivo ? ex.tiempoObjetivo * ex.series : null;
         const cls = claseResultado(r.elapsedMs / 1000, objetivoTotal);
         row.className = "rp-lap-row " + cls;
-        row.innerHTML = `<span class="lap-label">${item.ex.nombre}</span><span class="lap-time">${formatTime(r.elapsedMs, false)}</span>`;
+        // Se muestran series × metros (y el total) para que se vean también
+        // en el resumen y se puedan comprobar/editar.
+        const dist = ex.distanciaTotal || (ex.series * ex.metros) || 0;
+        row.innerHTML = `<span class="lap-label">${escHtml(ex.nombre)}<span class="rp-sum-sub">${ex.series}×${ex.metros}m · ${dist}m</span></span><span class="lap-time">${formatTime(r.elapsedMs, false)}</span>`;
       }
-      listEl.appendChild(row);
+      // La fila entera abre el editor, pero solo con el "Modo edición" activo.
+      row.addEventListener("click", () => {
+        if(document.body.classList.contains("sum-editando")) abrirEditarResultado(idx);
+      });
+      const wrap = document.createElement("div");
+      wrap.className = "rp-sum-row";
+      wrap.appendChild(row);
+      listEl.appendChild(wrap);
     });
     if(!any){
       listEl.innerHTML = `<div class="rp-empty"><div class="icon">${modoFisico ? "🏋️" : LOGO_SVG_EMPTY}</div><p>Todavía no has completado ningún ejercicio.</p></div>`;
@@ -3397,7 +5381,62 @@ c48 -9 152 -20 232 -26 80 -6 199 -15 265 -21 180 -14 336 -26 580 -44 270
     document.getElementById("downloadReducedPngBtn").disabled = !hasResults;
   }
 
-  document.getElementById("summaryBackBtn").addEventListener("click", () => { renderOverview(); showScreen("overview"); });
+  // Pinta el valor del cronómetro de sesión en el resumen. Se llama al
+  // entrar al resumen (ya pausado) y tras guardar una edición manual.
+  function renderTiempoSesion(){
+    document.getElementById("sumTiempoSesion").textContent = formatTime(obtenerTiempoSesionMs(), false);
+  }
+
+  // ---- Edición manual del tiempo de sesión ----
+  function abrirEditarTiempoSesion(){
+    document.getElementById("sesionTiempoCampo").innerHTML = campoTiempoHTML("sesTiempo_", obtenerTiempoSesionMs());
+    document.getElementById("sesionTiempoModalBackdrop").classList.add("show");
+    registrarAperturaModal("sesionTiempoModalBackdrop");
+  }
+  function cerrarEditarTiempoSesion(){
+    document.getElementById("sesionTiempoModalBackdrop").classList.remove("show");
+    if(modalAbiertoId === "sesionTiempoModalBackdrop"){
+      registrarCierreModal();
+      popstatesAIgnorar++;
+      history.back();
+    }
+  }
+  document.getElementById("editarTiempoSesionBtn").addEventListener("click", abrirEditarTiempoSesion);
+  document.getElementById("sesionTiempoModalClose").addEventListener("click", cerrarEditarTiempoSesion);
+  document.getElementById("sesionTiempoModalBackdrop").addEventListener("click", (e) => { if(e.target.id === "sesionTiempoModalBackdrop") cerrarEditarTiempoSesion(); });
+  document.getElementById("sesionTiempoGuardarBtn").addEventListener("click", () => {
+    const ms = leerCampoTiempo("sesTiempo_");
+    if(ms === null) return; // valores inválidos: no se cierra, para que el usuario corrija
+    sessionTiempoManual = ms;
+    renderTiempoSesion();
+    guardarProgresoLocal();
+    cerrarEditarTiempoSesion();
+  });
+  // "Recalcular": vuelve al tiempo real medido por el cronómetro (descarta
+  // el valor fijado a mano) y reanuda el cálculo automático si se sigue
+  // entrenando más adelante.
+  document.getElementById("sesionTiempoRecalcularBtn").addEventListener("click", () => {
+    sessionTiempoManual = null;
+    if(sessionTimerState === "idle" && (session || Object.keys(exerciseResults).length)){
+      // No hay forma de recuperar el tiempo real transcurrido si se ha
+      // borrado manualmente sin haber corrido nunca el cronómetro: se dejan
+      // los contadores a 0 en vez de inventar un valor.
+      sessionTimerState = "idle";
+    }
+    document.getElementById("sesionTiempoCampo").innerHTML = campoTiempoHTML("sesTiempo_", obtenerTiempoSesionMs());
+    renderTiempoSesion();
+  });
+
+  // Modo edición del resumen: se apaga siempre al volver a entrar en el
+  // resumen (evita abrir el editor sin querer) y al salir de él.
+  const modoEdicionToggle = document.getElementById("modoEdicionToggle");
+  function aplicarModoEdicion(activo){
+    document.body.classList.toggle("sum-editando", !!activo);
+    modoEdicionToggle.checked = !!activo;
+  }
+  modoEdicionToggle.addEventListener("change", () => aplicarModoEdicion(modoEdicionToggle.checked));
+
+  document.getElementById("summaryBackBtn").addEventListener("click", () => { aplicarModoEdicion(false); renderOverview(); showScreen("overview"); });
 
   // ====================================================================
   // 🖼️ EXPORTAR RESUMEN A PNG (completo / reducido)
@@ -3457,8 +5496,9 @@ c48 -9 152 -20 232 -26 80 -6 199 -15 265 -21 180 -14 336 -26 580 -44 270
 
     const statDefsAll = [
       { key:"metros", label:"METROS",      value: stats.totalMetros + "m" },
-      { key:"tiempo", label:"TIEMPO",      value: formatTime(stats.totalTimeMs, false) },
+      { key:"tiempo", label:"T. NADADO",      value: formatTime(stats.totalTimeMs, false) },
       { key:"ritmo",  label:"RITMO /100M", value: stats.totalMetros > 0 ? formatTime(stats.paceMs, false) : "—" },
+      { key:"tiempoSesion", label:"T. SESIÓN", value: formatTime(obtenerTiempoSesionMs(), false) },
     ];
     const statDefs = statDefsAll.filter(s => ajustes[s.key]);
     const statsBlockH = statDefs.length ? statDefs.length * (STAT_LABEL_H + STAT_VALUE_H) + (statDefs.length - 1) * STAT_GAP : 0;
@@ -3618,8 +5658,9 @@ c48 -9 152 -20 232 -26 80 -6 199 -15 265 -21 180 -14 336 -26 580 -44 270
 
     const statDefsAll = [
       { key:"metros", label:"METROS",       value: stats.totalMetros + "m" },
-      { key:"tiempo", label:"TIEMPO",       value: formatTime(stats.totalTimeMs, false) },
+      { key:"tiempo", label:"T. NADADO",       value: formatTime(stats.totalTimeMs, false) },
       { key:"ritmo",  label:"RITMO /100M",  value: stats.totalMetros > 0 ? formatTime(stats.paceMs, false) : "—" },
+      { key:"tiempoSesion", label:"T. SESIÓN", value: formatTime(obtenerTiempoSesionMs(), false) },
     ];
     const statDefs = statDefsAll.filter(s => ajustes[s.key]);
     const mostrarFooter = ajustes.logo || ajustes.textoLogo;
@@ -3804,6 +5845,7 @@ c48 -9 152 -20 232 -26 80 -6 199 -15 265 -21 180 -14 336 -26 580 -44 270
     document.getElementById("descModalBackdrop").classList.remove("show");
     if(modalAbiertoId === "descModalBackdrop"){
       registrarCierreModal();
+      popstatesAIgnorar++;
       history.back(); // consume la entrada de historial que abrió este modal
     }
   }
