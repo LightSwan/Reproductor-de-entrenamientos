@@ -8,6 +8,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Reproductor Natación">
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<link rel="apple-touch-icon" href="favicon.ico">
   <title>Reproductor de entrenamientos</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -478,6 +480,8 @@
       font-size:min(20vw, 96px); font-weight:800; font-variant-numeric:tabular-nums; color:#fff; letter-spacing:.01em;
     }
     #timerDisplay.paused{ color:#4b5563; }
+    #timerDisplay.cd{ color:#7dd3fc; }
+    #timerDisplay.cd-low{ color:#fb923c; }
 
     #totalTimeDisplay{ font-size:15px; color:var(--muted); margin-top:8px; font-variant-numeric:tabular-nums; min-height:20px; }
     #targetRef{ font-size:13px; color:var(--muted); margin-top:6px; min-height:18px; }
@@ -659,6 +663,17 @@
       margin-bottom:18px; animation:descPulse 7.8s ease-in-out infinite; transition:border-color .2s, transform .15s;
     }
     .rp-desc-btn .icon{ font-size:16px; }
+    /* Fila con los botones de «Explicación» y «Libro pág. N» */
+    .rp-ex-btn-row{ display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-bottom:18px; }
+    .rp-ex-btn-row .rp-desc-btn{ margin-bottom:0; }
+    .rp-page-btn{
+      display:inline-flex; align-items:center; gap:8px; text-decoration:none;
+      background:rgba(148,163,184,.10); border:1px solid rgba(148,163,184,.32); color:#cbd5e1;
+      font-weight:700; font-size:13.5px; font-family:'Sora',sans-serif; padding:11px 16px;
+      border-radius:999px; cursor:pointer; transition:border-color .2s, transform .15s;
+    }
+    .rp-page-btn:hover{ border-color:#7dd3fc; color:#e2e8f0; }
+    .rp-page-btn:active{ transform:scale(.97); }
     .rp-desc-btn:hover{ border-color:#7dd3fc; }
     .rp-desc-btn:active{ transform:scale(.97); }
     @keyframes descPulse{
@@ -697,31 +712,63 @@
       text-align:center;
     }
 
+    /* Modales: la cabecera y el botón ✕ quedan fijos y solo se desplaza el cuerpo.
+       Sin backdrop-filter en el fondo: en Chrome Android dejaba la capa cortada
+       (se veía una franja de otro color) y el botón de pantalla completa por encima. */
     .rp-modal-backdrop{
-      position:fixed; inset:0; z-index:3000; display:none; align-items:center; justify-content:center;
-      background:rgba(2,6,10,.75); backdrop-filter:blur(6px); padding:24px;
+      position:fixed; top:0; left:0; right:0; bottom:0; z-index:3000; display:none; align-items:center; justify-content:center;
+      background:rgba(2,6,10,.9);
+      padding:calc(14px + env(safe-area-inset-top)) calc(14px + env(safe-area-inset-right)) calc(14px + env(safe-area-inset-bottom)) calc(14px + env(safe-area-inset-left));
+      overscroll-behavior:contain;
       animation:fullblackFadeIn .2s ease;
     }
     .rp-modal-backdrop.show{ display:flex; }
     .rp-modal{
-      position:relative; width:100%; max-width:520px; max-height:80vh; overflow-y:auto;
+      position:relative; width:100%; max-width:520px; max-height:100%;
+      display:flex; flex-direction:column; overflow:hidden;
       background:var(--panel); border:1px solid rgba(148,163,184,.2); border-radius:26px;
-      padding:32px 28px 28px; box-shadow:0 30px 70px -20px rgba(0,0,0,.7);
+      box-shadow:0 30px 70px -20px rgba(0,0,0,.7);
     }
     .rp-modal-close{
-      position:absolute; top:14px; right:14px; width:42px; height:42px; border-radius:50%;
+      position:absolute; top:14px; right:14px; z-index:3; width:42px; height:42px; border-radius:50%;
       background:rgba(255,255,255,.06); border:1px solid rgba(148,163,184,.2); color:var(--muted);
       font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:.2s;
     }
     .rp-modal-close:hover{ color:var(--text); border-color:var(--primary); }
-    .rp-modal-header{ font-size:20px; font-weight:800; margin-bottom:14px; padding-right:38px; color:var(--text); }
-    .rp-modal-body{ color:var(--muted); font-size:15.5px; line-height:1.7; white-space:pre-wrap; }
+    .rp-modal-header{ flex:none; font-size:20px; font-weight:800; margin:0; padding:26px 70px 12px 28px; color:var(--text); line-height:1.25; }
+    .rp-modal-body{
+      flex:1 1 auto; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain;
+      padding:4px 28px 28px; color:var(--muted); font-size:15.5px; line-height:1.7; white-space:pre-wrap;
+    }
+    @media (max-width:480px){
+      .rp-modal{ border-radius:22px; }
+      .rp-modal-header{ padding:22px 64px 10px 20px; font-size:18.5px; }
+      .rp-modal-body{ padding:4px 16px 20px; }
+    }
+    /* Con un modal abierto: sin botón flotante de pantalla completa y sin scroll de la página de fondo */
+    body.rp-modal-open .rp-fs-toggle{ display:none; }
+    body.rp-modal-open{ overflow:hidden; }
 
 
     /* ============================================================
        BIBLIOTECA (modal de carga) + EDICIÓN DE RESULTADOS
     ============================================================ */
-    .rp-bib-tabs{ display:flex; gap:8px; margin-bottom:14px; }
+    .rp-bib-tabs{ display:flex; gap:8px; margin-bottom:14px; position:sticky; top:0; z-index:2; background:var(--panel); padding:4px 0 10px; }
+    /* Desplegables: sección (y nivel) del listado de sesiones */
+    .rp-bib-det{ margin-bottom:10px; border:1px solid var(--border); border-radius:16px; background:rgba(15,23,42,.35); overflow:hidden; }
+    .rp-bib-det > summary{
+      list-style:none; cursor:pointer; display:flex; align-items:center; gap:10px; padding:14px 16px;
+      font-weight:800; font-size:14px; color:var(--text); -webkit-user-select:none; user-select:none;
+    }
+    .rp-bib-det > summary::-webkit-details-marker{ display:none; }
+    .rp-bib-det > summary .sum-t{ flex:1; min-width:0; line-height:1.3; }
+    .rp-bib-det > summary .sum-n{ flex:none; font-size:12px; font-weight:700; color:var(--muted); background:rgba(148,163,184,.14); border-radius:999px; padding:2px 10px; }
+    .rp-bib-det > summary .sum-c{ flex:none; color:var(--muted); font-size:18px; transition:transform .2s; }
+    .rp-bib-det[open] > summary .sum-c{ transform:rotate(90deg); }
+    .rp-bib-det > summary .rp-bib-dot{ width:10px; height:10px; border-radius:50%; flex:none; }
+    .rp-bib-det .rp-bib-det-body{ padding:0 12px 4px; }
+    .rp-bib-det .rp-bib-det{ background:rgba(30,41,59,.28); border-radius:13px; margin-bottom:8px; }
+    .rp-bib-det .rp-bib-det > summary{ font-size:13.5px; padding:12px 14px; }
     .rp-bib-tab{
       flex:1; padding:10px 12px; border-radius:12px; cursor:pointer; font-family:'Sora',sans-serif; font-size:13px; font-weight:700;
       background:rgba(30,41,59,.6); border:1px solid var(--border); color:var(--muted); transition:.2s;
@@ -737,6 +784,10 @@
     .rp-bib-item .nombre{ font-weight:700; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .rp-bib-item .meta{ font-size:12px; color:var(--muted); margin-top:3px; }
     .rp-bib-item .chevron{ color:var(--muted); font-size:20px; }
+    .rp-bib-grupo{ font-size:11px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin:16px 2px 8px; }
+    .rp-bib-grupo:first-of-type{ margin-top:4px; }
+    .rp-bib-buscar{ width:100%; box-sizing:border-box; padding:11px 14px; border-radius:12px; border:1px solid rgba(148,163,184,.25); background:rgba(30,41,59,.55); color:var(--text); font-family:inherit; font-size:14px; margin-bottom:6px; }
+    .rp-bib-buscar:focus{ outline:none; border-color:#7dd3fc; }
     .rp-bib-vacio{ text-align:center; color:var(--muted); font-size:14px; line-height:1.6; padding:22px 8px; white-space:normal; }
     #bibModalBody, #editModalBody{ white-space:normal; }
 
@@ -864,6 +915,9 @@
       .rp-meta-item .value{ font-size:15px; }
       .rp-ex-name{ font-size:16.5px; line-height:1.15; margin-bottom:4px; }
       .rp-desc-btn{ font-size:12px; padding:7px 13px; margin-bottom:8px; }
+      .rp-ex-btn-row{ margin-bottom:8px; gap:8px; }
+      .rp-ex-btn-row .rp-desc-btn{ margin-bottom:0; }
+      .rp-page-btn{ font-size:12px; padding:7px 13px; }
       .rp-progress{ margin-bottom:2px; }
       .rp-block-label{ margin-bottom:4px; }
 
@@ -1126,9 +1180,16 @@
             <div class="rp-progress" id="exProgress"></div>
             <div class="rp-block-label" id="exBlockLabel"></div>
             <div class="rp-ex-name" id="exNombre"></div>
-            <button class="rp-desc-btn" id="exDescBtn" type="button">
-              <span class="icon">💬</span> Explicación disponible
-            </button>
+            <div class="rp-ex-btn-row" id="exBtnRow">
+              <button class="rp-desc-btn" id="exDescBtn" type="button">
+                <span class="icon">💬</span> Explicación disponible
+              </button>
+              <!-- Página del libro de natación donde se explica el ejercicio (solo si el ejercicio trae «pagina») -->
+              <a class="rp-page-btn" id="exPageBtn" href="#" target="_blank" rel="noopener" style="display:none;">
+                <svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor" aria-hidden="true"><path d="M21 5c-1.11-.35-2.33-.5-3.5-.5-1.95 0-4.05.4-5.5 1.5-1.45-1.1-3.55-1.5-5.5-1.5S2.45 4.9 1 6v14.65c0 .25.25.5.5.5.1 0 .15-.05.25-.05C3.1 20.45 5.05 20 6.5 20c1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.3 4.75 1.05.1.05.15.05.25.05.25 0 .5-.25.5-.5V6c-.6-.45-1.25-.75-2-1zm0 13.5c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V8c1.35-.85 3.8-1.5 5.5-1.5 1.2 0 2.4.15 3.5.5v11.5z"/></svg>
+                <span id="exPageTxt">Libro pág.</span>
+              </a>
+            </div>
             <div class="rp-ex-desc-inline" id="exDescInline" style="display:none;"></div>
 
             <!-- Interruptor de descansos entre series: solo tiene sentido
@@ -1574,6 +1635,13 @@
   // el cronómetro pequeño y quedar listadas en el detalle.
   let vueltasSueltas = [];  // [{elapsedMs, splitMs}]
   let tickHandle = null;
+  // «Salida cada»: en ejercicios de varias series con salida, el cronómetro grande es una CUENTA ATRÁS
+  // de la serie en curso. Al llegar a 0 la siguiente serie arranca sola (o, si el ejercicio lleva
+  // descansos, primero el descanso y luego la serie). Cada serie ocupa una «ventana» fija de
+  // salidaCada segundos en el tiempo del ejercicio: [(k-1)·S, k·S].
+  let salidaVentana = 1;        // serie en curso (1, 2, 3…)
+  let salidaTapeada = false;    // ¿ya se ha marcado la serie en curso con el botón «Serie»?
+  let relojCongeladoDesde = 0;  // instante en que se detuvo el reloj (pantalla «series completadas»)
   let countdownActive = false, countdownHandle = null;
   let wakeLock = null;
 
@@ -1679,12 +1747,14 @@
 
   function registrarAperturaModal(id){
     modalAbiertoId = id;
+    document.body.classList.add("rp-modal-open");
     if(navegandoPorPopstate) return;
     pushNavState("modal", id);
   }
 
   function registrarCierreModal(){
     modalAbiertoId = null;
+    document.body.classList.remove("rp-modal-open");
   }
 
   window.addEventListener("popstate", () => {
@@ -2608,7 +2678,7 @@ c48 -9 152 -20 232 -26 80 -6 199 -15 265 -21 180 -14 336 -26 580 -44 270
   //   · un string JSON con cualquiera de los anteriores
   // Se ignoran las claves propias de este Reproductor (progreso, ajustes).
   // ====================================================================
-  const CLAVES_PROPIAS = ["lightswan_reproductor_progreso", "lightswan_reproductor_ajustes_imagen", "lightswan_sesion_pendiente"];
+  const CLAVES_PROPIAS = ["lightswan_reproductor_progreso", "lightswan_reproductor_ajustes_imagen", "lightswan_sesion_pendiente", "bd-natacion-cache-v1", "bd-natacion-clave"];
   const TIPOS_SESION = ["sesion-natacion", "sesion-fisica"];
   const BIB_VISTO_KEY = "lightswan_reproductor_bib_visto"; // sessionStorage: no reabrir el modal solo tras volver a la pantalla
 
@@ -2616,979 +2686,12 @@ c48 -9 152 -20 232 -26 80 -6 199 -15 265 -21 180 -14 336 -26 580 -44 270
   // lightswan.github.io/biblioteca-natacion, sección "Entrenamientos de
   // Natación"). Lista fija embebida aquí, independiente del localStorage
   // del navegador — sustituye a la antigua pestaña "Guardados".
-  const SESIONES_PREDEFINIDAS = [
-  {
-    "tipo": "sesion-natacion",
-    "version": 1,
-    "nombre": "Sesión de Estilos - 900m",
-    "generadoEn": "2026-09-24T09:51:16.896Z",
-    "totalMetros": 900,
-    "bloques": [
-      {
-        "titulo": "Sesión de Estilos - 900m",
-        "distancia": "900m",
-        "ejercicios": [
-          {
-            "nombre": "Calentamiento — alternando crol y espalda (5 largos de cada)",
-            "desc": "",
-            "style": "Crol",
-            "tags": [
-              "Crol"
-            ],
-            "series": 1,
-            "metros": 250,
-            "distanciaTotal": 250,
-            "intensidad": null,
-            "tiempoObjetivo": null,
-            "pagina": null
-          },
-          {
-            "nombre": "Recobro alejado con tabla en crol",
-            "desc": "Llevar la mano a la esquina superior de la tabla en cada recobro",
-            "style": "Crol",
-            "tags": [
-              "Crol",
-              "Tabla"
-            ],
-            "series": 1,
-            "metros": 100,
-            "distanciaTotal": 100,
-            "intensidad": null,
-            "tiempoObjetivo": null,
-            "pagina": null
-          },
-          {
-            "nombre": "Espalda con brazo estirado a 90°",
-            "desc": "Sin material; un brazo bien estirado fuera del agua marcando el rollillo, el otro pegado al cuerpo",
-            "style": "Espalda",
-            "tags": [
-              "Espalda"
-            ],
-            "series": 1,
-            "metros": 100,
-            "distanciaTotal": 100,
-            "intensidad": null,
-            "tiempoObjetivo": null,
-            "pagina": null
-          },
-          {
-            "nombre": "Lateral con aletas",
-            "desc": "Tronco en posición lateral, cadera y pies paralelos al suelo; a mitad de piscina cambiar de lado con una brazada grande",
-            "style": "Braza",
-            "tags": [
-              "Braza",
-              "Aletas"
-            ],
-            "series": 1,
-            "metros": 100,
-            "distanciaTotal": 100,
-            "intensidad": null,
-            "tiempoObjetivo": null,
-            "pagina": null
-          },
-          {
-            "nombre": "Patada de delfín con aletas",
-            "desc": "Respirar realizando un impulso de mariposa con una mano",
-            "style": "Mariposa",
-            "tags": [
-              "Mariposa",
-              "Aletas"
-            ],
-            "series": 1,
-            "metros": 50,
-            "distanciaTotal": 50,
-            "intensidad": null,
-            "tiempoObjetivo": null,
-            "pagina": null
-          },
-          {
-            "nombre": "Patada de delfín de espaldas con aletas",
-            "desc": "Brazos bien estirados arriba",
-            "style": "Espalda",
-            "tags": [
-              "Espalda",
-              "Aletas"
-            ],
-            "series": 1,
-            "metros": 50,
-            "distanciaTotal": 50,
-            "intensidad": null,
-            "tiempoObjetivo": null,
-            "pagina": null
-          },
-          {
-            "nombre": "Patada de delfín + brazos de braza con aletas",
-            "desc": "Pies juntos; 1 brazada · 2-3 patadas",
-            "style": "Braza",
-            "tags": [
-              "Braza",
-              "Aletas"
-            ],
-            "series": 1,
-            "metros": 50,
-            "distanciaTotal": 50,
-            "intensidad": null,
-            "tiempoObjetivo": null,
-            "pagina": null
-          },
-          {
-            "nombre": "Braza sin aletas",
-            "desc": "Énfasis en el deslizamiento y la coordinación",
-            "style": "Braza",
-            "tags": [
-              "Braza",
-              "Aletas"
-            ],
-            "series": 1,
-            "metros": 100,
-            "distanciaTotal": 100,
-            "intensidad": null,
-            "tiempoObjetivo": null,
-            "pagina": null
-          },
-          {
-            "nombre": "Vuelta a la calma — Patada de braza de espaldas",
-            "desc": "",
-            "style": "Espalda",
-            "tags": [
-              "Espalda"
-            ],
-            "series": 1,
-            "metros": 0,
-            "distanciaTotal": 0,
-            "intensidad": null,
-            "tiempoObjetivo": null,
-            "pagina": null
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "tipo": "sesion-natacion",
-    "version": 1,
-    "nombre": "Sesión de Crol - 1100m",
-    "generadoEn": "2026-09-24T09:51:16.902Z",
-    "totalMetros": 1100,
-    "bloques": [
-      {
-        "titulo": "Sesión de Crol - 1100m",
-        "distancia": "1100m",
-        "ejercicios": [
-          {
-            "nombre": "Calentamiento libre",
-            "desc": "",
-            "style": "Crol",
-            "tags": [
-              "Crol"
-            ],
-            "series": 1,
-            "metros": 250,
-            "distanciaTotal": 250,
-            "intensidad": null,
-            "tiempoObjetivo": null,
-            "pagina": null
-          },
-          {
-            "nombre": "Ejercicio de rodillo en crol",
-            "desc": "Brazos pegados al cuerpo; a lo largo del largo ir rotando un hombro hasta posición de espalda y volver. A la ida hacia un lado, a la vuelta hacia el otro. Pies mirando al suelo el máximo tiempo posible",
-            "style": "Crol",
-            "tags": [
-              "Crol"
-            ],
-            "series": 1,
-            "metros": 100,
-            "distanciaTotal": 100,
-            "intensidad": null,
-            "tiempoObjetivo": null,
-            "pagina": null
-          },
-          {
-            "nombre": "Rodillo de espalda",
-            "desc": "Quedarse a 90° sacando el hombro lo máximo posible; cambiar lentamente al otro hombro",
-            "style": "Espalda",
-            "tags": [
-              "Espalda"
-            ],
-            "series": 1,
-            "metros": 100,
-            "distanciaTotal": 100,
-            "intensidad": null,
-            "tiempoObjetivo": null,
-            "pagina": null
-          },
-          {
-            "nombre": "Rodillo de crol con brazo en triángulo",
-            "desc": "Mantener un hombro fuera del agua con la mano tocando la oreja; cada 5 s cambiar de brazo con el recobro lo más alejado posible; el otro brazo se queda adelante",
-            "style": "Crol",
-            "tags": [
-              "Crol"
-            ],
-            "series": 1,
-            "metros": 100,
-            "distanciaTotal": 100,
-            "intensidad": null,
-            "tiempoObjetivo": null,
-            "pagina": null
-          },
-          {
-            "nombre": "Patada de delfín + crol a tope",
-            "desc": "Con aletas: máximas patadas subacuáticas posibles, luego crol a máxima velocidad hasta el final",
-            "style": "Crol",
-            "tags": [
-              "Crol",
-              "Aletas"
-            ],
-            "series": 1,
-            "metros": 100,
-            "distanciaTotal": 100,
-            "intensidad": null,
-            "tiempoObjetivo": null,
-            "pagina": null
-          },
-          {
-            "nombre": "Patada de delfín + espalda a tope",
-            "desc": "Igual que el anterior pero de espaldas",
-            "style": "Espalda",
-            "tags": [
-              "Espalda"
-            ],
-            "series": 1,
-            "metros": 100,
-            "distanciaTotal": 100,
-            "intensidad": null,
-            "tiempoObjetivo": null,
-            "pagina": null
-          },
-          {
-            "nombre": "Patada de delfín + brazos de braza",
-            "desc": "Combinar ambos estilos para introducir la coordinación de mariposa (1 brazada · 2-3 patadas)",
-            "style": "Braza",
-            "tags": [
-              "Braza"
-            ],
-            "series": 1,
-            "metros": 100,
-            "distanciaTotal": 100,
-            "intensidad": null,
-            "tiempoObjetivo": null,
-            "pagina": null
-          },
-          {
-            "nombre": "Vuelta a la calma — Buceo con aletas (máximos metros sin respirar) · 100 m espalda con aletas · 50 m espalda sin aletas",
-            "desc": "",
-            "style": "Espalda",
-            "tags": [
-              "Espalda",
-              "Aletas"
-            ],
-            "series": 1,
-            "metros": 150,
-            "distanciaTotal": 150,
-            "intensidad": null,
-            "tiempoObjetivo": null,
-            "pagina": null
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "tipo": "sesion-natacion",
-    "version": 1,
-    "nombre": "Sesión de Crol - 1250m",
-    "generadoEn": "2026-09-24T09:51:16.904Z",
-    "totalMetros": 1250,
-    "bloques": [
-      {
-        "titulo": "Sesión de Crol - 1250m",
-        "distancia": "1250m",
-        "ejercicios": [
-          {
-            "nombre": "Calentamiento libre",
-            "desc": "",
-            "style": "Crol",
-            "tags": [
-              "Crol"
-            ],
-            "series": 1,
-            "metros": 300,
-            "distanciaTotal": 300,
-            "intensidad": null,
-            "tiempoObjetivo": null,
-            "pagina": null
-          },
-          {
-            "nombre": "Patada de crol con tabla",
-            "desc": "",
-            "style": "Crol",
-            "tags": [
-              "Crol",
-              "Tabla"
-            ],
-            "series": 1,
-            "metros": 150,
-            "distanciaTotal": 150,
-            "intensidad": null,
-            "tiempoObjetivo": null,
-            "pagina": null
-          },
-          {
-            "nombre": "Solo brazos de espalda con pull",
-            "desc": "",
-            "style": "Espalda",
-            "tags": [
-              "Espalda",
-              "Pull"
-            ],
-            "series": 1,
-            "metros": 100,
-            "distanciaTotal": 100,
-            "intensidad": null,
-            "tiempoObjetivo": null,
-            "pagina": null
-          },
-          {
-            "nombre": "Patada de espalda con tabla",
-            "desc": "",
-            "style": "Espalda",
-            "tags": [
-              "Espalda",
-              "Tabla"
-            ],
-            "series": 1,
-            "metros": 100,
-            "distanciaTotal": 100,
-            "intensidad": null,
-            "tiempoObjetivo": null,
-            "pagina": null
-          },
-          {
-            "nombre": "Solo brazos de crol con pull",
-            "desc": "",
-            "style": "Crol",
-            "tags": [
-              "Crol",
-              "Pull"
-            ],
-            "series": 1,
-            "metros": 100,
-            "distanciaTotal": 100,
-            "intensidad": null,
-            "tiempoObjetivo": null,
-            "pagina": null
-          },
-          {
-            "nombre": "Brazos de braza con pull",
-            "desc": "",
-            "style": "Braza",
-            "tags": [
-              "Braza",
-              "Pull"
-            ],
-            "series": 1,
-            "metros": 100,
-            "distanciaTotal": 100,
-            "intensidad": null,
-            "tiempoObjetivo": null,
-            "pagina": null
-          },
-          {
-            "nombre": "Brazos de mariposa con pull (ida) + vuelta de espaldas con pull (vuelta)",
-            "desc": "",
-            "style": "Espalda",
-            "tags": [
-              "Espalda",
-              "Pull"
-            ],
-            "series": 1,
-            "metros": 100,
-            "distanciaTotal": 100,
-            "intensidad": null,
-            "tiempoObjetivo": null,
-            "pagina": null
-          },
-          {
-            "nombre": "Vuelta a la calma",
-            "desc": "",
-            "style": "Crol",
-            "tags": [
-              "Crol"
-            ],
-            "series": 1,
-            "metros": 0,
-            "distanciaTotal": 0,
-            "intensidad": null,
-            "tiempoObjetivo": null,
-            "pagina": null
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "tipo": "sesion-natacion",
-    "version": 1,
-    "nombre": "Sesión de Crol - 1150m",
-    "generadoEn": "2026-09-24T09:51:16.906Z",
-    "totalMetros": 1150,
-    "bloques": [
-      {
-        "titulo": "Sesión de Crol - 1150m",
-        "distancia": "1150m",
-        "ejercicios": [
-          {
-            "nombre": "Calentamiento — intercalando patada de crol con tabla y brazadas con pullboy en las rodillas cada 50 metros",
-            "desc": "",
-            "style": "Crol",
-            "tags": [
-              "Crol",
-              "Pull",
-              "Tabla",
-              "Pullboy"
-            ],
-            "series": 1,
-            "metros": 300,
-            "distanciaTotal": 300,
-            "intensidad": null,
-            "tiempoObjetivo": null,
-            "pagina": null
-          },
-          {
-            "nombre": "Crol",
-            "desc": "Salida cada 2:00",
-            "style": "Crol",
-            "tags": [
-              "Crol"
-            ],
-            "series": 5,
-            "metros": 100,
-            "distanciaTotal": 500,
-            "intensidad": null,
-            "tiempoObjetivo": 120,
-            "pagina": null
-          },
-          {
-            "nombre": "Crol",
-            "desc": "Primeros 20 m suave, los 30 restantes al 90% con viraje · Recuperación 60s",
-            "style": "Crol",
-            "tags": [
-              "Crol"
-            ],
-            "series": 4,
-            "metros": 50,
-            "distanciaTotal": 200,
-            "intensidad": null,
-            "tiempoObjetivo": null,
-            "pagina": null
-          },
-          {
-            "nombre": "Espalda",
-            "desc": "",
-            "style": "Espalda",
-            "tags": [
-              "Espalda"
-            ],
-            "series": 1,
-            "metros": 100,
-            "distanciaTotal": 100,
-            "intensidad": null,
-            "tiempoObjetivo": null,
-            "pagina": null
-          },
-          {
-            "nombre": "Subacuático",
-            "desc": "",
-            "style": "Crol",
-            "tags": [
-              "Crol"
-            ],
-            "series": 1,
-            "metros": 50,
-            "distanciaTotal": 50,
-            "intensidad": null,
-            "tiempoObjetivo": null,
-            "pagina": null
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "tipo": "sesion-natacion",
-    "version": 1,
-    "nombre": "Sesión de Crol - 1600m",
-    "generadoEn": "2026-09-24T09:51:16.911Z",
-    "totalMetros": 1600,
-    "bloques": [
-      {
-        "titulo": "Sesión de Crol - 1600m",
-        "distancia": "1600m",
-        "ejercicios": [
-          {
-            "nombre": "Calentamiento libre",
-            "desc": "",
-            "style": "Crol",
-            "tags": [
-              "Crol"
-            ],
-            "series": 1,
-            "metros": 300,
-            "distanciaTotal": 300,
-            "intensidad": null,
-            "tiempoObjetivo": null,
-            "pagina": null
-          },
-          {
-            "nombre": "Patada de crol con colchoneta de agujeros",
-            "desc": "Ritmo óptimo: ni cansado por ir despacio ni por ir rápido",
-            "style": "Crol",
-            "tags": [
-              "Crol",
-              "Colchoneta"
-            ],
-            "series": 1,
-            "metros": 0,
-            "distanciaTotal": 0,
-            "intensidad": null,
-            "tiempoObjetivo": 360,
-            "pagina": null
-          },
-          {
-            "nombre": "Patada de espalda con tabla y brazos estirados arriba",
-            "desc": "Mismo objetivo de ritmo",
-            "style": "Espalda",
-            "tags": [
-              "Espalda",
-              "Tabla"
-            ],
-            "series": 1,
-            "metros": 0,
-            "distanciaTotal": 0,
-            "intensidad": null,
-            "tiempoObjetivo": 420,
-            "pagina": null
-          },
-          {
-            "nombre": "Solo brazos de crol con pull en piernas",
-            "desc": "Mismo objetivo de ritmo",
-            "style": "Crol",
-            "tags": [
-              "Crol",
-              "Pull"
-            ],
-            "series": 1,
-            "metros": 0,
-            "distanciaTotal": 0,
-            "intensidad": null,
-            "tiempoObjetivo": 480,
-            "pagina": null
-          },
-          {
-            "nombre": "Brazos de espalda con pull en piernas",
-            "desc": "Mismo objetivo de ritmo",
-            "style": "Espalda",
-            "tags": [
-              "Espalda",
-              "Pull"
-            ],
-            "series": 1,
-            "metros": 0,
-            "distanciaTotal": 0,
-            "intensidad": null,
-            "tiempoObjetivo": 480,
-            "pagina": null
-          },
-          {
-            "nombre": "Crol a ritmo óptimo",
-            "desc": "",
-            "style": "Crol",
-            "tags": [
-              "Crol"
-            ],
-            "series": 1,
-            "metros": 0,
-            "distanciaTotal": 0,
-            "intensidad": null,
-            "tiempoObjetivo": 360,
-            "pagina": null
-          },
-          {
-            "nombre": "Espalda a ritmo óptimo",
-            "desc": "",
-            "style": "Espalda",
-            "tags": [
-              "Espalda"
-            ],
-            "series": 1,
-            "metros": 0,
-            "distanciaTotal": 0,
-            "intensidad": null,
-            "tiempoObjetivo": 240,
-            "pagina": null
-          },
-          {
-            "nombre": "Vuelta a la calma — alternar crol y espalda cada medio largo a ritmo óptimo",
-            "desc": "",
-            "style": "Crol",
-            "tags": [
-              "Crol"
-            ],
-            "series": 1,
-            "metros": 200,
-            "distanciaTotal": 200,
-            "intensidad": null,
-            "tiempoObjetivo": null,
-            "pagina": null
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "tipo": "sesion-natacion",
-    "version": 1,
-    "nombre": "Sesión de Crol - 1350m",
-    "generadoEn": "2026-09-24T09:51:16.920Z",
-    "totalMetros": 1350,
-    "bloques": [
-      {
-        "titulo": "Sesión de Crol - 1350m",
-        "distancia": "1350m",
-        "ejercicios": [
-          {
-            "nombre": "Calentamiento libre",
-            "desc": "",
-            "style": "Crol",
-            "tags": [
-              "Crol"
-            ],
-            "series": 1,
-            "metros": 300,
-            "distanciaTotal": 300,
-            "intensidad": null,
-            "tiempoObjetivo": null,
-            "pagina": null
-          },
-          {
-            "nombre": "Crol con brazo suspendido",
-            "desc": "Un brazo en horizontal; impulsarse solo con el otro sin hundir el suspendido y manteniendo la máxima horizontalidad. A la ida un brazo, a la vuelta el otro. Deslizar",
-            "style": "Crol",
-            "tags": [
-              "Crol"
-            ],
-            "series": 1,
-            "metros": 100,
-            "distanciaTotal": 100,
-            "intensidad": null,
-            "tiempoObjetivo": null,
-            "pagina": null
-          },
-          {
-            "nombre": "Espalda con un brazo arriba",
-            "desc": "Impulsarse con un solo brazo mientras el otro permanece estirado arriba durante los 25 m; cambiar de brazo en cada largo",
-            "style": "Espalda",
-            "tags": [
-              "Espalda"
-            ],
-            "series": 1,
-            "metros": 100,
-            "distanciaTotal": 100,
-            "intensidad": null,
-            "tiempoObjetivo": null,
-            "pagina": null
-          },
-          {
-            "nombre": "Crol a intensidad media-alta",
-            "desc": "",
-            "style": "Crol",
-            "tags": [
-              "Crol"
-            ],
-            "series": 1,
-            "metros": 200,
-            "distanciaTotal": 200,
-            "intensidad": null,
-            "tiempoObjetivo": null,
-            "pagina": null
-          },
-          {
-            "nombre": "Espalda a intensidad media-alta",
-            "desc": "Coordinación de brazos eficiente",
-            "style": "Espalda",
-            "tags": [
-              "Espalda"
-            ],
-            "series": 1,
-            "metros": 200,
-            "distanciaTotal": 200,
-            "intensidad": null,
-            "tiempoObjetivo": null,
-            "pagina": null
-          },
-          {
-            "nombre": "Crol con mínimas brazadas",
-            "desc": "Intensidad baja; deslizar lo máximo posible intentando reducir el número de brazadas por largo",
-            "style": "Crol",
-            "tags": [
-              "Crol"
-            ],
-            "series": 1,
-            "metros": 200,
-            "distanciaTotal": 200,
-            "intensidad": null,
-            "tiempoObjetivo": null,
-            "pagina": null
-          },
-          {
-            "nombre": "Espalda deslizando",
-            "desc": "Igual que el anterior pero de espalda",
-            "style": "Espalda",
-            "tags": [
-              "Espalda"
-            ],
-            "series": 1,
-            "metros": 150,
-            "distanciaTotal": 150,
-            "intensidad": null,
-            "tiempoObjetivo": null,
-            "pagina": null
-          },
-          {
-            "nombre": "Crol mixto",
-            "desc": "25 m al 100% + 25 m lo más lento posible; repetir",
-            "style": "Crol",
-            "tags": [
-              "Crol"
-            ],
-            "series": 1,
-            "metros": 100,
-            "distanciaTotal": 100,
-            "intensidad": null,
-            "tiempoObjetivo": null,
-            "pagina": null
-          },
-          {
-            "nombre": "Vuelta a la calma — braza de espaldas",
-            "desc": "",
-            "style": "Espalda",
-            "tags": [
-              "Espalda"
-            ],
-            "series": 1,
-            "metros": 100,
-            "distanciaTotal": 100,
-            "intensidad": null,
-            "tiempoObjetivo": null,
-            "pagina": null
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "tipo": "sesion-natacion",
-    "version": 1,
-    "nombre": "Sesión de Crol - 2000m",
-    "generadoEn": "2026-09-24T09:51:16.922Z",
-    "totalMetros": 2000,
-    "bloques": [
-      {
-        "titulo": "Sesión de Crol - 2000m",
-        "distancia": "2000m",
-        "ejercicios": [
-          {
-            "nombre": "Estilos",
-            "desc": "",
-            "style": "Crol",
-            "tags": [
-              "Crol"
-            ],
-            "series": 1,
-            "metros": 300,
-            "distanciaTotal": 300,
-            "intensidad": null,
-            "tiempoObjetivo": null,
-            "pagina": null
-          },
-          {
-            "nombre": "Brazada de mariposa con pausas",
-            "desc": "Recobro de braza",
-            "style": "Braza",
-            "tags": [
-              "Braza"
-            ],
-            "series": 1,
-            "metros": 100,
-            "distanciaTotal": 100,
-            "intensidad": null,
-            "tiempoObjetivo": null,
-            "pagina": null
-          },
-          {
-            "nombre": "Crol continuo",
-            "desc": "Ritmo ~2:00/100 m",
-            "style": "Crol",
-            "tags": [
-              "Crol"
-            ],
-            "series": 1,
-            "metros": 1500,
-            "distanciaTotal": 1500,
-            "intensidad": null,
-            "tiempoObjetivo": null,
-            "pagina": null
-          },
-          {
-            "nombre": "Espalda",
-            "desc": "",
-            "style": "Espalda",
-            "tags": [
-              "Espalda"
-            ],
-            "series": 1,
-            "metros": 100,
-            "distanciaTotal": 100,
-            "intensidad": null,
-            "tiempoObjetivo": null,
-            "pagina": null
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "tipo": "sesion-natacion",
-    "version": 1,
-    "nombre": "Sesión de Crol - 3050m",
-    "generadoEn": "2026-09-24T09:51:16.925Z",
-    "totalMetros": 3050,
-    "bloques": [
-      {
-        "titulo": "Sesión de Crol - 3050m",
-        "distancia": "3050m",
-        "ejercicios": [
-          {
-            "nombre": "Estilos",
-            "desc": "Espalda, Crol, Braza",
-            "style": "Crol",
-            "tags": [
-              "Crol"
-            ],
-            "series": 1,
-            "metros": 300,
-            "distanciaTotal": 300,
-            "intensidad": null,
-            "tiempoObjetivo": null,
-            "pagina": null
-          },
-          {
-            "nombre": "Calentamiento técnico",
-            "desc": "Intercalando patada de crol con tabla y brazadas con pullboy en las rodillas cada 50 m",
-            "style": "Crol",
-            "tags": [
-              "Crol",
-              "Pull",
-              "Tabla",
-              "Pullboy"
-            ],
-            "series": 1,
-            "metros": 300,
-            "distanciaTotal": 300,
-            "intensidad": null,
-            "tiempoObjetivo": null,
-            "pagina": null
-          },
-          {
-            "nombre": "Técnica",
-            "desc": "Cada 25 m centrándonos en la técnica y 25 m nadando a ritmo",
-            "style": "Crol",
-            "tags": [
-              "Crol"
-            ],
-            "series": 1,
-            "metros": 300,
-            "distanciaTotal": 300,
-            "intensidad": null,
-            "tiempoObjetivo": null,
-            "pagina": null
-          },
-          {
-            "nombre": "Crol",
-            "desc": "Salida cada 1:50 · 10 primeras series con palas · 5 últimas sin palas",
-            "style": "Crol",
-            "tags": [
-              "Crol",
-              "Palas"
-            ],
-            "series": 15,
-            "metros": 100,
-            "distanciaTotal": 1500,
-            "intensidad": null,
-            "tiempoObjetivo": 110,
-            "pagina": null
-          },
-          {
-            "nombre": "8x25",
-            "desc": "Salida cada 40s · Impares al ritmo de 100 m · Pares a ritmo ligero al estilo que se quiera",
-            "style": "Crol",
-            "tags": [
-              "Crol"
-            ],
-            "series": 8,
-            "metros": 25,
-            "distanciaTotal": 200,
-            "intensidad": null,
-            "tiempoObjetivo": 40,
-            "pagina": null
-          },
-          {
-            "nombre": "4x50",
-            "desc": "Salida cada 60s · Impares al ritmo de 100 m · Pares a ritmo ligero al estilo que se quiera",
-            "style": "Crol",
-            "tags": [
-              "Crol"
-            ],
-            "series": 4,
-            "metros": 50,
-            "distanciaTotal": 200,
-            "intensidad": null,
-            "tiempoObjetivo": 60,
-            "pagina": null
-          },
-          {
-            "nombre": "2x75",
-            "desc": "Salida cada 90s · Impares al ritmo de 200 m · Pares a ritmo ligero al estilo que se quiera",
-            "style": "Crol",
-            "tags": [
-              "Crol"
-            ],
-            "series": 2,
-            "metros": 75,
-            "distanciaTotal": 150,
-            "intensidad": null,
-            "tiempoObjetivo": 90,
-            "pagina": null
-          },
-          {
-            "nombre": "Vuelta a la calma",
-            "desc": "Suave, al estilo que se quiera",
-            "style": "Crol",
-            "tags": [
-              "Crol"
-            ],
-            "series": 1,
-            "metros": 100,
-            "distanciaTotal": 100,
-            "intensidad": null,
-            "tiempoObjetivo": null,
-            "pagina": null
-          }
-        ]
-      }
-    ]
-  }
-];
+  // Sesiones del listado «Cargar entrenamiento». YA NO están escritas aquí: se leen
+  // de la base de datos común (la hoja de Google, pestaña «sesiones»), la misma que
+  // muestra la Biblioteca, así que siempre están al día. Ver cargarSesionesBD().
+  let SESIONES_PREDEFINIDAS = [];
+  let bdEstado = "cargando";   // cargando | ok | error
+  const bibAbiertos = new Set();   // desplegables del listado que el usuario ha abierto (se conservan al refrescar)
 
   function esSesionValida(o){
     return !!o && typeof o === "object" && !Array.isArray(o) && TIPOS_SESION.includes(o.tipo) && Array.isArray(o.bloques);
@@ -3652,7 +2755,7 @@ c48 -9 152 -20 232 -26 80 -6 199 -15 265 -21 180 -14 336 -26 580 -44 270
 
     // Marcador de "rendimiento": ejercicios con tiempo objetivo (ritmo/salida
     // cronometrada) o con varias series de la misma serie (repeticiones).
-    const conRitmo = ejercicios.filter(e => e.tiempoObjetivo !== null || e.series > 1).length;
+    const conRitmo = ejercicios.filter(e => objetivoSegundos(e) !== null || e.salidaCada > 0 || e.series > 1).length;
     const enfoque = ejercicios.length && (conRitmo / ejercicios.length) >= 0.35 ? "Rendimiento" : "Técnica";
 
     return { estiloPredominante, enfoque };
@@ -3705,7 +2808,9 @@ c48 -9 152 -20 232 -26 80 -6 199 -15 265 -21 180 -14 336 -26 580 -44 270
         const partes = [];
         if(e.series > 1) partes.push(`${e.series}×${e.metros}m`);
         else if(e.metros) partes.push(`${e.metros}m`);
-        if(e.tiempoObjetivo) partes.push(`cada ${Math.floor(e.tiempoObjetivo / 60)}:${String(e.tiempoObjetivo % 60).padStart(2, "0")}`);
+        if(e.salidaCada > 0) partes.push(`cada ${fmtSeg(e.salidaCada)}`);
+        if(e.ritmo > 0) partes.push(`ritmo ${fmtSeg(e.ritmo)}/100m`);
+        else if(e.tiempoObjetivo) partes.push(`objetivo ${fmtSeg(e.tiempoObjetivo)}`);
         const medida = partes.join(" · ");
         html += `<div style="display:flex; justify-content:space-between; gap:10px; font-size:13.5px; padding:5px 0; border-bottom:1px solid rgba(255,255,255,.06);">
           <span style="opacity:.9;">${escHtml(e.nombre || "Ejercicio")}</span>
@@ -3749,26 +2854,58 @@ c48 -9 152 -20 232 -26 80 -6 199 -15 265 -21 180 -14 336 -26 580 -44 270
       html += `<button class="action-btn btn-success" id="bibContinuarBtn" type="button" style="width:100%; justify-content:center; margin-bottom:14px; padding:14px 16px;">▶ Continuar entrenamiento en curso</button>`;
     }
     html += `<div class="rp-bib-tabs">
-      <button class="rp-bib-tab ${bibTabActiva === "predefinidos" ? "active" : ""}" data-tab="predefinidos" type="button">Predefinidos (${SESIONES_PREDEFINIDAS.length})</button>
+      <button class="rp-bib-tab ${bibTabActiva === "predefinidos" ? "active" : ""}" data-tab="predefinidos" type="button">Sesiones${SESIONES_PREDEFINIDAS.length ? ` (${SESIONES_PREDEFINIDAS.length})` : ""}</button>
       <button class="rp-bib-tab ${bibTabActiva === "archivo" ? "active" : ""}" data-tab="archivo" type="button">Desde archivo</button>
     </div>`;
 
-    // Enlace a la Biblioteca real (lightswan.github.io): esta lista de
-    // predefinidos es una copia fija de las sesiones publicadas ahí; si el
-    // usuario quiere ver la Biblioteca completa y actualizada, este botón
-    // le lleva a la sección de Entrenamientos.
+    // Enlace a la Biblioteca real (lightswan.github.io), que muestra las mismas
+    // sesiones de la base de datos con todo su detalle.
     html += `<a href="https://lightswan.github.io/biblioteca-natacion/#entrenamientos" target="_blank" rel="noopener" class="action-btn btn-violet" style="width:100%; justify-content:center; padding:12px 16px; margin-bottom:14px; text-decoration:none; font-size:14px;">🔗 Abrir la Biblioteca de la Natación</a>`;
 
     if(bibTabActiva === "predefinidos"){
       bibSesionesActuales = SESIONES_PREDEFINIDAS;
-      html += bibSesionesActuales.map((se, i) => `
+      if(!bibSesionesActuales.length){
+        html += bdEstado === "error"
+          ? `<div class="rp-bib-vacio">No se pudieron cargar las sesiones de la base de datos.<br><button class="action-btn btn-primary" id="bibReintentarBtn" type="button" style="margin-top:12px;">Reintentar</button></div>`
+          : `<div class="rp-bib-vacio">${bdEstado === "cargando" ? "Cargando sesiones…" : "Todavía no hay sesiones en la base de datos."}</div>`;
+      } else {
+        html += `<input type="search" id="bibBuscar" class="rp-bib-buscar" placeholder="Buscar sesión…" autocomplete="off">`;
+        const NIVELES = [["facil", "Principiante", "#22c55e"], ["medio", "Intermedio", "#f59e0b"], ["dificil", "Avanzado", "#14b8a6"], ["", "Sin nivel", "#64748b"]];
+        const itemHTML = (se, i) => `
         <div class="rp-bib-item" data-idx="${i}" role="button" tabindex="0">
           <div class="info">
             <div class="nombre">${escHtml(se.nombre || "Entrenamiento sin nombre")}</div>
             <div class="meta">${escHtml(resumenSesionBib(se))}</div>
           </div>
           <div class="chevron">›</div>
-        </div>`).join("");
+        </div>`;
+        const detalles = (clave, titulo, n, cuerpo, punto) => `
+        <details class="rp-bib-det" data-clave="${escHtml(clave)}"${bibAbiertos.has(clave) ? " open" : ""}>
+          <summary>${punto ? `<span class="rp-bib-dot" style="background:${punto}"></span>` : ""}<span class="sum-t">${escHtml(titulo)}</span><span class="sum-n">${n}</span><span class="sum-c">›</span></summary>
+          <div class="rp-bib-det-body">${cuerpo}</div>
+        </details>`;
+        // Secciones en el orden de la lista; dentro de las que tienen muchas sesiones, por nivel
+        const secciones = [];
+        bibSesionesActuales.forEach((se, i) => {
+          const c = se._cat || "Sesiones";
+          let g = secciones.find(x => x.nombre === c);
+          if(!g){ g = { nombre:c, items:[] }; secciones.push(g); }
+          g.items.push({ se, i });
+        });
+        html += secciones.map(g => {
+          const niveles = NIVELES.filter(n => g.items.some(x => (x.se._dif || "") === n[0]));
+          let cuerpo;
+          if(g.items.length > 6 && niveles.length > 1){
+            cuerpo = niveles.map(n => {
+              const its = g.items.filter(x => (x.se._dif || "") === n[0]);
+              return detalles(g.nombre + "|" + n[0], n[1], its.length, its.map(x => itemHTML(x.se, x.i)).join(""), n[2]);
+            }).join("");
+          } else {
+            cuerpo = g.items.map(x => itemHTML(x.se, x.i)).join("");
+          }
+          return detalles(g.nombre, g.nombre, g.items.length, cuerpo, null);
+        }).join("");
+      }
     } else {
       html += `<div class="rp-bib-vacio" style="padding-bottom:14px;">Elige un archivo <b>.json</b> con un entrenamiento (o una lista de ellos) exportado desde la Biblioteca o el Generador.</div>
         <input type="file" id="bibArchivoInput" accept=".json,application/json,text/plain" style="display:none;">
@@ -3788,6 +2925,34 @@ c48 -9 152 -20 232 -26 80 -6 199 -15 265 -21 180 -14 336 -26 580 -44 270
       el.addEventListener("click", previsualizar);
       el.addEventListener("keydown", (e) => { if(e.key === "Enter" || e.key === " "){ e.preventDefault(); previsualizar(); } });
     });
+
+    // Buscador del listado: oculta las sesiones que no coinciden y los títulos de grupo vacíos
+    const buscar = document.getElementById("bibBuscar");
+    body.querySelectorAll("details.rp-bib-det").forEach(d => {
+      d.addEventListener("toggle", () => {
+        if(body.dataset.buscando) return;      // al buscar se abren solos: no se recuerdan
+        const k = d.getAttribute("data-clave");
+        if(d.open) bibAbiertos.add(k); else bibAbiertos.delete(k);
+      });
+    });
+    if(buscar){
+      buscar.addEventListener("input", () => {
+        const t = buscar.value.trim().toLowerCase();
+        if(t) body.dataset.buscando = "1"; else delete body.dataset.buscando;
+        // sesiones que coinciden
+        body.querySelectorAll(".rp-bib-item").forEach(el => {
+          el.style.display = (!t || el.textContent.toLowerCase().includes(t)) ? "" : "none";
+        });
+        // desplegables: del más interno al más externo; con búsqueda se abren los que tienen coincidencias
+        Array.from(body.querySelectorAll("details.rp-bib-det")).reverse().forEach(d => {
+          const hay = Array.from(d.querySelectorAll(".rp-bib-item")).some(el => el.style.display !== "none");
+          d.style.display = hay ? "" : "none";
+          d.open = t ? hay : bibAbiertos.has(d.getAttribute("data-clave"));
+        });
+      });
+    }
+    const reintentar = document.getElementById("bibReintentarBtn");
+    if(reintentar) reintentar.addEventListener("click", () => { bdEstado = "cargando"; renderBibModal(); cargarSesionesBD(); });
 
     const inputArchivo = document.getElementById("bibArchivoInput");
     if(inputArchivo){
@@ -3900,6 +3065,7 @@ c48 -9 152 -20 232 -26 80 -6 199 -15 265 -21 180 -14 336 -26 580 -44 270
   function seriesEditablesDe(r){
     const ex = r.ex;
     if(!(ex.series > 1) || !Array.isArray(r.laps) || r.laps.length === 0) return null;
+    if(r.laps.some(l => l.auto)) return null;   // hay series sin marcar: no hay desglose fiable para editar
     const lista = r.laps.map(l => ({ splitMs: l.splitMs }));
     const yaCompleto = r.laps.length >= ex.series;
     const ultimo = r.laps[r.laps.length - 1].elapsedMs;
@@ -4195,7 +3361,9 @@ c48 -9 152 -20 232 -26 80 -6 199 -15 265 -21 180 -14 336 -26 580 -44 270
       return `${ex.series} × ${cantidad}`;
     }
     const dist = (ex.distanciaTotal || (ex.series * ex.metros) || 0) + "m";
-    const objetivo = ex.tiempoObjetivo ? ` · 🎯 ${formatTime(ex.tiempoObjetivo*1000,false)}/serie` : "";
+    const objetivo = (ex.pagina > 0 ? ` · pág. ${ex.pagina}` : "")
+      + (ex.salidaCada > 0 ? ` · cada ${fmtSeg(ex.salidaCada)}` : "")
+      + (objetivoSegundos(ex) ? ` · 🎯 ${formatTime(objetivoSegundos(ex)*1000,false)}/serie` : "");
     const intensidadChip = (ex.intensidad !== null && ex.intensidad !== undefined)
       ? ` · <span class="intensidad-chip" style="background:${intensidadGradiente(ex.intensidad)};">${ex.intensidad}%</span>`
       : "";
@@ -4366,6 +3534,18 @@ c48 -9 152 -20 232 -26 80 -6 199 -15 265 -21 180 -14 336 -26 580 -44 270
 
     const gifResultado = modoFisico ? buscarGif(ex) : null;
 
+    // Botón «Libro pág. N» (solo natación y solo si el ejercicio trae la página)
+    const pageBtn = document.getElementById("exPageBtn");
+    const pagina = (!modoFisico && ex.pagina > 0) ? ex.pagina : null;
+    if(pagina){
+      pageBtn.href = LIBRO_NATACION_URL;
+      pageBtn.title = `Ver la página ${pagina} en el libro`;
+      document.getElementById("exPageTxt").textContent = `Libro pág. ${pagina}`;
+      pageBtn.style.display = "";
+    } else {
+      pageBtn.style.display = "none";
+    }
+
     const descInline = document.getElementById("exDescInline");
     if(modoFisico){
       document.getElementById("exDescBtn").style.display = "none";
@@ -4387,6 +3567,9 @@ c48 -9 152 -20 232 -26 80 -6 199 -15 265 -21 180 -14 336 -26 580 -44 270
       document.getElementById("exGifAvisoHoriz").style.visibility = "hidden";
       document.getElementById("exDescBtn").style.display = ex.desc ? "" : "none";
     }
+    // La fila se oculta entera si no hay ninguno de los dos botones (así no deja hueco)
+    document.getElementById("exBtnRow").style.display =
+      (document.getElementById("exDescBtn").style.display === "none" && pageBtn.style.display === "none") ? "none" : "";
 
     const gifWrap = document.getElementById("exGifWrap");
     const gifImg = document.getElementById("exGifImg");
@@ -4437,11 +3620,13 @@ c48 -9 152 -20 232 -26 80 -6 199 -15 265 -21 180 -14 336 -26 580 -44 270
       document.getElementById("exObjetivoLabel").textContent = "Objetivo / serie";
 
       document.getElementById("exDistancia").textContent = (ex.distanciaTotal || (ex.series*ex.metros) || 0) + "m";
-      document.getElementById("exSeries").textContent = `${ex.series} × ${ex.metros}m`;
+      document.getElementById("exSeries").textContent = `${ex.series} × ${ex.metros}m` + (ex.salidaCada > 0 ? ` · cada ${fmtSeg(ex.salidaCada)}` : "");
       document.getElementById("exIntensidad").innerHTML = ex.intensidad !== null && ex.intensidad !== undefined
         ? `<span class="intensidad-chip" style="background:${intensidadGradiente(ex.intensidad)};">${ex.intensidad}%</span>`
         : "—";
-      document.getElementById("exObjetivo").textContent = ex.tiempoObjetivo ? formatTime(ex.tiempoObjetivo*1000,false) : "Sin objetivo";
+      document.getElementById("exObjetivo").textContent = objetivoSegundos(ex)
+        ? formatTime(objetivoSegundos(ex)*1000,false) + (ex.ritmo > 0 ? ` (${fmtSeg(ex.ritmo)}/100m)` : "")
+        : "Sin objetivo";
 
       startBtn.textContent = "▶ Empezar";
     }
@@ -4471,23 +3656,61 @@ c48 -9 152 -20 232 -26 80 -6 199 -15 265 -21 180 -14 336 -26 580 -44 270
   // índice dentro de `flat`); si no hay override, usa lo que traiga el
   // JSON (descansoSerie) y, si tampoco viene definido, 30s por defecto.
   let descansoOverrides = {};
+  // descansoSerie: número = descanso fijo entre series; null = sin descanso fijo
+  // (el ejercicio no lo pide); sin definir (sesiones antiguas) = 30s.
   function descansoSegundosDe(ex, idx){
     const i = idx !== undefined ? idx : currentIdx;
     if(descansoOverrides[i] !== undefined) return descansoOverrides[i];
-    return (ex.descansoSerie !== undefined && ex.descansoSerie !== null) ? ex.descansoSerie : 30;
+    if(ex.descansoSerie === undefined) return 30;
+    return ex.descansoSerie === null ? 0 : ex.descansoSerie;
+  }
+
+  // Tiempo objetivo por serie. Sale del ritmo (segundos por 100 m) cuando lo hay;
+  // si no, del tiempoObjetivo clásico (p. ej. series de "6 min" o sesiones antiguas).
+  // «Salida cada» NO es un objetivo: solo marca cuándo sale la siguiente serie.
+  function objetivoSegundos(ex){
+    if(ex.ritmo > 0 && ex.metros > 0) return Math.round(ex.ritmo * ex.metros / 100);
+    return ex.tiempoObjetivo > 0 ? ex.tiempoObjetivo : null;
+  }
+
+  // Libro de natación (mismo enlace que usa la Biblioteca en sus botones «Libro pág. N»)
+  const LIBRO_NATACION_URL = "https://drive.google.com/file/d/1Xk1ljDGgu5mvXG3CsbF6fA1XN1FpDD-G/view?usp=sharing";
+
+  function fmtSeg(seg){
+    seg = Math.max(0, Math.round(seg));
+    return Math.floor(seg / 60) + ":" + String(seg % 60).padStart(2, "0");
+  }
+
+  // Descanso a aplicar al terminar una serie. Con «Salida cada» el descanso es lo
+  // que falta hasta la siguiente salida (el intervalo incluye el descanso), sin bajar
+  // nunca del descanso fijo si el ejercicio también lo tiene. Sin «Salida cada»
+  // es simplemente el descanso fijo.
+  function descansoTrasSerie(ex, splitMs){
+    const fijo = descansoSegundosDe(ex);
+    if(ex.salidaCada > 0 && splitMs > 0){
+      return Math.max(fijo, Math.ceil(ex.salidaCada - splitMs / 1000), 0);
+    }
+    return fijo;
   }
 
   function actualizarDescansoToggleSub(){
     const item = flat[currentIdx];
     if(!item) return;
-    const segs = descansoSegundosDe(item.ex);
-    document.getElementById("exDescansoToggleSub").textContent = descansosActivos ? `${segs}s entre cada serie` : "Desactivado";
+    const ex = item.ex;
+    const segs = descansoSegundosDe(ex);
+    let texto;
+    if(ex.salidaCada > 0 && ex.series > 1) texto = `Cuenta atrás de ${fmtSeg(ex.salidaCada)} por serie` + (segs > 0 ? ` · y ${segs}s de descanso` : "");
+    else if(ex.salidaCada > 0) texto = `Salida cada ${fmtSeg(ex.salidaCada)}`;
+    else texto = segs > 0 ? `${segs}s entre cada serie` : "Sin descanso fijo";
+    document.getElementById("exDescansoToggleSub").textContent = descansosActivos ? texto : "Desactivado";
   }
 
   function renderDescansoEditorValor(){
     const item = flat[currentIdx];
     if(!item) return;
     document.getElementById("exDescansoValor").textContent = `${descansoSegundosDe(item.ex)}s`;
+    const etiqueta = document.querySelector("#exDescansoEditor > span");
+    if(etiqueta) etiqueta.textContent = "Duración del descanso";
   }
 
   document.getElementById("exDescansoToggle").addEventListener("change", (e) => {
@@ -4832,10 +4055,46 @@ c48 -9 152 -20 232 -26 80 -6 199 -15 265 -21 180 -14 336 -26 580 -44 270
     document.getElementById("restOverlay").style.display = "none";
   }
 
+  function salidaActiva(ex){ return ex.salidaCada > 0 && ex.series > 1; }
+
+  function congelarReloj(){ if(!relojCongeladoDesde) relojCongeladoDesde = Date.now(); }
+  function descongelarReloj(){
+    if(relojCongeladoDesde){ pausedAccum += Date.now() - relojCongeladoDesde; relojCongeladoDesde = 0; }
+  }
+  function avisoSalida(){ try{ if(navigator.vibrate) navigator.vibrate(180); }catch(e){} }
+
+  // La ventana de la serie en curso ha terminado: se registra la serie (si no se marcó, queda «sin marcar»)
+  // y arranca la siguiente, con su descanso antes si el ejercicio lo lleva.
+  function terminarVentanaSalida(){
+    const ex = flat[currentIdx].ex;
+    const S = ex.salidaCada * 1000, k = salidaVentana;
+    if(!salidaTapeada){
+      laps.push({ elapsedMs: k * S, splitMs: S, auto: true });
+      renderLapsMini();
+    }
+    salidaTapeada = false;
+    avisoSalida();
+    if(k >= ex.series){
+      // Última serie: sin siguiente a la que pasar. Se detiene el reloj y se ofrece finalizar o una serie extra.
+      congelarReloj();
+      updateLapCounter();
+      mostrarSeriesCompletas();
+      return;
+    }
+    salidaVentana = k + 1;
+    updateLapCounter();
+    flashLap(`Salida · serie ${salidaVentana} de ${ex.series}`);
+    if(descansosActivos && descansoSegundosDe(ex) > 0) iniciarDescansoSerie();
+    updateTimerDisplay();   // la nueva cuenta atrás se ve ya, sin esperar al siguiente tick
+  }
+
   function startTimerRun(){
     timerState = "running";
     startTime = Date.now();
     pausedAccum = 0;
+    salidaVentana = 1;
+    salidaTapeada = false;
+    relojCongeladoDesde = 0;
     laps = [];
     vueltasSueltas = [];
     renderTimerScreen();
@@ -4849,9 +4108,10 @@ c48 -9 152 -20 232 -26 80 -6 199 -15 265 -21 180 -14 336 -26 580 -44 270
     const ex = item.ex;
     document.getElementById("timerExName").textContent = ex.nombre;
     document.getElementById("timerExProgress").textContent = `Ejercicio ${currentIdx+1} de ${flat.length}`;
-    document.getElementById("targetRef").textContent = ex.tiempoObjetivo
-      ? `🎯 Objetivo: ${formatTime(ex.tiempoObjetivo*1000,false)} / serie`
-      : "";
+    document.getElementById("targetRef").textContent = [
+      objetivoSegundos(ex) ? `🎯 Objetivo: ${formatTime(objetivoSegundos(ex)*1000,false)} / serie` : "",
+      ex.salidaCada > 0 ? `Salida cada ${fmtSeg(ex.salidaCada)}` : ""
+    ].filter(Boolean).join(" · ");
     const lapBtnEl = document.getElementById("lapBtn");
     lapBtnEl.disabled = false;
     // Con 1 sola serie el botón se llama "Vuelta" y funciona como
@@ -4875,7 +4135,7 @@ c48 -9 152 -20 232 -26 80 -6 199 -15 265 -21 180 -14 336 -26 580 -44 270
     // estrechas.
     document.body.classList.toggle("rp-lap-extra", esMultiSerie);
     document.getElementById("pauseBtn").innerHTML = `<span class="icon">${ICON_PAUSE}</span>Pausa`;
-    document.getElementById("timerDisplay").classList.remove("paused");
+    document.getElementById("timerDisplay").classList.remove("paused", "cd", "cd-low");
     updateLapCounter();
     document.getElementById("lapsMini").innerHTML = "";
     document.getElementById("totalTimeDisplay").textContent = "Total: 00:00.0";
@@ -4889,6 +4149,10 @@ c48 -9 152 -20 232 -26 80 -6 199 -15 265 -21 180 -14 336 -26 580 -44 270
   function updateLapCounter(){
     const ex = flat[currentIdx].ex;
     const lapCounterEl = document.getElementById("lapCounter");
+    if(salidaActiva(ex)){
+      lapCounterEl.textContent = `Serie ${salidaVentana} de ${ex.series}`;
+      return;
+    }
     if(laps.length === 0){
       lapCounterEl.textContent = ex.series > 1 ? `Vuelta 1 de ${ex.series}` : "";
     } else {
@@ -4899,8 +4163,20 @@ c48 -9 152 -20 232 -26 80 -6 199 -15 265 -21 180 -14 336 -26 580 -44 270
   }
 
   function updateTimerDisplay(){
-    if(timerState !== "running" || restState === "running") return;
+    if(timerState !== "running" || restState === "running" || relojCongeladoDesde) return;
     const elapsed = Date.now() - startTime - pausedAccum;
+    const exActual = flat[currentIdx].ex;
+    if(salidaActiva(exActual)){
+      // Cuenta atrás hasta la próxima salida (la serie en curso termina en salidaVentana · salidaCada)
+      const resta = salidaVentana * exActual.salidaCada * 1000 - elapsed;
+      if(resta <= 0){ terminarVentanaSalida(); return; }
+      const td = document.getElementById("timerDisplay");
+      td.textContent = formatTime(Math.ceil(resta / 100) * 100, true);
+      td.classList.add("cd");
+      td.classList.toggle("cd-low", resta <= 5000);
+      document.getElementById("totalTimeDisplay").textContent = "Total: " + formatTime(elapsed, true);
+      return;
+    }
     // El cronómetro grande se reinicia con la marca más reciente, sea de
     // una serie ("Serie") o de una vuelta suelta ("Vuelta") — ambas son
     // formas de marcar un split, aunque solo "Serie" cuenta para el
@@ -4926,6 +4202,19 @@ c48 -9 152 -20 232 -26 80 -6 199 -15 265 -21 180 -14 336 -26 580 -44 270
   document.getElementById("lapBtn").addEventListener("click", () => {
     if(timerState !== "running" || restState === "running") return;
     const elapsed = Date.now() - startTime - pausedAccum;
+    const exSalida = flat[currentIdx].ex;
+    if(salidaActiva(exSalida)){
+      // Con «Salida cada» el botón solo anota cuánto has tardado en esta serie. La cuenta atrás sigue hasta
+      // la salida: el descanso es el tiempo que sobra, y la siguiente serie arranca sola.
+      if(salidaTapeada){ flashLap(`Serie ${salidaVentana} ya marcada`); return; }
+      const S = exSalida.salidaCada * 1000;
+      const split = Math.max(0, Math.min(elapsed - (salidaVentana - 1) * S, S));
+      laps.push({ elapsedMs: salidaVentana * S, splitMs: split });
+      salidaTapeada = true;
+      renderLapsMini();
+      flashLap(`Serie ${salidaVentana} marcada — ${formatTime(split, true)}`);
+      return;
+    }
     const prev = laps.length ? laps[laps.length-1].elapsedMs : 0;
     laps.push({ elapsedMs: elapsed, splitMs: elapsed - prev });
     updateLapCounter();
@@ -4963,7 +4252,11 @@ c48 -9 152 -20 232 -26 80 -6 199 -15 265 -21 180 -14 336 -26 580 -44 270
     const elapsed = Date.now() - startTime - pausedAccum;
     const lastLapMs = laps.length ? laps[laps.length-1].elapsedMs : 0;
     const lastSueltaMs = vueltasSueltas.length ? vueltasSueltas[vueltasSueltas.length-1].elapsedMs : 0;
-    const prev = Math.max(lastLapMs, lastSueltaMs);
+    const exV = flat[currentIdx].ex;
+    // Con «Salida cada» las series ocupan ventanas fijas: la vuelta suelta se mide desde el inicio de la ventana en curso
+    const prev = salidaActiva(exV)
+      ? Math.max((salidaVentana - 1) * exV.salidaCada * 1000, lastSueltaMs)
+      : Math.max(lastLapMs, lastSueltaMs);
     vueltasSueltas.push({ elapsedMs: elapsed, splitMs: elapsed - prev });
     renderLapsMini();
     flashLap(`Vuelta suelta ${vueltasSueltas.length} marcada — ${formatTime(elapsed - prev, true)}`);
@@ -4983,8 +4276,11 @@ c48 -9 152 -20 232 -26 80 -6 199 -15 265 -21 180 -14 336 -26 580 -44 270
 
   function iniciarDescansoSerie(){
     const ex = flat[currentIdx].ex;
-    restTotalSec = descansoSegundosDe(ex);
-    if(restTotalSec <= 0) return; // 0s de descanso configurado = sin pausa
+    const ultimaSerieMs = laps.length ? laps[laps.length - 1].splitMs : 0;
+    // Con «Salida cada» el descanso es el fijo del ejercicio (se pone al acabar la cuenta atrás);
+    // sin salida, el de siempre.
+    restTotalSec = salidaActiva(ex) ? descansoSegundosDe(ex) : descansoTrasSerie(ex, ultimaSerieMs);
+    if(restTotalSec <= 0) return; // sin descanso (o ya se pasó de la hora de salida) = sin pausa
     restState = "running";
     restRemainingMs = restTotalSec * 1000;
     restPauseStartedAt = Date.now(); // congela el cronómetro real durante el descanso
@@ -5016,7 +4312,7 @@ c48 -9 152 -20 232 -26 80 -6 199 -15 265 -21 180 -14 336 -26 580 -44 270
   function actualizarRestSub(){
     const ex = flat[currentIdx].ex;
     document.getElementById("restSub").textContent = ex.series > 1
-      ? `Antes de la serie ${laps.length + 1} de ${ex.series}`
+      ? `Antes de la serie ${salidaActiva(ex) ? salidaVentana : laps.length + 1} de ${ex.series}` + (ex.salidaCada > 0 ? ` · salida cada ${fmtSeg(ex.salidaCada)}` : "")
       : "";
   }
 
@@ -5063,6 +4359,17 @@ c48 -9 152 -20 232 -26 80 -6 199 -15 265 -21 180 -14 336 -26 580 -44 270
   document.getElementById("seguirSerieBtn").addEventListener("click", () => {
     // Vuelve al cronómetro (ya en marcha de fondo) y arranca el descanso
     // habitual antes de la serie extra.
+    const exExtra = flat[currentIdx].ex;
+    if(salidaActiva(exExtra)){
+      // Con «Salida cada»: nueva ventana de cuenta atrás (con su descanso antes, si lo lleva)
+      descongelarReloj();
+      salidaVentana++;
+      salidaTapeada = false;
+      updateLapCounter();
+      showScreen("timer");
+      if(descansosActivos && descansoSegundosDe(exExtra) > 0) iniciarDescansoSerie();
+      return;
+    }
     showScreen("timer");
     iniciarDescansoSerie();
   });
@@ -5093,7 +4400,7 @@ c48 -9 152 -20 232 -26 80 -6 199 -15 265 -21 180 -14 336 -26 580 -44 270
           ...vueltasSueltas.map((l,i) => ({...l, label: `Vuelta suelta ${i+1}`}))
         ].sort((a,b) => a.elapsedMs - b.elapsedMs)
       : laps.map((l,i) => ({...l, label: `Vuelta ${i+1}`}));
-    el.innerHTML = combinadas.map(l => `<div>${l.label}: ${formatTime(l.splitMs, true)}</div>`).join("");
+    el.innerHTML = combinadas.map(l => `<div>${l.label}: ${l.auto ? "— (sin marcar)" : formatTime(l.splitMs, true)}</div>`).join("");
     el.scrollTop = el.scrollHeight;
   }
 
@@ -5123,7 +4430,8 @@ c48 -9 152 -20 232 -26 80 -6 199 -15 265 -21 180 -14 336 -26 580 -44 270
     // descanso ya completado).
     const pausadoTotal = pausedAccum
       + (timerState === "paused" ? (Date.now() - pauseStartedAt) : 0)
-      + (restState === "running" ? (Date.now() - restPauseStartedAt) : 0);
+      + (restState === "running" ? (Date.now() - restPauseStartedAt) : 0)
+      + (relojCongeladoDesde ? (Date.now() - relojCongeladoDesde) : 0);
     const elapsed = Date.now() - startTime - pausadoTotal;
     clearInterval(tickHandle);
     clearInterval(restHandle);
@@ -5131,6 +4439,7 @@ c48 -9 152 -20 232 -26 80 -6 199 -15 265 -21 180 -14 336 -26 580 -44 270
     restState = "idle";
     document.getElementById("restOverlay").style.display = "none";
     timerState = "stopped";
+    relojCongeladoDesde = 0;
     completedSet.add(currentIdx);
     exerciseResults[currentIdx] = { elapsedMs: elapsed, laps: laps.slice(), vueltasSueltas: vueltasSueltas.slice(), ex: flat[currentIdx].ex };
     guardarProgresoLocal();
@@ -5180,7 +4489,8 @@ c48 -9 152 -20 232 -26 80 -6 199 -15 265 -21 180 -14 336 -26 580 -44 270
         const limites = laps.map((l, i) => ({
           inicio: i === 0 ? 0 : laps[i-1].elapsedMs,
           fin: l.elapsedMs,
-          splitMs: l.splitMs
+          splitMs: l.splitMs,
+          auto: !!l.auto
         }));
         if(huboVueltaFinalImplicita){
           limites.push({
@@ -5194,10 +4504,10 @@ c48 -9 152 -20 232 -26 80 -6 199 -15 265 -21 180 -14 336 -26 580 -44 270
           const grupo = document.createElement("div");
           grupo.className = "rp-serie-group";
 
-          const cls = claseResultado(serieInfo.splitMs/1000, ex.tiempoObjetivo);
+          const cls = serieInfo.auto ? "" : claseResultado(serieInfo.splitMs/1000, objetivoSegundos(ex));
           const row = document.createElement("div");
           row.className = "rp-lap-row rp-serie-row " + cls;
-          row.innerHTML = `<span class="lap-label">Serie ${i+1}</span><span class="lap-time">${formatTime(serieInfo.splitMs, true)}</span>`;
+          row.innerHTML = `<span class="lap-label">Serie ${i+1}</span><span class="lap-time">${serieInfo.auto ? "—" : formatTime(serieInfo.splitMs, true)}</span>`;
           grupo.appendChild(row);
 
           // Vueltas sueltas cuya marca cae dentro del rango de esta serie.
@@ -5222,7 +4532,7 @@ c48 -9 152 -20 232 -26 80 -6 199 -15 265 -21 180 -14 336 -26 580 -44 270
         subEl.textContent = `Tiempo total · ${vueltasTotales} vuelta${vueltasTotales > 1 ? "s" : ""} registrada${vueltasTotales > 1 ? "s" : ""}`;
 
         laps.forEach((l, i) => {
-          const cls = claseResultado(l.splitMs/1000, ex.tiempoObjetivo);
+          const cls = claseResultado(l.splitMs/1000, objetivoSegundos(ex));
           const row = document.createElement("div");
           row.className = "rp-lap-row " + cls;
           row.innerHTML = `<span class="lap-label">Vuelta ${i+1}</span><span class="lap-time">${formatTime(l.splitMs, true)}</span>`;
@@ -5231,7 +4541,7 @@ c48 -9 152 -20 232 -26 80 -6 199 -15 265 -21 180 -14 336 -26 580 -44 270
 
         if(huboVueltaFinalImplicita){
           const restante = totalElapsedMs - lastLapMsPre;
-          const cls = claseResultado(restante/1000, ex.tiempoObjetivo);
+          const cls = claseResultado(restante/1000, objetivoSegundos(ex));
           const row = document.createElement("div");
           row.className = "rp-lap-row " + cls;
           row.innerHTML = `<span class="lap-label">Vuelta ${laps.length+1}</span><span class="lap-time">${formatTime(restante, true)}</span>`;
@@ -5245,7 +4555,7 @@ c48 -9 152 -20 232 -26 80 -6 199 -15 265 -21 180 -14 336 -26 580 -44 270
       lapsListEl.appendChild(totalRow);
     } else if(ex.series > 1){
       // Se detuvo sin marcar ninguna vuelta: comparar contra el objetivo combinado
-      const objetivoTotal = ex.tiempoObjetivo ? ex.tiempoObjetivo * ex.series : null;
+      const objetivoTotal = objetivoSegundos(ex) ? objetivoSegundos(ex) * ex.series : null;
       const cls = claseResultado(totalElapsedMs/1000, objetivoTotal);
       mainEl.textContent = formatTime(totalElapsedMs, true);
       mainEl.className = "rp-result-time " + cls;
@@ -5254,10 +4564,10 @@ c48 -9 152 -20 232 -26 80 -6 199 -15 265 -21 180 -14 336 -26 580 -44 270
         : "Tiempo total (sin vueltas marcadas)";
     } else {
       // Ejercicio de una sola serie
-      const cls = claseResultado(totalElapsedMs/1000, ex.tiempoObjetivo);
+      const cls = claseResultado(totalElapsedMs/1000, objetivoSegundos(ex));
       mainEl.textContent = formatTime(totalElapsedMs, true);
       mainEl.className = "rp-result-time " + cls;
-      subEl.textContent = ex.tiempoObjetivo ? `Objetivo: ${formatTime(ex.tiempoObjetivo*1000,false)}` : "Sin objetivo de tiempo";
+      subEl.textContent = objetivoSegundos(ex) ? `Objetivo: ${formatTime(objetivoSegundos(ex)*1000,false)}` : "Sin objetivo de tiempo";
     }
 
     const nextBtn = document.getElementById("nextFromResultBtn");
@@ -5355,7 +4665,7 @@ c48 -9 152 -20 232 -26 80 -6 199 -15 265 -21 180 -14 336 -26 580 -44 270
           : `${ex.repeticiones != null ? ex.repeticiones : "?"} rep${ex.porLado ? "/lado" : ""}`;
         row.innerHTML = `<span class="lap-label">✓ ${escHtml(ex.nombre)}</span><span class="lap-time">${ex.series} × ${cantidad}</span>`;
       } else {
-        const objetivoTotal = ex.tiempoObjetivo ? ex.tiempoObjetivo * ex.series : null;
+        const objetivoTotal = objetivoSegundos(ex) ? objetivoSegundos(ex) * ex.series : null;
         const cls = claseResultado(r.elapsedMs / 1000, objetivoTotal);
         row.className = "rp-lap-row " + cls;
         // Se muestran series × metros (y el total) para que se vean también
@@ -5647,7 +4957,7 @@ c48 -9 152 -20 232 -26 80 -6 199 -15 265 -21 180 -14 336 -26 580 -44 270
       flat.forEach((item, idx) => {
         const r = exerciseResults[idx];
         if(!r) return;
-        const objetivoTotal = item.ex.tiempoObjetivo ? item.ex.tiempoObjetivo * item.ex.series : null;
+        const objetivoTotal = objetivoSegundos(item.ex) ? objetivoSegundos(item.ex) * item.ex.series : null;
         const cls = claseResultado(r.elapsedMs / 1000, objetivoTotal);
         ejercicios.push({ nombre: item.ex.nombre, tiempo: formatTime(r.elapsedMs, false), cls, intensidad: item.ex.intensidad });
       });
@@ -5862,6 +5172,586 @@ c48 -9 152 -20 232 -26 80 -6 199 -15 265 -21 180 -14 336 -26 580 -44 270
     if(e.key === "Escape") closeDescModal();
   });
 
+  // ====================================================================
+  // 📚 SESIONES DE LA BASE DE DATOS COMÚN
+  // Se muestra primero la última copia guardada en el navegador (funciona sin
+  // conexión) y después se actualiza con lo que haya ahora en la hoja de Google.
+  // ====================================================================
+  function cargarSesionesBD(){
+    if(typeof BD === "undefined" || typeof BD_SESIONES === "undefined"){ bdEstado = "error"; return; }
+    const refrescar = () => { if(modalAbiertoId === "bibModalBackdrop" && !bibPreviewSesion) renderBibModal(); };
+    try{ BD.cargar(db => {
+      // Agrupadas por sección (en el orden en que aparecen en la hoja) y, dentro de cada una, por su número de orden
+      const secciones = [];
+      db.sesiones.forEach(r => { if(!secciones.includes(r.categoria)) secciones.push(r.categoria); });
+      const ordenadas = [];
+      secciones.forEach(c => db.sesiones.filter(r => r.categoria === c).forEach(r => ordenadas.push(r)));
+      SESIONES_PREDEFINIDAS = ordenadas.map(r => { try{ return BD_SESIONES.convertir(r); }catch(e){ return null; } }).filter(Boolean);
+      refrescar();
+    }, estado => {
+      bdEstado = estado === "error" ? "error" : (estado === "cargando" ? "cargando" : "ok");
+      refrescar();
+    }); }catch(e){ bdEstado = "error"; }
+  }
+  // Los scripts de la base de datos van después de este: se espera a que estén cargados.
+  if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", cargarSesionesBD);
+  else cargarSesionesBD();
+
+})();
+</script>
+<script>
+/* Base de datos común (hoja de Google): de aquí salen las sesiones del listado «Cargar entrenamiento».
+   Misma dirección que usan la Biblioteca y el Generador. */
+var BD_URL = 'https://script.google.com/macros/s/AKfycbye1n6Gx7drydnH9XRQ_xx-VryU9NHenDTTE7XYZudaOR84WZcHz3rUA8p0JsOVbDY5CA/exec';
+</script>
+<script>
+/* ===== BD · Base de datos común (ejercicios y sesiones) — núcleo ===== */
+var BD = (function(){
+  var BOOK_URL = 'https://drive.google.com/file/d/1Xk1ljDGgu5mvXG3CsbF6fA1XN1FpDD-G/view?usp=sharing';
+  var BTN_SVG = '<svg aria-hidden="true" fill="currentColor" focusable="false" height="14" viewBox="0 0 24 24" width="14"><path d="M8 5v14l11-7z"></path></svg>';
+
+  function esc(t){ return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function escA(t){ return esc(t).replace(/"/g,'&quot;'); }
+  function icon(n){ return '<i aria-hidden="true" class="icon icon-'+escA(n)+'" data-icon="'+escA(n)+'"></i>'; }
+  function trim(s){ return String(s==null?'':s).trim(); }
+
+  /* ---------- Formatos de texto de las celdas ---------- */
+  // Etiquetas:  "Crol; Posición; Estático{static,meditation}; Principiante{easy}"
+  function parseTags(s){
+    return trim(s).split(';').map(trim).filter(Boolean).map(function(x){
+      var m = x.match(/^(.*?)\{([^,}]*)(?:,([^}]*))?\}$/);
+      return m ? {t:trim(m[1]), k:trim(m[2]), i:trim(m[3]||'')} : {t:x, k:'', i:''};
+    });
+  }
+  function serTags(a){
+    return a.map(function(t){
+      if(!t.k && !t.i) return t.t;
+      return t.t+'{'+t.k+(t.i?','+t.i:'')+'}';
+    }).join('; ');
+  }
+  // Líneas de lista: "texto"  ó  "negrita | texto | nota | url"
+  function parseLines(s){
+    return String(s==null?'':s).split(/\r?\n/).map(trim).filter(Boolean).map(function(l){
+      if(l.indexOf(' | ')<0 && l.indexOf('|')<0) return {b:'',txt:l,small:'',url:''};
+      var p = l.split('|').map(trim);
+      var b = p[0]||'', main = p[1]||'', small = p[2]||'', url = p[3]||'';
+      return {b:b, txt:main, small:small, url:url};
+    });
+  }
+  function serLines(a){
+    return a.map(function(x){
+      if(!x.b && !x.small && !x.url) return x.txt;
+      var f = [x.b, x.txt, x.small, x.url];
+      while(f.length>2 && !f[f.length-1]) f.pop();
+      return f.join(' | ');
+    }).join('\n');
+  }
+  // Enlaces: "Texto | url | primary | book-open | título"
+  function parseActions(s){
+    return String(s==null?'':s).split(/\r?\n/).map(trim).filter(Boolean).map(function(l){
+      var p = l.split('|').map(trim);
+      return {t:p[0]||'', href:p[1]||'', k:p[2]||'primary', i:p[3]||'', title:p[4]||''};
+    });
+  }
+  function serActions(a){
+    return a.map(function(x){
+      var f=[x.t,x.href,x.k,x.i,x.title]; while(f.length>3 && !f[f.length-1]) f.pop(); return f.join(' | ');
+    }).join('\n');
+  }
+
+  /* ---------- HTML permitido en descripciones ---------- */
+  var OK_TAGS = {B:1,STRONG:1,EM:1,I:1,BR:1,SMALL:1,SPAN:1,DIV:1,P:1,A:1,UL:1,LI:1};
+  var OK_ATTR = {style:1,class:1,'data-icon':1,'aria-hidden':1,href:1,target:1};
+  function sanitize(html){
+    var t = document.createElement('template'); t.innerHTML = String(html==null?'':html);
+    (function walk(n){
+      Array.prototype.slice.call(n.childNodes).forEach(function(c){
+        if(c.nodeType===8){ n.removeChild(c); return; }
+        if(c.nodeType!==1) return;
+        if(!OK_TAGS[c.tagName]){ n.removeChild(c); return; }
+        Array.prototype.slice.call(c.attributes).forEach(function(a){
+          var nm=a.name.toLowerCase(), v=a.value;
+          if(!OK_ATTR[nm]) { c.removeAttribute(a.name); return; }
+          if(nm==='href' && !/^(https?:|mailto:|#)/i.test(v.trim())) c.removeAttribute(a.name);
+          if(nm==='style' && /url\s*\(|expression|@import|javascript:/i.test(v)) c.removeAttribute(a.name);
+        });
+        walk(c);
+      });
+    })(t.content);
+    return t.innerHTML;
+  }
+
+  /* ---------- Render (mismo marcado que tenía la Biblioteca) ---------- */
+  var DIF = {facil:' difficulty-easy', medio:' difficulty-medium', dificil:' difficulty-hard'};
+  function renderTag(t){
+    return '<span class="tag'+(t.k?' tag-'+escA(t.k):'')+'">'+(t.i?icon(t.i)+' ':'')+esc(t.t)+'</span>';
+  }
+  function renderLi(x){
+    var s = x.b ? '<strong>'+esc(x.b)+'</strong>' : '';
+    var sep = x.b ? ' ' : '';
+    if(x.url) s += sep+'<a href="'+escA(x.url)+'" style="color:var(--primary);text-decoration:underline;" target="_blank">'+esc(x.txt)+'</a>';
+    else if(x.txt) s += sep+esc(x.txt);
+    if(x.small) s += ' <small style="color:var(--muted);">'+esc(x.small)+'</small>';
+    return '<li>'+s+'</li>';
+  }
+  function renderAction(a){
+    return '<a class="btn btn-'+escA(a.k)+'" href="'+escA(a.href)+'" target="_blank"'+(a.title?' title="'+escA(a.title)+'"':'')+'>'+(a.i?icon(a.i)+' ':'')+esc(a.t)+'</a>';
+  }
+  function assemble(r, o){
+    var h = '<div class="exercise'+(DIF[r.dificultad]||'')+'" data-bd-id="'+escA(r.id)+'">'
+      + '<div class="exercise-header"><div class="exercise-name"><h3>'+esc(o.titulo)+'</h3>'
+      + '<div class="tags">'+parseTags(r.etiquetas).map(renderTag).join('')+'</div></div><div class="arrow">▼</div></div>'
+      + '<div class="exercise-content">';
+    var parts = {};
+    var desc = trim(r.descripcion);
+    if(desc) parts.d = '<div class="exercise-description">'+sanitize(desc)+'</div>';
+    var lines = parseLines(o.lineas);
+    if(lines.length) parts.b = '<div class="exercise-objectives-box"><div class="obj-label">'+icon(o.boxIcon)+' '+esc(o.boxLabel)+'</div><ul'+(o.ulClass?' class="'+o.ulClass+'"':'')+'>'+lines.map(renderLi).join('')+'</ul></div>';
+    if(o.acciones && o.acciones.length) parts.a = '<div class="actions">'+o.acciones.map(renderAction).join('')+'</div>';
+    o.orden.split('').forEach(function(k){ if(parts[k]) h += parts[k]; });
+    if(o.boton==='rutina') h += '<button class="btn-reproductor" onclick="event.stopPropagation(); copiarRutinaFisicaAlReproductor(this)" title="Copiar esta rutina y abrirla en el Reproductor" type="button">'+BTN_SVG+' Cargar en Reproductor</button>';
+    else if(o.boton==='sesion') h += '<button class="btn-reproductor" onclick="event.stopPropagation(); copiarSesionAlReproductor(this)" title="Copiar esta sesión y abrirla en el Reproductor" type="button">'+BTN_SVG+' Cargar en Reproductor</button>';
+    return h+'</div></div>';
+  }
+  function renderEjercicio(r){
+    var nat = r.tipo==='natacion';
+    var acc = [];
+    if(trim(r.pagina)) acc.push({t:'Libro pág. '+trim(r.pagina), href:BOOK_URL, k:'pdf', i:'file-text', title:'Ver página '+trim(r.pagina)+' en el libro'});
+    acc = acc.concat(parseActions(r.enlaces));
+    return assemble(r, {
+      titulo:(trim(r.num)?trim(r.num)+'. ':'')+r.nombre,
+      lineas:r.objetivos, boxLabel:'Objetivos', boxIcon:'target', ulClass:'objectives-list',
+      acciones:acc, orden:nat?'bda':'dba', boton:''
+    });
+  }
+  function renderSesion(r){
+    var rut = r.boton==='rutina';
+    return assemble(r, {
+      titulo:r.nombre, lineas:r.series, boxLabel:rut?'Lista de Ejercicios':'Series', boxIcon:'clipboard', ulClass:'',
+      acciones:[], orden:'dba', boton:rut?'rutina':(r.boton==='ninguno'?'':'sesion')
+    });
+  }
+
+  return {
+    BOOK_URL:BOOK_URL, esc:esc, escA:escA, sanitize:sanitize,
+    parseTags:parseTags, serTags:serTags, parseLines:parseLines, serLines:serLines, parseActions:parseActions, serActions:serActions,
+    renderEjercicio:renderEjercicio, renderSesion:renderSesion
+  };
+})();
+
+
+/* ===== BD · red, caché, clave de edición, descargas ===== */
+(function(BD){
+  var CACHE_KEY = 'bd-natacion-cache-v1';
+  var CLAVE_KEY = 'bd-natacion-clave';
+  var COLS = {
+    ejercicios:['id','tipo','categoria','subcategoria','orden','num','nombre','dificultad','etiquetas','objetivos','descripcion','descripcion_corta','pagina','enlaces','fuera_piscina'],
+    sesiones:['id','categoria','orden','nombre','dificultad','etiquetas','descripcion','series','boton']
+  };
+  BD.COLS = COLS;
+  BD.db = {ejercicios:[], sesiones:[]};
+
+  function url(){ return (typeof BD_URL !== 'undefined' && BD_URL) ? BD_URL : 'datos.json'; }
+  BD.url = url;
+  BD.escribible = function(){ return /^https:\/\/script\.google(usercontent)?\.com\//.test(url()); };
+  BD.truthy = function(v){ return /^(1|true|si|sí|x|yes)$/i.test(String(v==null?'':v).trim()); };
+
+  // Texto sin acentos, en minúsculas y con espacios simples (para comparar valores escritos a mano)
+  function plano(t){ return String(t==null?'':t).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim(); }
+  BD.plano = plano;
+  var ESTILOS = {crol:'Crol', espalda:'Espalda', braza:'Braza', mariposa:'Mariposa'};
+  // Tolera variantes al escribir a mano en la hoja: «Natación», «EXTRAS», «crol», «Estilo Crol»…
+  function canonEjercicio(n){
+    var t = plano(n.tipo);
+    if(t.indexOf('nat') === 0) n.tipo = 'natacion';
+    else if(t.indexOf('comp') === 0) n.tipo = 'complementario';
+    else if(t.indexOf('gen') === 0) n.tipo = 'generica';
+    var sc = plano(n.subcategoria);
+    if(n.tipo === 'natacion'){
+      n.subcategoria = sc.indexOf('lib') === 0 ? 'libro' : 'extras';   // sin indicar = Extras
+      var c = plano(n.categoria).replace(/^estilo /, '');
+      if(ESTILOS[c]) n.categoria = ESTILOS[c];
+    } else if(n.tipo === 'complementario'){
+      n.subcategoria = '';
+    } else if(n.tipo === 'generica'){
+      n.subcategoria = (sc === 'plus' || sc.indexOf('basico') === 0) ? 'plus' : '';
+    }
+    n.categoria = String(n.categoria).trim();
+  }
+  function ordenNum(v){ var x = parseFloat(v); return isNaN(x) ? 1e9 : x; }   // sin número = al final
+
+  BD.normalizar = function(db){
+    var out = {ejercicios:[], sesiones:[]};
+    Object.keys(COLS).forEach(function(h){
+      var rows = (db && db[h]) || [];
+      rows.forEach(function(r, i){
+        var n = {};
+        COLS[h].forEach(function(c){ n[c] = (r[c]==null) ? '' : String(r[c]); });
+        if(!n.id) return;
+        if(h === 'ejercicios') canonEjercicio(n); else n.categoria = n.categoria.trim();
+        n._i = i; out[h].push(n);
+      });
+      out[h].sort(function(a,b){
+        var d = ordenNum(a.orden) - ordenNum(b.orden);
+        return d || (a._i - b._i);
+      });
+      out[h].forEach(function(n){ delete n._i; });
+    });
+    // Categorías de complementarios: «core y abdominales» y «Core y Abdominales» son la misma (gana la primera escrita)
+    var visto = {};
+    out.ejercicios.forEach(function(n){
+      if(n.tipo !== 'complementario') return;
+      var k = plano(n.categoria);
+      if(visto[k]) n.categoria = visto[k]; else visto[k] = n.categoria;
+    });
+    return out;
+  };
+
+  function leerCache(){
+    try{ var s = localStorage.getItem(CACHE_KEY); return s ? JSON.parse(s) : null; }catch(e){ return null; }
+  }
+  function guardarCache(db){
+    try{ localStorage.setItem(CACHE_KEY, JSON.stringify(db)); }catch(e){}
+  }
+  BD.guardarCache = function(){ guardarCache(BD.db); };
+
+  BD.descargar = function(){
+    var sep = url().indexOf('?') >= 0 ? '&' : '?';
+    return fetch(url()+sep+'t='+Date.now(), {cache:'no-store'}).then(function(r){
+      if(!r.ok) throw new Error('HTTP '+r.status);
+      return r.json();
+    }).then(function(j){
+      if(j && j.ok === false) throw new Error(j.error || 'Error del servidor');
+      return BD.normalizar(j);
+    });
+  };
+
+  // Muestra primero la copia local (si existe) y después actualiza desde la red.
+  // onDatos(db, origen) se llama con 'cache' y/o 'red' (solo si cambió).
+  // onEstado('cargando'|'ok'|'error', detalle)
+  BD.cargar = function(onDatos, onEstado){
+    var c = leerCache(), cs = null;
+    if(c){ c = BD.normalizar(c); cs = JSON.stringify(c); BD.db = c; onDatos(c, 'cache'); onEstado && onEstado('ok', 'cache'); }
+    else onEstado && onEstado('cargando');
+    return BD.descargar().then(function(db){
+      var s = JSON.stringify(db);
+      if(s !== cs){ BD.db = db; guardarCache(db); onDatos(db, 'red'); }
+      onEstado && onEstado('ok', 'red');
+    }).catch(function(err){
+      onEstado && onEstado(c ? 'ok' : 'error', c ? 'sin-red' : String(err && err.message || err));
+    });
+  };
+
+  /* ---------- clave de edición ---------- */
+  BD.clave = function(){
+    try{ return localStorage.getItem(CLAVE_KEY) || sessionStorage.getItem(CLAVE_KEY) || ''; }catch(e){ return ''; }
+  };
+  BD.guardarClave = function(c, recordar){
+    try{
+      localStorage.removeItem(CLAVE_KEY); sessionStorage.removeItem(CLAVE_KEY);
+      (recordar ? localStorage : sessionStorage).setItem(CLAVE_KEY, c);
+    }catch(e){}
+  };
+  BD.olvidarClave = function(){
+    try{ localStorage.removeItem(CLAVE_KEY); sessionStorage.removeItem(CLAVE_KEY); }catch(e){}
+  };
+
+  BD.post = function(payload){
+    if(!BD.escribible()) return Promise.reject(new Error('La base está en modo solo lectura: falta configurar BD_URL con la dirección del Apps Script.'));
+    payload.clave = payload.clave || BD.clave();
+    return fetch(url(), {method:'POST', body:JSON.stringify(payload)}).then(function(r){ return r.json(); }).then(function(j){
+      if(!j || j.ok !== true) throw new Error((j && j.error) || 'Respuesta no válida del servidor');
+      return j;
+    });
+  };
+  BD.entrar = function(clave, recordar){
+    return BD.post({op:'ping', clave:clave}).then(function(){ BD.guardarClave(clave, recordar); return true; });
+  };
+  BD.guardar = function(hoja, registros){ return BD.post({op:'guardar', hoja:hoja, registros:registros}); };
+  BD.borrar = function(hoja, id){ return BD.post({op:'borrar', hoja:hoja, id:id}); };
+  BD.importar = function(db){ return BD.post({op:'importar', datos:db}); };
+  BD.historial = function(limite){ return BD.post({op:'historial', limite:limite || 100}); };
+  BD.restaurar = function(hid){ return BD.post({op:'restaurar', hid:hid}); };
+  BD.copia = function(){ return BD.post({op:'copia'}); };
+  BD.copias = function(){ return BD.post({op:'copias'}); };
+
+  /* ---------- descargas ---------- */
+  function bajar(nombre, tipo, texto){
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([texto], {type:tipo}));
+    a.download = nombre; document.body.appendChild(a); a.click();
+    setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  }
+  BD.descargarJSON = function(){
+    bajar('base-natacion.json', 'application/json', JSON.stringify({version:1, ejercicios:BD.db.ejercicios, sesiones:BD.db.sesiones}, null, 1));
+  };
+  function csvCelda(v){ v = String(v==null?'':v); return /[",\n\r;]/.test(v) ? '"'+v.replace(/"/g,'""')+'"' : v; }
+  BD.descargarCSV = function(hoja){
+    var cols = COLS[hoja];
+    var filas = [cols.join(',')].concat(BD.db[hoja].map(function(r){ return cols.map(function(c){ return csvCelda(r[c]); }).join(','); }));
+    bajar(hoja+'.csv', 'text/csv;charset=utf-8', '\ufeff'+filas.join('\r\n'));
+  };
+
+})(BD);
+
+/* ===== Sesiones de la base de datos → formato del Reproductor ===== */
+window.BD_SESIONES = (function(){
+const ESTILOS_NATACION = ['Crol', 'Espalda', 'Braza', 'Mariposa'];
+const MATERIAL_NATACION = ['Aletas', 'Pull', 'Tabla', 'Palas', 'Pullboy', 'Colchoneta', 'Snorkel'];
+
+function detectarPalabras(texto, lista){
+  const t = texto.toLowerCase();
+  return lista.filter(p => t.includes(p.toLowerCase()));
+}
+
+function extraerSesionNatacion(exerciseEl){
+  const nombre = exerciseEl.querySelector('.exercise-name h3').textContent.trim();
+  const lis = exerciseEl.querySelectorAll('.exercise-objectives-box ul > li');
+
+  // Estilo dominante de la sesión, a partir del título ("Sesión de Crol - 1100m")
+  const mEstiloSesion = nombre.match(/Sesión de (\w+)/i);
+  let estiloSesion = mEstiloSesion ? mEstiloSesion[1] : '';
+  if(estiloSesion.toLowerCase() === 'estilos') estiloSesion = '';
+  else if(!ESTILOS_NATACION.some(e => e.toLowerCase() === estiloSesion.toLowerCase())) estiloSesion = '';
+
+  const ejercicios = [];
+
+  lis.forEach(li => {
+    const strongEl = li.querySelector('strong');
+    const smallEl = li.querySelector('small');
+    const strongText = strongEl ? strongEl.textContent.replace(/\s+/g,' ').trim() : '';
+
+    // Texto descriptivo = contenido del <li> sin el <strong> ni el <small>
+    const clone = li.cloneNode(true);
+    const cs = clone.querySelector('strong'); if(cs) cs.remove();
+    const csm = clone.querySelector('small'); if(csm) csm.remove();
+    const desc = clone.textContent.replace(/\s+/g,' ').trim();
+    const nota = smallEl ? smallEl.textContent.replace(/\s+/g,' ').trim().replace(/^—\s*/, '') : '';
+
+    let series = 1, metros = 0, tiempoObjetivo = null;
+    const mVeces = strongText.match(/^(\d+)\s*[x×]\s*(\d+)\s*m?$/i);
+    const mMetros = strongText.match(/^(\d+)\s*m$/i);
+    const mMinutos = strongText.match(/^(\d+)\s*min/i);
+
+    if(mVeces){
+      series = parseInt(mVeces[1], 10);
+      metros = parseInt(mVeces[2], 10);
+    } else if(mMetros){
+      series = 1;
+      metros = parseInt(mMetros[1], 10);
+    } else if(mMinutos){
+      series = 1;
+      metros = 0;
+      tiempoObjetivo = parseInt(mMinutos[1], 10) * 60;
+    }
+
+    const esEtiqueta = !mVeces && !mMetros && !mMinutos && strongText;
+
+    // Cuando es una etiqueta libre (p. ej. "Vuelta a la calma") pero la
+    // propia descripción va desglosando metros ("100 m espalda con
+    // aletas · 50 m espalda sin aletas"), sumamos esos metros sueltos
+    // en vez de dejar la serie en 0.
+    if(esEtiqueta){
+      const metrosSueltos = desc.match(/(\d+)\s*m\b/gi);
+      if(metrosSueltos){
+        metros = metrosSueltos.reduce((s, t) => s + parseInt(t, 10), 0);
+      }
+    }
+
+    const nombreSerie = esEtiqueta
+      ? (desc ? `${strongText} — ${desc}` : strongText)
+      : (desc || strongText || 'Serie');
+
+    // Tiempos escritos en la nota:
+    //   «Salida cada 2:00» → una serie sale cada ese tiempo, descanso incluido (no afecta al ritmo)
+    //   «Ritmo 1:30/100m»  → tiempo objetivo por cada 100 m
+    //   «Descanso 30 s»    → descanso fijo entre series
+    let salidaCada = null, ritmo = null, descansoSerie;
+    if(nota){
+      const mSalidaMS = nota.match(/salida\s*cada\s*(\d{1,3}):(\d{2})/i);
+      const mSalidaMin = nota.match(/salida\s*cada\s*(\d+)\s*min/i);
+      const mSalidaSeg = nota.match(/salida\s*cada\s*(\d+)\s*s(?:eg)?\b/i);
+      if(mSalidaMS){
+        salidaCada = parseInt(mSalidaMS[1], 10) * 60 + parseInt(mSalidaMS[2], 10);
+      } else if(mSalidaMin){
+        salidaCada = parseInt(mSalidaMin[1], 10) * 60;
+      } else if(mSalidaSeg){
+        salidaCada = parseInt(mSalidaSeg[1], 10);
+      }
+      const mRitmo = nota.match(/ritmo\s*(\d{1,2}):(\d{2})\s*\/\s*100/i);
+      if(mRitmo) ritmo = parseInt(mRitmo[1], 10) * 60 + parseInt(mRitmo[2], 10);
+      const mDesc = nota.match(/descansos?\s*(?:de\s*)?(\d+)\s*s(?:eg)?\b/i);
+      if(mDesc) descansoSerie = parseInt(mDesc[1], 10);
+    }
+    if(ritmo && metros > 0 && tiempoObjetivo === null) tiempoObjetivo = Math.round(ritmo * metros / 100);
+
+    const textoCompleto = `${strongText} ${desc} ${nota}`;
+    const estilosEncontrados = detectarPalabras(textoCompleto, ESTILOS_NATACION);
+    const style = estilosEncontrados[0] || estiloSesion || '';
+    const material = detectarPalabras(textoCompleto, MATERIAL_NATACION);
+    const tags = style ? [style, ...material] : [...material];
+
+    ejercicios.push({
+      nombre: nombreSerie,
+      desc: nota || '',
+      style,
+      tags,
+      series,
+      metros,
+      distanciaTotal: series * metros,
+      intensidad: null,
+      salidaCada,
+      ritmo,
+      ...(descansoSerie !== undefined ? { descansoSerie } : {}),
+      tiempoObjetivo,
+      pagina: null
+    });
+  });
+
+  let totalMetros = ejercicios.reduce((s, e) => s + (e.distanciaTotal || 0), 0);
+  const mTitulo = nombre.match(/(\d+)\s*m\s*$/);
+  if(mTitulo) totalMetros = parseInt(mTitulo[1], 10);
+
+  return {
+    tipo: 'sesion-natacion',
+    version: 1,
+    nombre,
+    generadoEn: new Date().toISOString(),
+    totalMetros,
+    bloques: [{ titulo: nombre, distancia: totalMetros + 'm', ejercicios }]
+  };
+}
+
+// ====================================================================
+// CARGAR RUTINA FÍSICA (ENTRENAMIENTOS COMPLEMENTARIOS) EN EL REPRODUCTOR
+// Mismo mecanismo que las sesiones de natación, pero con el esquema
+// "sesion-fisica": series/repeticiones o series/duración en vez de
+// metros, y sin distancia. Cada ejercicio va enlazado a su ficha
+// (MuscleWiki/YouTube) vía "info", y lleva un "gifQuery" (nombre del
+// ejercicio normalizado) pensado para cuando se conecte la base de
+// datos de GIFs — el Reproductor lo usará para buscar la animación
+// correspondiente por nombre.
+// ====================================================================
+function normalizarTextoGif(texto){
+  return texto
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // quitar acentos
+    .replace(/\([^)]*\)/g, '') // quitar aclaraciones entre paréntesis
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+function parseSerieFisica(strongText){
+  const t = strongText.trim();
+  let series = 1, repeticiones = null, duracionSegundos = null, porLado = false;
+
+  let m = t.match(/^(\d+)\s*x\s*(\d+)\s*min/i);
+  if(m){ return { series: parseInt(m[1],10), repeticiones: null, duracionSegundos: parseInt(m[2],10)*60, porLado }; }
+
+  m = t.match(/^(\d+)\s*x\s*(\d+)\s*s(?:eg)?\b/i);
+  if(m){ return { series: parseInt(m[1],10), repeticiones: null, duracionSegundos: parseInt(m[2],10), porLado }; }
+
+  m = t.match(/^(\d+)\s*x\s*(\d+)$/i);
+  if(m){ return { series: parseInt(m[1],10), repeticiones: parseInt(m[2],10), duracionSegundos: null, porLado }; }
+
+  m = t.match(/^(\d+)\s*min(?:uto)?s?$/i);
+  if(m){ return { series: 1, repeticiones: null, duracionSegundos: parseInt(m[1],10)*60, porLado }; }
+
+  m = t.match(/^(\d+)\s*s(?:eg(?:undo)?s?)?$/i);
+  if(m){ return { series: 1, repeticiones: null, duracionSegundos: parseInt(m[1],10), porLado }; }
+
+  m = t.match(/^(\d+)\s*cada\s*lado\s*x?$/i);
+  if(m){ return { series: 2, repeticiones: parseInt(m[1],10), duracionSegundos: null, porLado: true }; }
+
+  m = t.match(/^(\d+)\s*x$/i);
+  if(m){ return { series: 1, repeticiones: parseInt(m[1],10), duracionSegundos: null, porLado }; }
+
+  // No reconocido: se deja como serie única, el texto original queda
+  // igualmente disponible en el nombre del ejercicio (no se pierde info).
+  return { series: 1, repeticiones: null, duracionSegundos: null, porLado };
+}
+
+const GRUPOS_MUSCULARES = ['Fuerza', 'Movilidad', 'Core', 'Cardio', 'Peso'];
+
+function extraerSesionFisica(exerciseEl){
+  const nombre = exerciseEl.querySelector('.exercise-name h3').textContent.trim();
+  const tagsSesion = [...exerciseEl.querySelectorAll('.exercise-name .tags .tag')]
+    .map(t => t.textContent.trim())
+    .filter(t => !['Principiante','Intermedio','Avanzado'].includes(t));
+
+  const lis = exerciseEl.querySelectorAll('.exercise-objectives-box ul > li');
+  const ejercicios = [];
+
+  lis.forEach(li => {
+    const strongEl = li.querySelector('strong');
+    const aEl = li.querySelector('a');
+    const smallEl = li.querySelector('small');
+
+    const strongText = strongEl ? strongEl.textContent.replace(/\s+/g,' ').trim() : '';
+    const nombreEjercicio = aEl ? aEl.textContent.replace(/\s+/g,' ').trim() : (li.textContent.replace(/\s+/g,' ').trim() || 'Ejercicio');
+    const info = aEl ? aEl.href : null;
+    const nota = smallEl ? smallEl.textContent.replace(/\s+/g,' ').trim().replace(/^\(|\)$/g, '') : '';
+
+    const { series, repeticiones, duracionSegundos, porLado } = parseSerieFisica(strongText);
+
+    ejercicios.push({
+      nombre: nombreEjercicio,
+      desc: nota || '',
+      tags: tagsSesion,
+      series,
+      repeticiones,
+      duracionSegundos,
+      porLado,
+      gifQuery: normalizarTextoGif(nombreEjercicio),
+      info
+    });
+  });
+
+  return {
+    tipo: 'sesion-fisica',
+    version: 1,
+    nombre,
+    generadoEn: new Date().toISOString(),
+    totalEjercicios: ejercicios.length,
+    bloques: [{ titulo: nombre, ejercicios }]
+  };
+}
+
+  // Convierte una fila de la hoja «sesiones» en un entrenamiento del Reproductor.
+  function convertir(r){
+    if(r.boton === 'ninguno') return null;
+    var cont = document.createElement('div');
+    cont.innerHTML = BD.renderSesion(r);
+    var el = cont.firstElementChild;
+    var se = r.boton === 'rutina' ? extraerSesionFisica(el) : extraerSesionNatacion(el);
+    delete se.generadoEn;            // no es una fecha de generación: que no muestre «hoy»
+    se._id = r.id; se._cat = r.categoria; se._dif = r.dificultad;
+    return se;
+  }
+  return { convertir: convertir };
+})();
+</script>
+
+<script>
+/* ===== PWA · funcionamiento sin conexión =====
+   Registra sw.js, que debe estar en la MISMA carpeta que este HTML (como favicon.ico).
+   Si falta, la página funciona igual que antes, solo que sin modo sin conexión.
+   Este bloque es idéntico en la Biblioteca, el Generador y el Reproductor: si lo cambias en uno, cámbialo en los demás. */
+(function(){
+  if(!('serviceWorker' in navigator) || !/^https?:$/.test(location.protocol)) return;
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register('sw.js', {scope:'./'})
+      .then(function(){ return navigator.serviceWorker.ready; })
+      .then(function(reg){
+        var sw = reg.active || navigator.serviceWorker.controller; if(!sw) return;
+        var urls = [location.href.split('#')[0]];
+        document.querySelectorAll('link[rel~="icon"],link[rel="apple-touch-icon"],link[rel="stylesheet"]').forEach(function(l){
+          if(l.href && urls.indexOf(l.href) < 0) urls.push(l.href);
+        });
+        sw.postMessage({tipo:'guardar', urls:urls});
+      })
+      .catch(function(err){ console.warn('Sin modo sin conexión:', err && err.message || err); });
+  });
 })();
 </script>
 
