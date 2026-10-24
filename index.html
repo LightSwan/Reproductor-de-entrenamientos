@@ -303,6 +303,26 @@
     .rp-descanso-editor-controls button:active{ transform:scale(.9); }
     .rp-descanso-editor-controls span{ min-width:38px; text-align:center; color:#fff; font-weight:700; font-size:15px; }
 
+    /* Chip «Hecho» junto al «Ejercicio N de M» de la pantalla de inicio del ejercicio */
+    .rp-hecho-chip{
+      display:inline-flex; align-items:center; margin-left:8px; padding:2px 10px; border-radius:999px;
+      background:rgba(34,197,94,.14); border:1px solid rgba(34,197,94,.45); color:#4ade80;
+      font-size:11.5px; font-weight:800; letter-spacing:.03em; vertical-align:middle;
+    }
+    /* Ajuste del temporizador (±5 s) con el ejercicio en marcha */
+    .rp-tiempo-ajuste{ display:flex; align-items:center; justify-content:center; gap:10px; margin-top:12px; font-size:13px; color:var(--muted); font-weight:600; }
+    .rp-tiempo-ajuste button{
+      min-width:54px; height:34px; padding:0 12px; border-radius:11px; border:1px solid rgba(59,130,246,.4);
+      background:rgba(59,130,246,.14); color:#93c5fd; font-size:13px; font-weight:800; cursor:pointer; font-family:inherit;
+      transition:transform .15s ease;
+    }
+    .rp-tiempo-ajuste button:active{ transform:scale(.93); }
+    /* «Guardar» / «Cancelar» del editor de un ejercicio siempre a la vista, aunque la lista de series sea larga */
+    #editModalBody .rp-edit-actions{
+      position:sticky; bottom:0; z-index:2; background:var(--panel); padding:12px 0 6px; margin-top:4px;
+      box-shadow:0 -12px 14px -12px rgba(0,0,0,.65);
+    }
+
     /* ---------- Rutinas físicas: hueco del GIF/animación del ejercicio ----------
        Tamaño SIEMPRE fijo (flex:none + overflow:hidden), exista o no el
        aviso de "orientativa" y sea cual sea el tamaño real de la imagen:
@@ -1028,6 +1048,8 @@
       #totalTimeDisplay{ font-size:12px; margin-top:2px; }
       #targetRef{ font-size:11px; margin-top:2px; }
       #lapCounter{ font-size:11px; margin-top:4px; }
+      .rp-tiempo-ajuste{ margin-top:4px; gap:8px; font-size:11px; }
+      .rp-tiempo-ajuste button{ min-width:44px; height:26px; padding:0 8px; font-size:11.5px; border-radius:9px; }
       #lapFlash{ font-size:13px; margin-top:2px; min-height:18px; }
       .rp-laps-mini{ max-height:8vh; margin-top:2px; }
     }
@@ -1057,7 +1079,11 @@
     }
     /* El contenido real aparece con un fundido suave por debajo del splash,
        en vez de aparecer todo de golpe en cuanto el HTML termina de cargar. */
-    .container{ animation:containerFadeIn .6s ease both; animation-delay:.35s; }
+    /* OJO: con «both» el último fotograma (transform:translateY(0)) se quedaba aplicado para siempre y convertía a
+       .container en el bloque contenedor de todo lo que lleve position:fixed, es decir, de los pop-ups: se colocaban
+       respecto a la PÁGINA entera (centrados en un resumen larguísimo, fuera de la vista) y no respecto a la pantalla.
+       Con «backwards» solo se aplica el primer fotograma durante el retardo y al terminar no queda ningún transform. */
+    .container{ animation:containerFadeIn .6s ease backwards; animation-delay:.35s; }
     @keyframes containerFadeIn{
       0%{ opacity:0; transform:translateY(6px); }
       100%{ opacity:1; transform:translateY(0); }
@@ -1197,6 +1223,18 @@
                  recuerda entre ejercicios (variable global descansosActivos),
                  pero se puede cambiar en cualquier momento antes de pulsar
                  "Empezar". -->
+            <!-- Temporizador del ejercicio (solo si lo tiene): «Salida cada» en natación y duración de cada
+                 serie en los ejercicios físicos por tiempo. Se ajusta de 5 en 5 s antes de empezar; también
+                 se puede ajustar con el ejercicio en marcha. -->
+            <div class="rp-descanso-editor" id="exTiempoEditor" style="display:none;">
+              <span id="exTiempoEtiqueta">Salida cada</span>
+              <div class="rp-descanso-editor-controls">
+                <button type="button" id="exTiempoMenosBtn" aria-label="Restar 5 segundos al temporizador">−</button>
+                <span id="exTiempoValor">1:30</span>
+                <button type="button" id="exTiempoMasBtn" aria-label="Sumar 5 segundos al temporizador">+</button>
+              </div>
+            </div>
+
             <label class="rp-descanso-toggle" id="exDescansoToggleWrap" style="display:none;">
               <span class="rp-descanso-toggle-text">
                 <span>Descansos entre series</span>
@@ -1488,6 +1526,11 @@
     <div class="rp-timer-info" id="timerInfoWrap">
       <div id="timerDisplay">00:00.0</div>
       <div id="totalTimeDisplay">Total: 00:00.0</div>
+      <div class="rp-tiempo-ajuste" id="salidaAjuste" style="display:none;">
+        <button type="button" id="salidaMenosBtn" aria-label="Restar 5 segundos a la salida">−5s</button>
+        <span id="salidaAjusteTxt"></span>
+        <button type="button" id="salidaMasBtn" aria-label="Sumar 5 segundos a la salida">+5s</button>
+      </div>
       <div id="lapFlash"></div>
       <button class="rp-detail-toggle" id="detailToggleBtn">Ver detalles</button>
       <div class="rp-timer-detail" id="timerDetail">
@@ -1572,6 +1615,11 @@
       <div class="rp-fisico-progress-track">
         <div class="rp-fisico-progress-bar" id="fisicoProgressBar"></div>
       </div>
+      <div class="rp-tiempo-ajuste" id="fisicoTiempoAjuste">
+        <button type="button" id="fisicoTiempoMenosBtn" aria-label="Restar 5 segundos a la duración">−5s</button>
+        <span id="fisicoTiempoTxt"></span>
+        <button type="button" id="fisicoTiempoMasBtn" aria-label="Sumar 5 segundos a la duración">+5s</button>
+      </div>
     </div>
 
     <!-- Ejercicios por repeticiones con descansos activados: no hay
@@ -1641,6 +1689,11 @@
   // salidaCada segundos en el tiempo del ejercicio: [(k-1)·S, k·S].
   let salidaVentana = 1;        // serie en curso (1, 2, 3…)
   let salidaTapeada = false;    // ¿ya se ha marcado la serie en curso con el botón «Serie»?
+  // Ventana en curso de «Salida cada», en ms del cronómetro: cuándo empezó y cuánto dura. Antes se calculaba como
+  // serie × salidaCada; así se puede cambiar el tiempo con el ejercicio en marcha sin mover las ventanas ya hechas.
+  let salidaInicioMs = 0, salidaLongMs = 0;
+  function salidaFinMs(){ return salidaInicioMs + salidaLongMs; }
+  function salidaAvanzarVentana(ex){ salidaInicioMs += salidaLongMs; salidaLongMs = ex.salidaCada * 1000; }
   let relojCongeladoDesde = 0;  // instante en que se detuvo el reloj (pantalla «series completadas»)
   let countdownActive = false, countdownHandle = null;
   let wakeLock = null;
@@ -1744,6 +1797,10 @@
     document.body.setAttribute("data-screen", name);
     try{ history.replaceState({ rpNav:true, tipo:"screen", valor:name }, ""); }catch(e){ /* entorno sin history API */ }
   }
+
+  // Los pop-ups se cuelgan directamente de <body>: así su posición fija se mide siempre contra la pantalla del
+  // dispositivo, pase lo que pase con los estilos de .container (ver su animación de entrada).
+  document.querySelectorAll(".container .rp-modal-backdrop").forEach(m => document.body.appendChild(m));
 
   function registrarAperturaModal(id){
     modalAbiertoId = id;
@@ -2449,6 +2506,7 @@ c48 -9 152 -20 232 -26 80 -6 199 -15 265 -21 180 -14 336 -26 580 -44 270
     exerciseResults = progreso.exerciseResults || {};
     descansosActivos = progreso.descansosActivos !== undefined ? progreso.descansosActivos : true;
     descansoOverrides = progreso.descansoOverrides || {};
+    tiempoOriginal = {};
     // Cronómetro de sesión: se restaura como tiempo fijo (pausado) igual al
     // que había al guardar. Si el usuario sigue entrenando (abre un
     // ejercicio), openExercise() lo reanuda contando desde ese punto en
@@ -2486,6 +2544,7 @@ c48 -9 152 -20 232 -26 80 -6 199 -15 265 -21 180 -14 336 -26 580 -44 270
     completedSet = new Set();
     exerciseResults = {};
     descansoOverrides = {};
+    tiempoOriginal = {};
     reiniciarCronoSesion(); // entrenamiento nuevo: el cronómetro de sesión empieza de cero
     borrarProgresoLocal(); // una sesión nueva sustituye cualquier progreso pendiente anterior
     renderOverview();
@@ -3528,7 +3587,8 @@ c48 -9 152 -20 232 -26 80 -6 199 -15 265 -21 180 -14 336 -26 580 -44 270
   function renderExerciseScreen(){
     const item = flat[currentIdx];
     const ex = item.ex;
-    document.getElementById("exProgress").textContent = `Ejercicio ${currentIdx+1} de ${flat.length}`;
+    document.getElementById("exProgress").innerHTML = `Ejercicio ${currentIdx+1} de ${flat.length}`
+      + (completedSet.has(currentIdx) ? ` <span class="rp-hecho-chip">✓ Hecho</span>` : "");
     document.getElementById("exBlockLabel").textContent = item.bloqueTitulo || "";
     document.getElementById("exNombre").textContent = ex.nombre;
 
@@ -3628,7 +3688,7 @@ c48 -9 152 -20 232 -26 80 -6 199 -15 265 -21 180 -14 336 -26 580 -44 270
         ? formatTime(objetivoSegundos(ex)*1000,false) + (ex.ritmo > 0 ? ` (${fmtSeg(ex.ritmo)}/100m)` : "")
         : "Sin objetivo";
 
-      startBtn.textContent = "▶ Empezar";
+      startBtn.textContent = completedSet.has(currentIdx) ? "✓ Repetir ejercicio" : "▶ Empezar";
     }
 
     document.getElementById("prevExBtn").disabled = currentIdx === 0;
@@ -3649,6 +3709,7 @@ c48 -9 152 -20 232 -26 80 -6 199 -15 265 -21 180 -14 336 -26 580 -44 270
       toggleWrap.style.display = "none";
       editorWrap.style.display = "none";
     }
+    renderTiempoEditor();
   }
 
   // Segundos de descanso a aplicar para un ejercicio: prioriza el ajuste
@@ -3734,6 +3795,131 @@ c48 -9 152 -20 232 -26 80 -6 199 -15 265 -21 180 -14 336 -26 580 -44 270
     renderDescansoEditorValor();
     actualizarDescansoToggleSub();
   });
+
+  // ====================================================================
+  // ⏱ TEMPORIZADOR DEL EJERCICIO (EDITABLE)
+  // Natación: «Salida cada» (cuenta atrás de cada serie; solo con más de 1 serie).
+  // Físico: duración de cada serie en los ejercicios por tiempo.
+  // Se ajusta de 5 en 5 s antes de empezar (pantalla del ejercicio) y con el ejercicio en marcha.
+  // El cambio se guarda en el propio ejercicio de la sesión (así queda también en el progreso guardado y en
+  // el archivo descargable); tiempoOriginal solo recuerda el valor de partida para enseñarlo.
+  // ====================================================================
+  const TIEMPO_PASO = 5, TIEMPO_MIN = 5, TIEMPO_MAX = 3600;
+  let tiempoOriginal = {};
+
+  function campoTemporizador(){ return modoFisico ? "duracionSegundos" : "salidaCada"; }
+  function tieneTemporizador(ex){ return modoFisico ? (ex.duracionSegundos != null && ex.duracionSegundos > 0) : salidaActiva(ex); }
+  function textoTiempo(seg){ return modoFisico ? formatTime(seg * 1000, false) : fmtSeg(seg); }
+
+  // Suma `delta` segundos al temporizador del ejercicio idx (con mínimo y máximo). Devuelve los segundos que
+  // realmente se han sumado (0 si no ha cambiado nada).
+  function ajustarTemporizador(idx, delta){
+    const item = flat[idx];
+    if(!item || !tieneTemporizador(item.ex)) return 0;
+    const ex = item.ex, campo = campoTemporizador(), antes = ex[campo];
+    const despues = Math.min(Math.max(TIEMPO_MAX, antes), Math.max(Math.min(TIEMPO_MIN, antes), antes + delta));
+    if(despues === antes) return 0;
+    if(tiempoOriginal[idx] === undefined) tiempoOriginal[idx] = antes;
+    ex[campo] = despues;
+    guardarProgresoLocal();
+    return despues - antes;
+  }
+
+  // Editor de la pantalla del ejercicio (antes de empezar)
+  function renderTiempoEditor(){
+    const wrap = document.getElementById("exTiempoEditor");
+    const item = flat[currentIdx];
+    if(!item || !tieneTemporizador(item.ex)){ wrap.style.display = "none"; return; }
+    const actual = item.ex[campoTemporizador()], orig = tiempoOriginal[currentIdx];
+    wrap.style.display = "flex";
+    document.getElementById("exTiempoEtiqueta").textContent = (modoFisico ? "Duración de cada serie" : "Salida cada")
+      + (orig !== undefined && orig !== actual ? ` (antes ${textoTiempo(orig)})` : "");
+    document.getElementById("exTiempoValor").textContent = textoTiempo(actual);
+  }
+
+  function refrescarTiempoEjercicio(){
+    const item = flat[currentIdx];
+    if(!item) return;
+    const ex = item.ex;
+    if(modoFisico){
+      if(ex.duracionSegundos != null) document.getElementById("exIntensidad").textContent = formatTime(ex.duracionSegundos*1000, false);
+    } else {
+      document.getElementById("exSeries").textContent = `${ex.series} × ${ex.metros}m` + (ex.salidaCada > 0 ? ` · cada ${fmtSeg(ex.salidaCada)}` : "");
+    }
+    actualizarDescansoToggleSub();
+    renderTiempoEditor();
+  }
+
+  document.getElementById("exTiempoMasBtn").addEventListener("click", () => { if(ajustarTemporizador(currentIdx, TIEMPO_PASO)) refrescarTiempoEjercicio(); });
+  document.getElementById("exTiempoMenosBtn").addEventListener("click", () => { if(ajustarTemporizador(currentIdx, -TIEMPO_PASO)) refrescarTiempoEjercicio(); });
+
+  // --- Natación, con el ejercicio en marcha
+  function actualizarTargetRef(){
+    const ex = flat[currentIdx].ex;
+    document.getElementById("targetRef").textContent = [
+      objetivoSegundos(ex) ? `🎯 Objetivo: ${formatTime(objetivoSegundos(ex)*1000,false)} / serie` : "",
+      ex.salidaCada > 0 ? `Salida cada ${fmtSeg(ex.salidaCada)}` : ""
+    ].filter(Boolean).join(" · ");
+  }
+
+  function actualizarAjusteSalida(){
+    const wrap = document.getElementById("salidaAjuste");
+    const item = flat[currentIdx];
+    if(!item || !salidaActiva(item.ex)){ wrap.style.display = "none"; return; }
+    wrap.style.display = "flex";
+    document.getElementById("salidaAjusteTxt").textContent = `Salida cada ${fmtSeg(item.ex.salidaCada)}`;
+  }
+
+  // La serie en curso cambia lo mismo (con al menos 1 s de margen) y las siguientes usan ya el nuevo valor.
+  function ajustarSalidaEnCurso(delta){
+    if((timerState !== "running" && timerState !== "paused") || restState === "running" || relojCongeladoDesde) return;
+    const ex = flat[currentIdx].ex;
+    if(!salidaActiva(ex)) return;
+    const cambio = ajustarTemporizador(currentIdx, delta);
+    if(!cambio) return;
+    const ahora = timerState === "paused" ? pauseStartedAt : Date.now();
+    const elapsed = ahora - startTime - pausedAccum;
+    salidaLongMs = Math.max(salidaLongMs + cambio * 1000, elapsed + 1000 - salidaInicioMs);
+    flashLap(`Salida cada ${fmtSeg(ex.salidaCada)}`);
+    actualizarAjusteSalida();
+    actualizarTargetRef();
+    if(timerState === "running"){
+      updateTimerDisplay();
+    } else {
+      document.getElementById("timerDisplay").textContent = formatTime(Math.ceil((salidaFinMs() - elapsed) / 100) * 100, true);
+    }
+  }
+  document.getElementById("salidaMasBtn").addEventListener("click", () => ajustarSalidaEnCurso(TIEMPO_PASO));
+  document.getElementById("salidaMenosBtn").addEventListener("click", () => ajustarSalidaEnCurso(-TIEMPO_PASO));
+
+  // --- Físico por tiempo, con el ejercicio en marcha
+  function textoFisicoInfo(ex){
+    const cantidad = ex.duracionSegundos != null
+      ? formatTime(ex.duracionSegundos*1000, false)
+      : `${ex.repeticiones != null ? ex.repeticiones : "?"} rep${ex.porLado ? " / lado" : ""}`;
+    return `${ex.series} × ${cantidad}`;
+  }
+
+  function actualizarAjusteFisico(){
+    const item = flat[currentIdx];
+    if(!item || item.ex.duracionSegundos == null) return;
+    document.getElementById("fisicoTiempoTxt").textContent = `Duración de la serie ${formatTime(item.ex.duracionSegundos*1000, false)}`;
+  }
+
+  function ajustarDuracionFisicaEnCurso(delta){
+    if(!fisicoTimerHandle) return;
+    const ex = flat[currentIdx].ex;
+    const cambio = ajustarTemporizador(currentIdx, delta);
+    if(!cambio) return;
+    const transcurrido = Date.now() - fisicoInicio;
+    fisicoTotalMs = Math.max(fisicoTotalMs + cambio * 1000, transcurrido + 1000);
+    document.getElementById("fisicoInfo").textContent = textoFisicoInfo(ex);
+    document.getElementById("fisicoCountdown").textContent = formatTime(Math.max(0, fisicoTotalMs - transcurrido), false);
+    actualizarAjusteFisico();
+    programarBarraFisica();
+  }
+  document.getElementById("fisicoTiempoMasBtn").addEventListener("click", () => ajustarDuracionFisicaEnCurso(TIEMPO_PASO));
+  document.getElementById("fisicoTiempoMenosBtn").addEventListener("click", () => ajustarDuracionFisicaEnCurso(-TIEMPO_PASO));
 
   document.getElementById("prevExBtn").addEventListener("click", () => openExercise(currentIdx - 1));
   document.getElementById("nextExBtn").addEventListener("click", () => openExercise(currentIdx + 1));
@@ -3842,24 +4028,35 @@ c48 -9 152 -20 232 -26 80 -6 199 -15 265 -21 180 -14 336 -26 580 -44 270
     ejecutarSerieCronometroFisico(ex);
   }
 
-  function ejecutarSerieCronometroFisico(ex){
-    const totalMs = ex.duracionSegundos * 1000;
+  // Duración de la serie en curso y cuándo empezó: se pueden cambiar con la serie en marcha (±5 s)
+  let fisicoTotalMs = 0, fisicoInicio = 0;
+
+  // Barra de progreso: desde lo ya hecho hasta el 100 % en el tiempo que quede
+  function programarBarraFisica(){
     const barra = document.getElementById("fisicoProgressBar");
+    const transcurrido = Date.now() - fisicoInicio;
+    const hecho = Math.min(1, Math.max(0, transcurrido / fisicoTotalMs));
+    const restanteMs = Math.max(0, fisicoTotalMs - transcurrido);
+    barra.style.transition = "none";
+    barra.style.width = (hecho * 100) + "%";
+    void barra.offsetWidth; // fuerza reflow para que la siguiente transición sí anime
+    barra.style.transition = `width ${restanteMs}ms linear`;
+    requestAnimationFrame(() => { barra.style.width = "100%"; });
+  }
+
+  function ejecutarSerieCronometroFisico(ex){
+    fisicoTotalMs = ex.duracionSegundos * 1000;
+    fisicoInicio = Date.now();
     const numEl = document.getElementById("fisicoCountdown");
     const serieEl = document.getElementById("fisicoSerieLabel");
 
     serieEl.textContent = ex.series > 1 ? `Serie ${fisicoSerieActual} de ${ex.series}` : "";
-    numEl.textContent = formatTime(totalMs, false);
+    numEl.textContent = formatTime(fisicoTotalMs, false);
+    actualizarAjusteFisico();
+    programarBarraFisica();
 
-    barra.style.transition = "none";
-    barra.style.width = "0%";
-    void barra.offsetWidth; // fuerza reflow para que la siguiente transición sí anime
-    barra.style.transition = `width ${totalMs}ms linear`;
-    requestAnimationFrame(() => { barra.style.width = "100%"; });
-
-    const inicio = Date.now();
     fisicoTimerHandle = setInterval(() => {
-      const restante = Math.max(0, totalMs - (Date.now() - inicio));
+      const restante = Math.max(0, fisicoTotalMs - (Date.now() - fisicoInicio));
       numEl.textContent = formatTime(restante, false);
       if(restante <= 0){
         clearInterval(fisicoTimerHandle);
@@ -4067,9 +4264,9 @@ c48 -9 152 -20 232 -26 80 -6 199 -15 265 -21 180 -14 336 -26 580 -44 270
   // y arranca la siguiente, con su descanso antes si el ejercicio lo lleva.
   function terminarVentanaSalida(){
     const ex = flat[currentIdx].ex;
-    const S = ex.salidaCada * 1000, k = salidaVentana;
+    const S = salidaLongMs, k = salidaVentana, fin = salidaFinMs();
     if(!salidaTapeada){
-      laps.push({ elapsedMs: k * S, splitMs: S, auto: true });
+      laps.push({ elapsedMs: fin, splitMs: S, auto: true });
       renderLapsMini();
     }
     salidaTapeada = false;
@@ -4082,6 +4279,7 @@ c48 -9 152 -20 232 -26 80 -6 199 -15 265 -21 180 -14 336 -26 580 -44 270
       return;
     }
     salidaVentana = k + 1;
+    salidaAvanzarVentana(ex);
     updateLapCounter();
     flashLap(`Salida · serie ${salidaVentana} de ${ex.series}`);
     if(descansosActivos && descansoSegundosDe(ex) > 0) iniciarDescansoSerie();
@@ -4094,6 +4292,8 @@ c48 -9 152 -20 232 -26 80 -6 199 -15 265 -21 180 -14 336 -26 580 -44 270
     pausedAccum = 0;
     salidaVentana = 1;
     salidaTapeada = false;
+    salidaInicioMs = 0;
+    salidaLongMs = (flat[currentIdx].ex.salidaCada || 0) * 1000;
     relojCongeladoDesde = 0;
     laps = [];
     vueltasSueltas = [];
@@ -4108,10 +4308,8 @@ c48 -9 152 -20 232 -26 80 -6 199 -15 265 -21 180 -14 336 -26 580 -44 270
     const ex = item.ex;
     document.getElementById("timerExName").textContent = ex.nombre;
     document.getElementById("timerExProgress").textContent = `Ejercicio ${currentIdx+1} de ${flat.length}`;
-    document.getElementById("targetRef").textContent = [
-      objetivoSegundos(ex) ? `🎯 Objetivo: ${formatTime(objetivoSegundos(ex)*1000,false)} / serie` : "",
-      ex.salidaCada > 0 ? `Salida cada ${fmtSeg(ex.salidaCada)}` : ""
-    ].filter(Boolean).join(" · ");
+    actualizarTargetRef();
+    actualizarAjusteSalida();
     const lapBtnEl = document.getElementById("lapBtn");
     lapBtnEl.disabled = false;
     // Con 1 sola serie el botón se llama "Vuelta" y funciona como
@@ -4168,7 +4366,7 @@ c48 -9 152 -20 232 -26 80 -6 199 -15 265 -21 180 -14 336 -26 580 -44 270
     const exActual = flat[currentIdx].ex;
     if(salidaActiva(exActual)){
       // Cuenta atrás hasta la próxima salida (la serie en curso termina en salidaVentana · salidaCada)
-      const resta = salidaVentana * exActual.salidaCada * 1000 - elapsed;
+      const resta = salidaFinMs() - elapsed;
       if(resta <= 0){ terminarVentanaSalida(); return; }
       const td = document.getElementById("timerDisplay");
       td.textContent = formatTime(Math.ceil(resta / 100) * 100, true);
@@ -4207,9 +4405,9 @@ c48 -9 152 -20 232 -26 80 -6 199 -15 265 -21 180 -14 336 -26 580 -44 270
       // Con «Salida cada» el botón solo anota cuánto has tardado en esta serie. La cuenta atrás sigue hasta
       // la salida: el descanso es el tiempo que sobra, y la siguiente serie arranca sola.
       if(salidaTapeada){ flashLap(`Serie ${salidaVentana} ya marcada`); return; }
-      const S = exSalida.salidaCada * 1000;
-      const split = Math.max(0, Math.min(elapsed - (salidaVentana - 1) * S, S));
-      laps.push({ elapsedMs: salidaVentana * S, splitMs: split });
+      const S = salidaLongMs;
+      const split = Math.max(0, Math.min(elapsed - salidaInicioMs, S));
+      laps.push({ elapsedMs: salidaFinMs(), splitMs: split });
       salidaTapeada = true;
       renderLapsMini();
       flashLap(`Serie ${salidaVentana} marcada — ${formatTime(split, true)}`);
@@ -4255,7 +4453,7 @@ c48 -9 152 -20 232 -26 80 -6 199 -15 265 -21 180 -14 336 -26 580 -44 270
     const exV = flat[currentIdx].ex;
     // Con «Salida cada» las series ocupan ventanas fijas: la vuelta suelta se mide desde el inicio de la ventana en curso
     const prev = salidaActiva(exV)
-      ? Math.max((salidaVentana - 1) * exV.salidaCada * 1000, lastSueltaMs)
+      ? Math.max(salidaInicioMs, lastSueltaMs)
       : Math.max(lastLapMs, lastSueltaMs);
     vueltasSueltas.push({ elapsedMs: elapsed, splitMs: elapsed - prev });
     renderLapsMini();
@@ -4364,6 +4562,7 @@ c48 -9 152 -20 232 -26 80 -6 199 -15 265 -21 180 -14 336 -26 580 -44 270
       // Con «Salida cada»: nueva ventana de cuenta atrás (con su descanso antes, si lo lleva)
       descongelarReloj();
       salidaVentana++;
+      salidaAvanzarVentana(exExtra);
       salidaTapeada = false;
       updateLapCounter();
       showScreen("timer");
